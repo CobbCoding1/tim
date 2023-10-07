@@ -3,81 +3,18 @@
 #include <string.h>
 #include <assert.h>
 
-#define MAX_STACK_SIZE 1024
-
-typedef enum {
-    INST_NOP = 0,
-    INST_PUSH,
-    INST_POP,
-    INST_DUP,
-    INST_SWAP,
-    INST_ADD,
-    INST_SUB,
-    INST_MUL,
-    INST_DIV,
-    INST_MOD,
-    INST_CMPE,
-    INST_CMPNE,
-    INST_CMPG,
-    INST_CMPL,
-    INST_CMPGE,
-    INST_CMPLE,
-    INST_JMP,
-    INST_ZJMP,
-    INST_NZJMP,
-    INST_PRINT,
-    INST_HALT,
-} Inst_Set;
-
-typedef struct {
-    Inst_Set type;
-    int value;
-} Inst;
-
-typedef struct {
-    int stack[MAX_STACK_SIZE];
-    int stack_size;
-    size_t program_size;
-    Inst *instructions;
-} Machine;
-
-#define DEF_INST_NOP(x) {.type = INST_NOP}
-#define DEF_INST_PUSH(x) {.type = INST_PUSH, .value = x}
-#define DEF_INST_POP() {.type = INST_POP}
-#define DEF_INST_DUP() {.type = INST_DUP}
-#define DEF_INST_SWAP() {.type = INST_SWAP}
-#define DEF_INST_ADD() {.type = INST_ADD}
-#define DEF_INST_SUB() {.type = INST_SUB}
-#define DEF_INST_MUL() {.type = INST_MUL}
-#define DEF_INST_DIV() {.type = INST_DIV}
-#define DEF_INST_MOD() {.type = INST_MOD}
-#define DEF_INST_CMPE() {.type = INST_CMPE}
-#define DEF_INST_CMPNE() {.type = INST_CMPNE}
-#define DEF_INST_CMPG() {.type = INST_CMPG}
-#define DEF_INST_CMPL() {.type = INST_CMPL}
-#define DEF_INST_CMPGE() {.type = INST_CMPGE}
-#define DEF_INST_CMPLE() {.type = INST_CMPLE}
-#define DEF_INST_JMP(x) {.type = INST_JMP, .value = x}
-#define DEF_INST_ZJMP(x) {.type = INST_ZJMP, .value = x}
-#define DEF_INST_NZJMP(x) {.type = INST_NZJMP, .value = x}
-#define DEF_INST_PRINT() {.type = INST_PRINT}
-#define DEF_INST_HALT(x) {.type = INST_HALT}
+#include "tim.h"
 
 Inst program[] = {
-    DEF_INST_PUSH(14),
-    DEF_INST_PUSH(14),
-    DEF_INST_PUSH(14),
-    DEF_INST_PUSH(14),
-    DEF_INST_PUSH(5),
-    DEF_INST_NZJMP(6),
-    DEF_INST_PUSH(15),
-    DEF_INST_NOP(),
-    DEF_INST_NOP(),
-    DEF_INST_NOP(),
-    DEF_INST_PRINT(),
+    DEF_INST_PUSH(1),
+    DEF_INST_PUSH(4),
+    DEF_INST_PUSH(6),
+    DEF_INST_PUSH(8),
+    DEF_INST_PUSH(10),
+    DEF_INST_PUSH(12),
+    DEF_INST_INDUP(2),
 };
 #define PROGRAM_SIZE (sizeof(program)/sizeof(program[0]))
-
 
 void push(Machine *machine, int value){
     if(machine->stack_size >= MAX_STACK_SIZE){
@@ -95,6 +32,24 @@ int pop(Machine *machine){
     }
     machine->stack_size--;
     return machine->stack[machine->stack_size];
+}
+
+void index_swap(Machine *machine, int index){
+    if(index > machine->stack_size || index < 0){
+        fprintf(stderr, "ERROR: Index out of range\n");
+        exit(1);
+    }
+    int temp_value = machine->stack[index];
+    machine->stack[index] = pop(machine); 
+    push(machine, temp_value);
+}
+
+void index_dup(Machine *machine, int index){
+    if(index > machine->stack_size || index < 0){
+        fprintf(stderr, "ERROR: Index out of range\n");
+        exit(1);
+    }
+    push(machine, machine->stack[index]);
 }
 
 void print_stack(Machine *machine){
@@ -137,141 +92,142 @@ Machine *read_program_from_file(Machine *machine, char *file_path){
     return machine;
 }
 
-
-int main(){
+void run_instructions(Machine *machine){
     int a, b;
-    Machine *loaded_machine = malloc(sizeof(Machine) * MAX_STACK_SIZE);
-    loaded_machine->instructions = program;
-    write_program_to_file(loaded_machine, "test.tim");
-    loaded_machine = read_program_from_file(loaded_machine, "test.tim");
-    for(size_t ip = 0; ip < loaded_machine->program_size; ip++){
-        switch(loaded_machine->instructions[ip].type){
+    for(size_t ip = 0; ip < machine->program_size; ip++){
+        switch(machine->instructions[ip].type){
             case INST_NOP:
                 continue;
                 break;
             case INST_PUSH:
-                push(loaded_machine, loaded_machine->instructions[ip].value);
+                push(machine, machine->instructions[ip].value);
                 break;
             case INST_POP:
-                pop(loaded_machine);
+                pop(machine);
                 break;
             case INST_DUP:
-                a = pop(loaded_machine);
-                push(loaded_machine, a);
-                push(loaded_machine, a);
+                a = pop(machine);
+                push(machine, a);
+                push(machine, a);
+                break;
+            case INST_INDUP:
+                index_dup(machine, machine->instructions[ip].value);
                 break;
             case INST_SWAP:
-                a = pop(loaded_machine);
-                b = pop(loaded_machine);
-                push(loaded_machine, a);
-                push(loaded_machine, b);
+                a = pop(machine);
+                b = pop(machine);
+                push(machine, a);
+                push(machine, b);
+                break;
+            case INST_INSWAP:
+                index_swap(machine, machine->instructions[ip].value);
                 break;
             case INST_ADD:
-                a = pop(loaded_machine);
-                b = pop(loaded_machine);
-                push(loaded_machine, a + b);
+                a = pop(machine);
+                b = pop(machine);
+                push(machine, a + b);
                 break;
             case INST_SUB:
-                a = pop(loaded_machine);
-                b = pop(loaded_machine);
-                push(loaded_machine, a - b);
+                a = pop(machine);
+                b = pop(machine);
+                push(machine, a - b);
                 break;
             case INST_MUL:
-                a = pop(loaded_machine);
-                b = pop(loaded_machine);
-                push(loaded_machine, a * b);
+                a = pop(machine);
+                b = pop(machine);
+                push(machine, a * b);
                 break;
             case INST_DIV:
-                a = pop(loaded_machine);
-                b = pop(loaded_machine);
+                a = pop(machine);
+                b = pop(machine);
                 if(b == 0){
                     fprintf(stderr, "ERROR: Cannot divide by 0\n");
                     exit(1);
                 }
-                push(loaded_machine, a / b);
+                push(machine, a / b);
                 break;
             case INST_MOD:
-                a = pop(loaded_machine);
-                b = pop(loaded_machine);
-                push(loaded_machine, a % b);
+                a = pop(machine);
+                b = pop(machine);
+                push(machine, a % b);
                 break;
             case INST_CMPE:
-                a = pop(loaded_machine);
-                b = pop(loaded_machine);
-                push(loaded_machine, b);
-                push(loaded_machine, a);
+                a = pop(machine);
+                b = pop(machine);
+                push(machine, b);
+                push(machine, a);
                 if(a == b){
-                    push(loaded_machine, 1);
+                    push(machine, 1);
                 } else {
-                    push(loaded_machine, 0);
+                    push(machine, 0);
                 }
                 break;
             case INST_CMPNE:
-                a = pop(loaded_machine);
-                b = pop(loaded_machine);
-                push(loaded_machine, b);
-                push(loaded_machine, a);
+                a = pop(machine);
+                b = pop(machine);
+                push(machine, b);
+                push(machine, a);
                 if(a != b){
-                    push(loaded_machine, 1);
+                    push(machine, 1);
                 } else {
-                    push(loaded_machine, 0);
+                    push(machine, 0);
                 }
                 break;
             case INST_CMPG:
-                a = pop(loaded_machine);
-                b = pop(loaded_machine);
-                push(loaded_machine, b);
-                push(loaded_machine, a);
+                a = pop(machine);
+                b = pop(machine);
+                push(machine, b);
+                push(machine, a);
                 if(a > b){
-                    push(loaded_machine, 1);
+                    push(machine, 1);
                 } else {
-                    push(loaded_machine, 0);
+                    push(machine, 0);
                 }
                 break;
             case INST_CMPL:
-                a = pop(loaded_machine);
-                b = pop(loaded_machine);
-                push(loaded_machine, b);
-                push(loaded_machine, a);
+                a = pop(machine);
+                b = pop(machine);
+                push(machine, b);
+                push(machine, a);
                 if(a < b){
-                    push(loaded_machine, 1);
+                    push(machine, 1);
                 } else {
-                    push(loaded_machine, 0);
+                    push(machine, 0);
                 }
                 break;
             case INST_CMPGE:
-                a = pop(loaded_machine);
-                b = pop(loaded_machine);
-                push(loaded_machine, b);
-                push(loaded_machine, a);
+                a = pop(machine);
+                b = pop(machine);
+                push(machine, b);
+                push(machine, a);
                 if(a >= b){
-                    push(loaded_machine, 1);
+                    push(machine, 1);
                 } else {
-                    push(loaded_machine, 0);
+                    push(machine, 0);
                 }
                 break;
             case INST_CMPLE:
-                a = pop(loaded_machine);
-                b = pop(loaded_machine);
-                push(loaded_machine, b);
-                push(loaded_machine, a);
+                a = pop(machine);
+                b = pop(machine);
+                push(machine, b);
+                push(machine, a);
                 if(a <= b){
-                    push(loaded_machine, 1);
+                    push(machine, 1);
                 } else {
-                    push(loaded_machine, 0);
+                    push(machine, 0);
                 }
                 break;
             case INST_JMP:
-                ip = loaded_machine->instructions[ip].value - 1;
-                if(ip + 1 >= loaded_machine->program_size){
+                ip = machine->instructions[ip].value - 1;
+                if(ip + 1 >= machine->program_size){
                     fprintf(stderr, "ERROR: Cannot jump out of bounds\n");
                     exit(1);
                 }
                 break;
             case INST_ZJMP:
-                if(pop(loaded_machine) == 0){
-                    ip = loaded_machine->instructions[ip].value - 1;
-                    if(ip + 1 >= loaded_machine->program_size){
+                if(pop(machine) == 0){
+                    ip = machine->instructions[ip].value - 1;
+                    if(ip + 1 >= machine->program_size){
                         fprintf(stderr, "ERROR: Cannot jump out of bounds\n");
                         exit(1);
                     }
@@ -280,9 +236,9 @@ int main(){
                 }
                 break;
             case INST_NZJMP:
-                if(pop(loaded_machine) != 0){
-                    ip = loaded_machine->instructions[ip].value - 1;
-                    if(ip + 1 >= loaded_machine->program_size){
+                if(pop(machine) != 0){
+                    ip = machine->instructions[ip].value - 1;
+                    if(ip + 1 >= machine->program_size){
                         fprintf(stderr, "ERROR: Cannot jump out of bounds\n");
                         exit(1);
                     }
@@ -291,13 +247,26 @@ int main(){
                 }
                 break;
             case INST_PRINT:
-                printf("%d\n", pop(loaded_machine));
+                printf("%d\n", pop(machine));
                 break;
             case INST_HALT:
-                ip = loaded_machine->program_size;
+                ip = machine->program_size;
                 break;
         }
     }
+
+}
+
+
+int main(){
+    lexer();
+    Machine *loaded_machine = malloc(sizeof(Machine) * MAX_STACK_SIZE);
+
+    loaded_machine->instructions = program;
+    write_program_to_file(loaded_machine, "test.tim");
+    loaded_machine = read_program_from_file(loaded_machine, "test.tim");
+    
+    run_instructions(loaded_machine);
     print_stack(loaded_machine);
     return 0;
 }

@@ -1,2 +1,2 @@
 set -xe
-gcc tim.c -o tim -Wall -Wextra
+gcc tim.c tasmlexer.c -o tim -Wall -Wextra
