@@ -22,8 +22,9 @@ typedef enum {
     INST_CMPL,
     INST_CMPGE,
     INST_CMPLE,
-    INST_CJMP,
     INST_JMP,
+    INST_ZJMP,
+    INST_NZJMP,
     INST_PRINT,
     INST_HALT,
 } Inst_Set;
@@ -56,17 +57,20 @@ typedef struct {
 #define DEF_INST_CMPL() {.type = INST_CMPL}
 #define DEF_INST_CMPGE() {.type = INST_CMPGE}
 #define DEF_INST_CMPLE() {.type = INST_CMPLE}
-#define DEF_INST_CJMP(x) {.type = INST_CJMP, .value = x}
 #define DEF_INST_JMP(x) {.type = INST_JMP, .value = x}
+#define DEF_INST_ZJMP(x) {.type = INST_ZJMP, .value = x}
+#define DEF_INST_NZJMP(x) {.type = INST_NZJMP, .value = x}
 #define DEF_INST_PRINT() {.type = INST_PRINT}
 #define DEF_INST_HALT(x) {.type = INST_HALT}
 
 Inst program[] = {
     DEF_INST_PUSH(14),
-    DEF_INST_PUSH(27),
-    DEF_INST_HALT(),
+    DEF_INST_PUSH(14),
+    DEF_INST_PUSH(14),
+    DEF_INST_PUSH(14),
+    DEF_INST_PUSH(5),
+    DEF_INST_NZJMP(6),
     DEF_INST_PUSH(15),
-    DEF_INST_CMPGE(),
     DEF_INST_NOP(),
     DEF_INST_NOP(),
     DEF_INST_NOP(),
@@ -257,8 +261,15 @@ int main(){
                     push(loaded_machine, 0);
                 }
                 break;
-            case INST_CJMP:
-                if(pop(loaded_machine) == 1){
+            case INST_JMP:
+                ip = loaded_machine->instructions[ip].value - 1;
+                if(ip + 1 >= loaded_machine->program_size){
+                    fprintf(stderr, "ERROR: Cannot jump out of bounds\n");
+                    exit(1);
+                }
+                break;
+            case INST_ZJMP:
+                if(pop(loaded_machine) == 0){
                     ip = loaded_machine->instructions[ip].value - 1;
                     if(ip + 1 >= loaded_machine->program_size){
                         fprintf(stderr, "ERROR: Cannot jump out of bounds\n");
@@ -268,11 +279,15 @@ int main(){
                     continue;
                 }
                 break;
-            case INST_JMP:
-                ip = loaded_machine->instructions[ip].value - 1;
-                if(ip + 1 >= loaded_machine->program_size){
-                    fprintf(stderr, "ERROR: Cannot jump out of bounds\n");
-                    exit(1);
+            case INST_NZJMP:
+                if(pop(loaded_machine) != 0){
+                    ip = loaded_machine->instructions[ip].value - 1;
+                    if(ip + 1 >= loaded_machine->program_size){
+                        fprintf(stderr, "ERROR: Cannot jump out of bounds\n");
+                        exit(1);
+                    }
+                } else {
+                    continue;
                 }
                 break;
             case INST_PRINT:
