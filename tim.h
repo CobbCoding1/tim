@@ -1,8 +1,6 @@
 #ifndef TIM_H
 #define TIM_H
 
-#include "tasmlexer.h"
-
 #define MAX_STACK_SIZE 1024
 
 typedef enum {
@@ -76,7 +74,7 @@ void print_stack(Machine *machine);
 void write_program_to_file(Machine *machine, char *file_path);
 Machine *read_program_from_file(Machine *machine, char *file_path);
 void run_instructions(Machine *machine);
-int main();
+int tim();
 
 
 #endif

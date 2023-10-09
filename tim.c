@@ -258,8 +258,7 @@ void run_instructions(Machine *machine){
 }
 
 
-int main(){
-    lexer();
+int tim(){
     Machine *loaded_machine = malloc(sizeof(Machine) * MAX_STACK_SIZE);
 
     loaded_machine->instructions = program;
