@@ -5,6 +5,5 @@
 #include <stdlib.h>
 
 #include "tasmlexer.h"
-#include "tim.h"
 
 #endif
