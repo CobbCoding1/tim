@@ -113,6 +113,16 @@ Inst *generate_instructions(ParseList *head, int *program_size){
     return program;
 }
 
+char *chop_file_by_dot(char *file_name){
+    int index;
+    char *result = malloc(sizeof(char) * 64);
+    for(index = 0; file_name[index] != '.' && file_name[index] != '\0'; index++){
+        result[index] = file_name[index];
+    }
+    snprintf(result + index, 5, ".tim");
+    return result;
+}
+
 int main(int argc, char *argv[]){
     if(argc < 2){
         fprintf(stderr, "Usage: %s <file_name.tasm>\n", argv[0]);
@@ -120,12 +130,13 @@ int main(int argc, char *argv[]){
     }
 
     char *file_name = argv[1];
+    char *output_file = chop_file_by_dot(file_name);
     Lexer lex = lexer(file_name);
     ParseList list = parser(lex);
     //print_list(&list);
     int program_size = 0;
     Inst *program = generate_instructions(&list, &program_size);
     Machine machine = {.instructions = program, .program_size = program_size};
-    write_program_to_file(&machine, "machine.tim");
+    write_program_to_file(&machine, output_file);
     return 0;
 }
