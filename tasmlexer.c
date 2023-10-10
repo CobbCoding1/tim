@@ -243,7 +243,7 @@ Lexer lexer(char *file_name){
     }
 
     for(int i = 0; i < lex.stack_size; i++){
-    //    print_token(lex.token_stack[i]);
+        //print_token(lex.token_stack[i]);
     }
     return lex;
 }

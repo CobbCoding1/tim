@@ -63,7 +63,6 @@ void generate_list(ParseList *root, Lexer *lexer){
                     exit(1);
                 }
                 append(root, lexer->token_stack[index]);
-                index++;
                 break;
             case TYPE_ADD:
                 append(root, lexer->token_stack[index]);
@@ -125,6 +124,7 @@ void generate_list(ParseList *root, Lexer *lexer){
 ParseList parser(Lexer lexer){
     ParseList root = {.value = lexer.token_stack[0], .next = NULL};
     generate_list(&root, &lexer);
+    //print_list(&root);
 
     return root;
 }

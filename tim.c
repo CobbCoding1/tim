@@ -21,8 +21,8 @@ void push(Machine *machine, int value){
         fprintf(stderr, "ERROR: Stack Overflow\n");
         exit(1);
     }
-    machine->stack[machine->stack_size] = value;
-    machine->stack_size++;
+    machine->stack[machine->stack_size++] = value;
+   // machine->stack_size++;
 }
 
 int pop(Machine *machine){
@@ -67,7 +67,7 @@ void write_program_to_file(Machine *machine, char *file_path){
         exit(1);
     }
 
-    fwrite(machine->instructions, sizeof(machine->instructions[0]), PROGRAM_SIZE, file);
+    fwrite(machine->instructions, sizeof(machine->instructions[0]), machine->program_size, file);
 
     fclose(file);
 }
@@ -83,10 +83,9 @@ Machine *read_program_from_file(Machine *machine, char *file_path){
     fseek(file, 0, SEEK_END);
     int length = ftell(file);
     fseek(file, 0, SEEK_SET);
-    fread(instructions, sizeof(instructions[0]), length / 8, file);
+    fread(instructions, sizeof(instructions[0]), length, file);
 
     machine->program_size = length;
-    printf("PROGRAM SIZE: %zu, length: %d, %ld\n", sizeof(&instructions)/sizeof(instructions[0]), length/8, PROGRAM_SIZE);
     machine->instructions = instructions;
 
     fclose(file);
@@ -219,8 +218,7 @@ void run_instructions(Machine *machine){
                 }
                 break;
             case INST_JMP:
-                print_stack(machine);
-                ip = machine->instructions[ip].value;
+                ip = machine->instructions[ip].value - 1;
                 if(ip + 1 >= machine->program_size){
                     fprintf(stderr, "ERROR: Cannot jump out of bounds\n");
                     exit(1);
@@ -228,24 +226,24 @@ void run_instructions(Machine *machine){
                 break;
             case INST_ZJMP:
                 if(pop(machine) == 0){
-                    ip = machine->instructions[ip].value;
+                    ip = machine->instructions[ip].value - 1;
                     if(ip + 1 >= machine->program_size){
                         fprintf(stderr, "ERROR: Cannot jump out of bounds\n");
                         exit(1);
                     }
                 } else {
-                    continue;
+                    break;
                 }
                 break;
             case INST_NZJMP:
                 if(pop(machine) != 0){
-                    ip = machine->instructions[ip].value;
+                    ip = machine->instructions[ip].value - 1;
                     if(ip + 1 >= machine->program_size){
                         fprintf(stderr, "ERROR: Cannot jump out of bounds\n");
                         exit(1);
                     }
                 } else {
-                    continue;
+                    break;
                 }
                 break;
             case INST_PRINT:
