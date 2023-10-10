@@ -1,6 +1,11 @@
 #ifndef LEXER_H
 #define LEXER_H
 
+#define MAX_TOKEN_STACK_SIZE 1024
+
+#include <stdbool.h>
+#include <assert.h>
+
 typedef enum {
     TYPE_NONE = -1,
     TYPE_NOP = 0,
@@ -25,6 +30,7 @@ typedef enum {
     TYPE_ZJMP,
     TYPE_NZJMP,
     TYPE_PRINT,
+    TYPE_INT,
     TYPE_HALT,
 } TokenType;
 
@@ -35,6 +41,14 @@ typedef struct {
     int character;
 } Token;
 
-int lexer();
+typedef struct {
+    Token token_stack[MAX_TOKEN_STACK_SIZE];
+    int stack_size;
+    char *file_name;
+} Lexer;
+
+void print_token(Token token);
+TokenType check_builtin_keywords(char *name);
+Lexer lexer();
 
 #endif

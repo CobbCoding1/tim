@@ -85,7 +85,8 @@ Machine *read_program_from_file(Machine *machine, char *file_path){
     fseek(file, 0, SEEK_SET);
     fread(instructions, sizeof(instructions[0]), length / 8, file);
 
-    machine->program_size = length / 8;
+    machine->program_size = length;
+    printf("PROGRAM SIZE: %zu, length: %d, %ld\n", sizeof(&instructions)/sizeof(instructions[0]), length/8, PROGRAM_SIZE);
     machine->instructions = instructions;
 
     fclose(file);
@@ -218,7 +219,8 @@ void run_instructions(Machine *machine){
                 }
                 break;
             case INST_JMP:
-                ip = machine->instructions[ip].value - 1;
+                print_stack(machine);
+                ip = machine->instructions[ip].value;
                 if(ip + 1 >= machine->program_size){
                     fprintf(stderr, "ERROR: Cannot jump out of bounds\n");
                     exit(1);
@@ -226,7 +228,7 @@ void run_instructions(Machine *machine){
                 break;
             case INST_ZJMP:
                 if(pop(machine) == 0){
-                    ip = machine->instructions[ip].value - 1;
+                    ip = machine->instructions[ip].value;
                     if(ip + 1 >= machine->program_size){
                         fprintf(stderr, "ERROR: Cannot jump out of bounds\n");
                         exit(1);
@@ -237,7 +239,7 @@ void run_instructions(Machine *machine){
                 break;
             case INST_NZJMP:
                 if(pop(machine) != 0){
-                    ip = machine->instructions[ip].value - 1;
+                    ip = machine->instructions[ip].value;
                     if(ip + 1 >= machine->program_size){
                         fprintf(stderr, "ERROR: Cannot jump out of bounds\n");
                         exit(1);
@@ -257,7 +259,7 @@ void run_instructions(Machine *machine){
 
 }
 
-
+/*
 int tim(){
     Machine *loaded_machine = malloc(sizeof(Machine) * MAX_STACK_SIZE);
 
@@ -269,3 +271,4 @@ int tim(){
     print_stack(loaded_machine);
     return 0;
 }
+*/

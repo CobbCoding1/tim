@@ -5,5 +5,7 @@
 #include <stdlib.h>
 
 #include "tasmlexer.h"
+#include "tasmparser.h"
+#include "tim.h"
 
 #endif

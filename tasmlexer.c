@@ -28,81 +28,103 @@ char *open_file(char *file_path, int *length){
     return current;
 }
 
-void print_token(Token token){
-    switch(token.type){
-    case TYPE_NONE:
-        printf("TYPE NONE\n");
-        break;
-    case TYPE_NOP:
-        printf("TYPE NOP\n");
-        break;
-    case TYPE_PUSH:
-        printf("TYPE PUSH\n");
-        break;
-    case TYPE_POP:
-        printf("TYPE POP\n");
-        break;
-    case TYPE_DUP:
-        printf("TYPE DUP\n");
-        break;
-    case TYPE_INDUP:
-        printf("TYPE INDUP\n");
-        break;
-    case TYPE_SWAP:
-        printf("TYPE SWAP\n");
-        break;
-    case TYPE_INSWAP:
-        printf("TYPE INSWAP\n");
-        break;
-    case TYPE_ADD:
-        printf("TYPE ADD\n");
-        break;
-    case TYPE_SUB:
-        printf("TYPE SUB\n");
-        break;
-    case TYPE_MUL:
-        printf("TYPE MUL\n");
-        break;
-    case TYPE_DIV:
-        printf("TYPE DIV\n");
-        break;
-    case TYPE_MOD:
-        printf("TYPE MOD\n");
-        break;
-    case TYPE_CMPE:
-        printf("TYPE CMPE\n");
-        break;
-    case TYPE_CMPNE:
-        printf("TYPE CMPNE\n");
-        break;
-    case TYPE_CMPG:
-        printf("TYPE CMPG\n");
-        break;
-    case TYPE_CMPL:
-        printf("TYPE CMPL\n");
-        break;
-    case TYPE_CMPGE:
-        printf("TYPE CMPGE\n");
-        break;
-    case TYPE_CMPLE:
-        printf("TYPE CMPLE\n");
-        break;
-    case TYPE_JMP:
-        printf("TYPE JMP\n");
-        break;
-    case TYPE_ZJMP:
-        printf("TYPE ZJMP\n");
-        break;
-    case TYPE_NZJMP:
-        printf("TYPE NZJMP\n");
-        break;
-    case TYPE_PRINT:
-        printf("TYPE PRINT\n");
-        break;
-    case TYPE_HALT:
-        printf("TYPE HALT\n");
-        break;
+void push_token(Lexer *lexer, Token value){
+     if(lexer->stack_size >= MAX_TOKEN_STACK_SIZE){
+        fprintf(stderr, "ERROR: Stack Overflow\n");
+        exit(1);
     }
+    lexer->token_stack[lexer->stack_size++] = value;
+}
+
+Token pop_token(Lexer *lexer){
+     if(lexer->stack_size <= 0){
+        fprintf(stderr, "ERROR: Stack Underflow\n");
+        exit(1);
+    }
+    return lexer->token_stack[lexer->stack_size];
+}
+
+void print_token(Token token){
+    assert(&token != NULL && "ERROR: Token cannot be NULL\n");
+    switch(token.type){
+        case TYPE_NONE:
+            printf("TYPE NONE\n");
+            break;
+        case TYPE_NOP:
+            printf("TYPE NOP\n");
+            break;
+        case TYPE_PUSH:
+            printf("TYPE PUSH\n");
+            break;
+        case TYPE_POP:
+            printf("TYPE POP\n");
+            break;
+        case TYPE_DUP:
+            printf("TYPE DUP\n");
+            break;
+        case TYPE_INDUP:
+            printf("TYPE INDUP\n");
+            break;
+        case TYPE_SWAP:
+            printf("TYPE SWAP\n");
+            break;
+        case TYPE_INSWAP:
+            printf("TYPE INSWAP\n");
+            break;
+        case TYPE_ADD:
+            printf("TYPE ADD\n");
+            break;
+        case TYPE_SUB:
+            printf("TYPE SUB\n");
+            break;
+        case TYPE_MUL:
+            printf("TYPE MUL\n");
+            break;
+        case TYPE_DIV:
+            printf("TYPE DIV\n");
+            break;
+        case TYPE_MOD:
+            printf("TYPE MOD\n");
+            break;
+        case TYPE_CMPE:
+            printf("TYPE CMPE\n");
+            break;
+        case TYPE_CMPNE:
+            printf("TYPE CMPNE\n");
+            break;
+        case TYPE_CMPG:
+            printf("TYPE CMPG\n");
+            break;
+        case TYPE_CMPL:
+            printf("TYPE CMPL\n");
+            break;
+        case TYPE_CMPGE:
+            printf("TYPE CMPGE\n");
+            break;
+        case TYPE_CMPLE:
+            printf("TYPE CMPLE\n");
+            break;
+        case TYPE_JMP:
+            printf("TYPE JMP\n");
+            break;
+        case TYPE_ZJMP:
+            printf("TYPE ZJMP\n");
+            break;
+        case TYPE_NZJMP:
+            printf("TYPE NZJMP\n");
+            break;
+        case TYPE_PRINT:
+            printf("TYPE PRINT\n");
+            break;
+        case TYPE_INT:
+            printf("TYPE INT\n");
+            break;
+        case TYPE_HALT:
+            printf("TYPE HALT\n");
+            break;
+        default:
+            assert(false);
+        }
     printf("text: %s, line: %d, character: %d\n", token.text, token.line, token.character);
 }
 
@@ -177,13 +199,29 @@ Token generate_keyword(char *current, int *current_index, int line, int characte
     return token;
 }
 
-int lexer(){
+Token generate_int(char *current, int *current_index, int line, int character){
+    char *keyword_name = malloc(sizeof(char) * 16);
+    int keyword_length = 0;
+    while(isdigit(current[*current_index])){
+        keyword_name[keyword_length] = current[*current_index];
+        *current_index += 1;
+        keyword_length++;
+    }
+    keyword_name[keyword_length] = '\0';
+    TokenType type = TYPE_INT;
+    Token token = init_token(type, keyword_name, line, character);
+    return token;
+}
+
+Lexer lexer(char *file_name){
     int length;
-    char *current = open_file("test.tasm", &length);
+    char *current = open_file(file_name, &length);
     int current_index = 0;
 
     int line = 1;
     int character = 1;
+
+    Lexer lex = {.stack_size = 0, .file_name = "test.tasm"};
 
     while(current_index < length){
         if(current[current_index] == '\n'){
@@ -193,12 +231,19 @@ int lexer(){
 
         if(isalpha(current[current_index])){
             Token token = generate_keyword(current, &current_index, line, character);
+            push_token(&lex, token);
             current_index--;
-            print_token(token);
         } else if(isdigit(current[current_index])){
-            printf("NUMBERIC\n");
-        }         current_index++;
+            Token token = generate_int(current, &current_index, line, character);
+            push_token(&lex, token);
+            current_index--;
+        }         
         character++;
+        current_index++;
     }
-    return 0;
+
+    for(int i = 0; i < lex.stack_size; i++){
+    //    print_token(lex.token_stack[i]);
+    }
+    return lex;
 }
