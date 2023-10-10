@@ -13,7 +13,9 @@ typedef struct ParseList {
     struct ParseList *next;
 } ParseList;
 
+void append(ParseList *head, Token value);
 void print_list(ParseList *head);
+void generate_list(ParseList *root, Lexer *lexer);
 ParseList parser(Lexer lexer);
 
 #endif

@@ -3,8 +3,12 @@
 
 #define MAX_TOKEN_STACK_SIZE 1024
 
+#include <stdio.h>
+#include <stdlib.h>
 #include <stdbool.h>
+#include <string.h>
 #include <assert.h>
+#include <ctype.h>
 
 typedef enum {
     TYPE_NONE = -1,
@@ -47,8 +51,14 @@ typedef struct {
     char *file_name;
 } Lexer;
 
+char *open_file(char *file_path, int *length);
+void push_token(Lexer *lexer, Token value);
+Token pop_token(Lexer *lexer);
 void print_token(Token token);
+Token init_token(TokenType type, char *text, int line, int character);
 TokenType check_builtin_keywords(char *name);
+Token generate_keyword(char *current, int *current_index, int line, int character);
+Token generate_int(char *current, int *current_index, int line, int character);
 Lexer lexer();
 
 #endif
