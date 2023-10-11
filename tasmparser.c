@@ -5,6 +5,12 @@ void append(ParseList *head, Token value){
     new->value = value;
     new->next = NULL;
 
+    if(head == NULL){
+        printf("ASDHKJL\n");
+        head = new;
+        return;
+    }
+
     ParseList *tmp = head;
     while(tmp->next != NULL){
         tmp = tmp->next;
@@ -36,7 +42,7 @@ void handle_token_def(Lexer *lexer, int index, int line_num, struct hashmap_s *h
 
 void generate_list(ParseList *root, Lexer *lexer, struct hashmap_s *hashmap){
     int line_num = 0;
-    for(int index = 1; index < lexer->stack_size; index++){
+    for(int index = 0; index < lexer->stack_size; index++){
         //print_token(lexer->token_stack[index]);
         switch(lexer->token_stack[index].type){
             case TYPE_NONE:
@@ -145,14 +151,14 @@ void generate_list(ParseList *root, Lexer *lexer, struct hashmap_s *hashmap){
                 append(root, lexer->token_stack[index]);
                 break;
             case TYPE_INT:
-                append(root, lexer->token_stack[index]);
+                index -= 2;
                 break;
             case TYPE_LABEL_DEF:
                 handle_token_def(lexer, index, line_num, hashmap);
                 append(root, lexer->token_stack[index]);
                 break;
             case TYPE_LABEL:
-                append(root, lexer->token_stack[index]);
+                index -= 2;
                 break;
             case TYPE_HALT:
                 append(root, lexer->token_stack[index]);
@@ -187,14 +193,11 @@ ParseList parser(Lexer lexer){
         fprintf(stderr, "ERROR: Could not initialize hashmap\n");
         exit(1);
     }
-
-    if(lexer.token_stack[0].type == TYPE_LABEL_DEF){
-        handle_token_def(&lexer, 0, 0, &label_map);
-    }
-    ParseList root = {.value = lexer.token_stack[0], .next = NULL};
+    ParseList root = {0};
     generate_list(&root, &lexer, &label_map);
+    root = *root.next;
     check_labels(&root, &label_map);
-    //print_list(&root);
+    print_list(&root);
 
     return root;
 }
