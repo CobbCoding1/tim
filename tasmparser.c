@@ -197,7 +197,7 @@ ParseList parser(Lexer lexer){
     generate_list(&root, &lexer, &label_map);
     root = *root.next;
     check_labels(&root, &label_map);
-    print_list(&root);
+    //print_list(&root);
 
     return root;
 }

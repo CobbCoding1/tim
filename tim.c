@@ -118,33 +118,33 @@ void run_instructions(Machine *machine){
                 index_swap(machine, machine->instructions[ip].value);
                 break;
             case INST_ADD:
-                a = pop(machine);
                 b = pop(machine);
+                a = pop(machine);
                 push(machine, a + b);
                 break;
             case INST_SUB:
-                a = pop(machine);
                 b = pop(machine);
-                push(machine, b - a);
+                a = pop(machine);
+                push(machine, a - b);
                 break;
             case INST_MUL:
-                a = pop(machine);
                 b = pop(machine);
+                a = pop(machine);
                 push(machine, a * b);
                 break;
             case INST_DIV:
-                a = pop(machine);
                 b = pop(machine);
+                a = pop(machine);
                 if(b == 0){
                     fprintf(stderr, "ERROR: Cannot divide by 0\n");
                     exit(1);
                 }
-                push(machine, b / a);
+                push(machine, a / b);
                 break;
             case INST_MOD:
-                a = pop(machine);
                 b = pop(machine);
-                push(machine, b % a);
+                a = pop(machine);
+                push(machine, a % b);
                 break;
             case INST_CMPE:
                 a = pop(machine);
