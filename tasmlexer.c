@@ -114,6 +114,12 @@ void print_token(Token token){
         case TYPE_INT:
             printf("TYPE INT\n");
             break;
+        case TYPE_LABEL_DEF:
+            printf("TYPE LABEL DEF\n");
+            break;
+        case TYPE_LABEL:
+            printf("TYPE LABEL\n");
+            break;
         case TYPE_HALT:
             printf("TYPE HALT\n");
             break;
@@ -179,6 +185,13 @@ TokenType check_builtin_keywords(char *name){
     return TYPE_NONE;
 }    
 
+TokenType check_label_type(char *current, int *current_index){
+    if(current[*current_index] == ':'){
+        return TYPE_LABEL_DEF;
+    }
+    return TYPE_LABEL;
+}
+
 Token generate_keyword(char *current, int *current_index, int line, int character){
     char *keyword_name = malloc(sizeof(char) * 16);
     int keyword_length = 0;
@@ -189,7 +202,9 @@ Token generate_keyword(char *current, int *current_index, int line, int characte
     }
     keyword_name[keyword_length] = '\0';
     TokenType type = check_builtin_keywords(keyword_name);
-    assert(type != TYPE_NONE && "Custom identifiers are not implemented yet\n");
+    if(type == TYPE_NONE){
+        type = check_label_type(current, current_index);
+    }
     Token token = init_token(type, keyword_name, line, character);
     return token;
 }

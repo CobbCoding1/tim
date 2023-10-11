@@ -8,6 +8,8 @@
 
 #include "tasmlexer.h"
 
+#include "hashmap.h"
+
 typedef struct ParseList {
     Token value;
     struct ParseList *next;
@@ -15,7 +17,7 @@ typedef struct ParseList {
 
 void append(ParseList *head, Token value);
 void print_list(ParseList *head);
-void generate_list(ParseList *root, Lexer *lexer);
+void generate_list(ParseList *root, Lexer *lexer, struct hashmap_s *hashmap);
 ParseList parser(Lexer lexer);
 
 #endif

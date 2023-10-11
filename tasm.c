@@ -103,6 +103,12 @@ Inst *generate_instructions(ParseList *head, int *program_size){
             case TYPE_INT:
                 assert(false && "ERROR: Should not be INT\n");
                 break;
+            case TYPE_LABEL_DEF:
+                assert(false && "ERROR: Should not be LABEL DEF\n");
+                break;
+            case TYPE_LABEL:
+                assert(false && "ERROR: Should not be LABEL\n");
+                break;
             case TYPE_HALT:
                 instruction->type = INST_HALT;
                 break;

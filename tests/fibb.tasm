@@ -1,6 +1,8 @@
 push 1
 push 1
 push 0
+
+
 indup 1
 inswap 0
 pop
@@ -11,5 +13,7 @@ indup 0
 indup 1
 add
 swap
+
 print
+
 jmp 3
