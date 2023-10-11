@@ -125,7 +125,7 @@ void run_instructions(Machine *machine){
             case INST_SUB:
                 a = pop(machine);
                 b = pop(machine);
-                push(machine, a - b);
+                push(machine, b - a);
                 break;
             case INST_MUL:
                 a = pop(machine);
@@ -139,12 +139,12 @@ void run_instructions(Machine *machine){
                     fprintf(stderr, "ERROR: Cannot divide by 0\n");
                     exit(1);
                 }
-                push(machine, a / b);
+                push(machine, b / a);
                 break;
             case INST_MOD:
                 a = pop(machine);
                 b = pop(machine);
-                push(machine, a % b);
+                push(machine, b % a);
                 break;
             case INST_CMPE:
                 a = pop(machine);

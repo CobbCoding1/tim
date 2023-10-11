@@ -1,19 +1,37 @@
+push 20 
 push 1
 push 1
 push 0
 
 
-indup 1
+loop:
 inswap 0
-pop
 dup
+push 0
+cmpe
+nzjmp end
+pop
+inswap 0
+
+indup 2
 inswap 1
 pop
-indup 0
+dup
+inswap 2
+pop
 indup 1
+indup 2
 add
 swap
 
 print
 
-jmp 3
+inswap 0
+push 1
+sub
+inswap 0
+
+jmp loop 
+
+end:
+
