@@ -310,6 +310,11 @@ Lexer lexer(char *file_name){
         } else if(current[current_index] == '\''){
             Token token = generate_char(current, &current_index, line, character);
             push_token(&lex, token);
+        } else if(current[current_index] == ';'){
+            while(current[current_index] != '\n'){
+                current_index++;
+            }
+            line++;
         } 
         character++;
         current_index++;

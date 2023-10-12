@@ -1,0 +1,31 @@
+; TODO
+isprime:
+dup
+push 2
+div
+push 1
+cmple
+zjmp primeend 
+
+
+
+primeend:
+
+
+main:
+push 50
+push 2
+swap
+loop:
+push 0
+cmpe
+zjmp end
+
+
+
+
+
+
+end:
+push 99
+print

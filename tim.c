@@ -83,6 +83,7 @@ void run_instructions(Machine *machine){
     Word no;
     no.as_int = 0;
     for(size_t ip = 0; ip < machine->program_size; ip++){
+        //print_stack(machine);
         switch(machine->instructions[ip].type){
             case INST_NOP:
                 continue;
