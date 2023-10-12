@@ -246,6 +246,7 @@ void run_instructions(Machine *machine){
                         fprintf(stderr, "ERROR: Cannot jump out of bounds\n");
                         exit(1);
                     }
+                    printf("%ld\n", machine->instructions[ip].value.as_int);
                 } else {
                     break;
                 }
@@ -268,6 +269,8 @@ void run_instructions(Machine *machine){
             case INST_HALT:
                 ip = machine->program_size;
                 break;
+            case INST_COUNT:
+                assert(false);
         }
     }
 

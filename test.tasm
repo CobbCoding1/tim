@@ -1,0 +1,7 @@
+push 0 
+zjmp main 
+push 5 
+
+main:
+push 10
+print

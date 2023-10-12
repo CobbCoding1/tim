@@ -14,131 +14,51 @@ Inst pop_program(Inst program[], int program_size){
 
 Inst *generate_instructions(ParseList *head, int *program_size){
     Inst *program = malloc(sizeof(Inst));
+    Inst_Set insts[INST_COUNT + 1] = {    
+            INST_NOP,
+            INST_PUSH,
+            INST_POP,
+            INST_DUP,
+            INST_INDUP,
+            INST_SWAP,
+            INST_INSWAP,
+            INST_ADD,
+            INST_SUB,
+            INST_MUL,
+            INST_DIV,
+            INST_MOD,
+            INST_ADD_F,
+            INST_SUB_F,
+            INST_MUL_F,
+            INST_DIV_F,
+            INST_MOD_F,
+            INST_CMPE,
+            INST_CMPNE,
+            INST_CMPG,
+            INST_CMPL,
+            INST_CMPGE, INST_CMPLE, INST_JMP, INST_ZJMP,
+            INST_NZJMP, INST_PRINT, INST_HALT, INST_COUNT};
     while(head != NULL){
+        assert(head->value.type != TYPE_NONE && "Value should not be none\n");
+        assert(head->value.type < (TokenType)INST_COUNT);
+
         Inst *instruction = malloc(sizeof(Inst));
-        switch(head->value.type){
-            case TYPE_NONE:
-                assert(false && "Token should not be NONE\n");
-                break;
-            case TYPE_NOP:
-                instruction->type = INST_NOP;
-                break;
-            case TYPE_PUSH:
-                head = head->next;
-                instruction->type = INST_PUSH;
-                if(head->value.type == TYPE_INT){
-                    instruction->value.as_int = atoi(head->value.text);
-                } else if(head->value.type == TYPE_FLOAT){
-                    instruction->value.as_float = atof(head->value.text);
-                } else if(head->value.type == TYPE_CHAR){
-                    instruction->value.as_char = head->value.text[0];
-                } else {
-                    assert(false && "You should not be here\n");
-                }
-                break;
-            case TYPE_POP:
-                instruction->type = INST_POP;
-                break;
-            case TYPE_DUP:
-                instruction->type = INST_DUP;
-                break;
-            case TYPE_INDUP:
-                head = head->next;
-                instruction->type = INST_INDUP;
+        instruction->type = insts[head->value.type];
+        if(head->value.type == TYPE_INDUP || head->value.type == TYPE_INSWAP || head->value.type == TYPE_JMP || head->value.type == TYPE_ZJMP || head->value.type == TYPE_NZJMP){
+            head = head->next;
+            instruction->value.as_int = atoi(head->value.text);
+        }
+        if(head->value.type == TYPE_PUSH){
+            head = head->next;
+            if(head->value.type == TYPE_INT){
                 instruction->value.as_int = atoi(head->value.text);
-                break;
-            case TYPE_SWAP:
-                instruction->type = INST_SWAP;
-                break;
-            case TYPE_INSWAP:
-                head = head->next;
-                instruction->type = INST_INSWAP;
-                instruction->value.as_int = atoi(head->value.text);
-                break;
-            case TYPE_ADD:
-                instruction->type = INST_ADD;
-                break;
-            case TYPE_SUB:
-                instruction->type = INST_SUB;
-                break;
-            case TYPE_MUL:
-                instruction->type = INST_MUL;
-                break;
-            case TYPE_DIV:
-                instruction->type = INST_DIV;
-                break;
-            case TYPE_MOD:
-                instruction->type = INST_MOD;
-                break;
-            case TYPE_ADD_F:
-                instruction->type = INST_ADD_F;
-                break;
-            case TYPE_SUB_F:
-                instruction->type = INST_SUB_F;
-                break;
-            case TYPE_MUL_F:
-                instruction->type = INST_MUL_F;
-                break;
-            case TYPE_DIV_F:
-                instruction->type = INST_DIV_F;
-                break;
-            case TYPE_MOD_F:
-                instruction->type = INST_MOD_F;
-                break;
-            case TYPE_CMPE:
-                instruction->type = INST_CMPE;
-                break;
-            case TYPE_CMPNE:
-                instruction->type = INST_CMPNE;
-                break;
-            case TYPE_CMPG:
-                instruction->type = INST_CMPG;
-                break;
-            case TYPE_CMPL:
-                instruction->type = INST_CMPL;
-                break;
-            case TYPE_CMPGE:
-                instruction->type = INST_CMPGE;
-                break;
-            case TYPE_CMPLE:
-                instruction->type = INST_CMPLE;
-                break;
-            case TYPE_JMP:
-                head = head->next;
-                instruction->type = INST_JMP;
-                instruction->value.as_int = atoi(head->value.text);
-                break;
-            case TYPE_ZJMP:
-                head = head->next;
-                instruction->type = INST_ZJMP;
-                instruction->value.as_int = atoi(head->value.text);
-                break;
-            case TYPE_NZJMP:
-                head = head->next;
-                instruction->type = INST_NZJMP;
-                instruction->value.as_int = atoi(head->value.text);
-                break;
-            case TYPE_PRINT:
-                instruction->type = INST_PRINT;
-                break;
-            case TYPE_INT:
-                assert(false && "ERROR: Should not be INT\n");
-                break;
-            case TYPE_FLOAT:
-                assert(false && "ERROR: Should not be FLOAT\n");
-                break;
-            case TYPE_CHAR:
-                assert(false && "ERROR: Should not be CHAR\n");
-                break;
-            case TYPE_LABEL_DEF:
-                assert(false && "ERROR: Should not be LABEL DEF\n");
-                break;
-            case TYPE_LABEL:
-                assert(false && "ERROR: Should not be LABEL\n");
-                break;
-            case TYPE_HALT:
-                instruction->type = INST_HALT;
-                break;
+            } else if(head->value.type == TYPE_FLOAT){
+                instruction->value.as_float = atof(head->value.text);
+            } else if(head->value.type == TYPE_CHAR){
+                instruction->value.as_char = head->value.text[0];
+            } else {
+                assert(false && "you should not be here\n");
+            }
         }
         push_program(program, program_size, *instruction);
         head = head->next;

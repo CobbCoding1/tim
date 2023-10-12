@@ -39,12 +39,13 @@ typedef enum {
     TYPE_ZJMP,
     TYPE_NZJMP,
     TYPE_PRINT,
+    TYPE_HALT,
     TYPE_INT,
     TYPE_FLOAT,
     TYPE_CHAR,
     TYPE_LABEL_DEF,
     TYPE_LABEL,
-    TYPE_HALT,
+    TYPE_COUNT,
 } TokenType;
 
 typedef struct {
@@ -63,6 +64,7 @@ typedef struct {
 char *open_file(char *file_path, int *length);
 void push_token(Lexer *lexer, Token value);
 Token pop_token(Lexer *lexer);
+char *pretty_token(Token token);
 void print_token(Token token);
 Token init_token(TokenType type, char *text, int line, int character);
 TokenType check_builtin_keywords(char *name);

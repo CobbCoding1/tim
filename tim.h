@@ -39,6 +39,7 @@ typedef enum {
     INST_NZJMP,
     INST_PRINT,
     INST_HALT,
+    INST_COUNT,
 } Inst_Set;
 
 typedef union {

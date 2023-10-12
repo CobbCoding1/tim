@@ -39,114 +39,120 @@ Token pop_token(Lexer *lexer){
     return lexer->token_stack[lexer->stack_size];
 }
 
-void print_token(Token token){
-    assert(&token != NULL && "ERROR: Token cannot be NULL\n");
+char *pretty_token(Token token){
     switch(token.type){
         case TYPE_NONE:
-            printf("TYPE NONE\n");
+            return "TYPE NONE\n";
             break;
         case TYPE_NOP:
-            printf("TYPE NOP\n");
+            return "TYPE NOP\n";
             break;
         case TYPE_PUSH:
-            printf("TYPE PUSH\n");
+            return "TYPE PUSH\n";
             break;
         case TYPE_POP:
-            printf("TYPE POP\n");
+            return "TYPE POP\n";
             break;
         case TYPE_DUP:
-            printf("TYPE DUP\n");
+            return "TYPE DUP\n";
             break;
         case TYPE_INDUP:
-            printf("TYPE INDUP\n");
+            return "TYPE INDUP\n";
             break;
         case TYPE_SWAP:
-            printf("TYPE SWAP\n");
+            return "TYPE SWAP\n";
             break;
         case TYPE_INSWAP:
-            printf("TYPE INSWAP\n");
+            return "TYPE INSWAP\n";
             break;
         case TYPE_ADD:
-            printf("TYPE ADD\n");
+            return "TYPE ADD\n";
             break;
         case TYPE_SUB:
-            printf("TYPE SUB\n");
+            return "TYPE SUB\n";
             break;
         case TYPE_MUL:
-            printf("TYPE MUL\n");
+            return "TYPE MUL\n";
             break;
         case TYPE_DIV:
-            printf("TYPE DIV\n");
+            return "TYPE DIV\n";
             break;
         case TYPE_MOD:
-            printf("TYPE MOD\n");
+            return "TYPE MOD\n";
             break;
         case TYPE_ADD_F:
-            printf("TYPE ADD F\n");
+            return "TYPE ADD F\n";
             break;
         case TYPE_SUB_F:
-            printf("TYPE SUB F\n");
+            return "TYPE SUB F\n";
             break;
         case TYPE_MUL_F:
-            printf("TYPE MUL F\n");
+            return "TYPE MUL F\n";
             break;
         case TYPE_DIV_F:
-            printf("TYPE DIV F\n");
+            return "TYPE DIV F\n";
             break;
         case TYPE_MOD_F:
-            printf("TYPE MOD F\n");
+            return "TYPE MOD F\n";
             break;
         case TYPE_CMPE:
-            printf("TYPE CMPE\n");
+            return "TYPE CMPE\n";
             break;
         case TYPE_CMPNE:
-            printf("TYPE CMPNE\n");
+            return "TYPE CMPNE\n";
             break;
         case TYPE_CMPG:
-            printf("TYPE CMPG\n");
+            return "TYPE CMPG\n";
             break;
         case TYPE_CMPL:
-            printf("TYPE CMPL\n");
+            return "TYPE CMPL\n";
             break;
         case TYPE_CMPGE:
-            printf("TYPE CMPGE\n");
+            return "TYPE CMPGE\n";
             break;
         case TYPE_CMPLE:
-            printf("TYPE CMPLE\n");
+            return "TYPE CMPLE\n";
             break;
         case TYPE_JMP:
-            printf("TYPE JMP\n");
+            return "TYPE JMP\n";
             break;
         case TYPE_ZJMP:
-            printf("TYPE ZJMP\n");
+            return "TYPE ZJMP\n";
             break;
         case TYPE_NZJMP:
-            printf("TYPE NZJMP\n");
+            return "TYPE NZJMP\n";
             break;
         case TYPE_PRINT:
-            printf("TYPE PRINT\n");
+            return "TYPE PRINT\n";
             break;
         case TYPE_INT:
-            printf("TYPE INT\n");
+            return "TYPE INT\n";
             break;
         case TYPE_FLOAT:
-            printf("TYPE FLOAT\n");
+            return "TYPE FLOAT\n";
             break;
         case TYPE_CHAR:
-            printf("TYPE CHAR\n");
+            return "TYPE CHAR\n";
             break;
         case TYPE_LABEL_DEF:
-            printf("TYPE LABEL DEF\n");
+            return "TYPE LABEL DEF\n";
             break;
         case TYPE_LABEL:
-            printf("TYPE LABEL\n");
+            return "TYPE LABEL\n";
             break;
         case TYPE_HALT:
-            printf("TYPE HALT\n");
+            return "TYPE HALT\n";
             break;
-        default:
-            assert(false);
-        }
+        case TYPE_COUNT:
+            return "TYPE COUNT";
+            break;
+    }
+    return "TYPE NONE\n";
+}
+
+void print_token(Token token){
+    assert(&token != NULL && "ERROR: Token cannot be NULL\n");
+    printf(pretty_token(token));
     printf("text: %s, line: %d, character: %d\n", token.text, token.line, token.character);
 }
 
