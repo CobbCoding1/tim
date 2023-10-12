@@ -24,6 +24,11 @@ typedef enum {
     TYPE_MUL,
     TYPE_DIV,
     TYPE_MOD,
+    TYPE_ADD_F,
+    TYPE_SUB_F,
+    TYPE_MUL_F,
+    TYPE_DIV_F,
+    TYPE_MOD_F,
     TYPE_CMPE,
     TYPE_CMPNE,
     TYPE_CMPG,
@@ -35,6 +40,8 @@ typedef enum {
     TYPE_NZJMP,
     TYPE_PRINT,
     TYPE_INT,
+    TYPE_FLOAT,
+    TYPE_CHAR,
     TYPE_LABEL_DEF,
     TYPE_LABEL,
     TYPE_HALT,
@@ -60,7 +67,7 @@ void print_token(Token token);
 Token init_token(TokenType type, char *text, int line, int character);
 TokenType check_builtin_keywords(char *name);
 Token generate_keyword(char *current, int *current_index, int line, int character);
-Token generate_int(char *current, int *current_index, int line, int character);
+Token generate_num(char *current, int *current_index, int line, int character);
 Lexer lexer();
 
 #endif

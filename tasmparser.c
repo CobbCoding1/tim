@@ -54,7 +54,7 @@ void generate_list(ParseList *root, Lexer *lexer, struct hashmap_s *hashmap){
             case TYPE_PUSH:
                 append(root, lexer->token_stack[index]);
                 index++;
-                if(lexer->token_stack[index].type != TYPE_INT) {
+                if(lexer->token_stack[index].type != TYPE_INT && lexer->token_stack[index].type != TYPE_FLOAT && lexer->token_stack[index].type != TYPE_CHAR && lexer->token_stack[index].type != TYPE_LABEL){
                     fprintf(stderr, "ERROR: Expected type INT but found %s\n", "TODO: Implement token print");
                     exit(1);
                 }
@@ -69,7 +69,7 @@ void generate_list(ParseList *root, Lexer *lexer, struct hashmap_s *hashmap){
             case TYPE_INDUP:
                 append(root, lexer->token_stack[index]);
                 index++;
-                if(lexer->token_stack[index].type != TYPE_INT){
+                if(lexer->token_stack[index].type != TYPE_INT && lexer->token_stack[index].type != TYPE_LABEL){
                     fprintf(stderr, "ERROR: Expected type INT but found %s\n", "TODO: Implement token print");
                     exit(1);
                 }
@@ -81,7 +81,7 @@ void generate_list(ParseList *root, Lexer *lexer, struct hashmap_s *hashmap){
             case TYPE_INSWAP:
                 append(root, lexer->token_stack[index]);
                 index++;
-                if(lexer->token_stack[index].type != TYPE_INT){
+                if(lexer->token_stack[index].type != TYPE_INT && lexer->token_stack[index].type != TYPE_LABEL){
                     fprintf(stderr, "ERROR: Expected type INT but found %s\n", "TODO: Implement token print");
                     exit(1);
                 }
@@ -100,6 +100,21 @@ void generate_list(ParseList *root, Lexer *lexer, struct hashmap_s *hashmap){
                 append(root, lexer->token_stack[index]);
                 break;
             case TYPE_MOD:
+                append(root, lexer->token_stack[index]);
+                break;
+            case TYPE_ADD_F:
+                append(root, lexer->token_stack[index]);
+                break;
+            case TYPE_SUB_F:
+                append(root, lexer->token_stack[index]);
+                break;
+            case TYPE_MUL_F:
+                append(root, lexer->token_stack[index]);
+                break;
+            case TYPE_DIV_F:
+                append(root, lexer->token_stack[index]);
+                break;
+            case TYPE_MOD_F:
                 append(root, lexer->token_stack[index]);
                 break;
             case TYPE_CMPE:
@@ -151,6 +166,12 @@ void generate_list(ParseList *root, Lexer *lexer, struct hashmap_s *hashmap){
                 append(root, lexer->token_stack[index]);
                 break;
             case TYPE_INT:
+                index -= 2;
+                break;
+            case TYPE_FLOAT:
+                index -= 2;
+                break;
+            case TYPE_CHAR:
                 index -= 2;
                 break;
             case TYPE_LABEL_DEF:

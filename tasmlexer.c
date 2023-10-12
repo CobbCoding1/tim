@@ -81,6 +81,21 @@ void print_token(Token token){
         case TYPE_MOD:
             printf("TYPE MOD\n");
             break;
+        case TYPE_ADD_F:
+            printf("TYPE ADD F\n");
+            break;
+        case TYPE_SUB_F:
+            printf("TYPE SUB F\n");
+            break;
+        case TYPE_MUL_F:
+            printf("TYPE MUL F\n");
+            break;
+        case TYPE_DIV_F:
+            printf("TYPE DIV F\n");
+            break;
+        case TYPE_MOD_F:
+            printf("TYPE MOD F\n");
+            break;
         case TYPE_CMPE:
             printf("TYPE CMPE\n");
             break;
@@ -113,6 +128,12 @@ void print_token(Token token){
             break;
         case TYPE_INT:
             printf("TYPE INT\n");
+            break;
+        case TYPE_FLOAT:
+            printf("TYPE FLOAT\n");
+            break;
+        case TYPE_CHAR:
+            printf("TYPE CHAR\n");
             break;
         case TYPE_LABEL_DEF:
             printf("TYPE LABEL DEF\n");
@@ -159,6 +180,16 @@ TokenType check_builtin_keywords(char *name){
         return TYPE_DIV;
     } else if(strcmp(name, "mod") == 0){
         return TYPE_MOD;
+    } else if(strcmp(name, "addf") == 0){
+        return TYPE_ADD_F;
+    } else if(strcmp(name, "subf") == 0){
+        return TYPE_SUB_F;
+    } else if(strcmp(name, "mulf") == 0){
+        return TYPE_MUL_F;
+    } else if(strcmp(name, "divf") == 0){
+        return TYPE_DIV_F;
+    } else if(strcmp(name, "modf") == 0){
+        return TYPE_MOD_F;
     } else if(strcmp(name, "cmpe") == 0){
         return TYPE_CMPE;
     } else if(strcmp(name, "cmpne") == 0){
@@ -209,7 +240,7 @@ Token generate_keyword(char *current, int *current_index, int line, int characte
     return token;
 }
 
-Token generate_int(char *current, int *current_index, int line, int character){
+Token generate_num(char *current, int *current_index, int line, int character){
     char *keyword_name = malloc(sizeof(char) * 16);
     int keyword_length = 0;
     while(isdigit(current[*current_index])){
@@ -217,9 +248,38 @@ Token generate_int(char *current, int *current_index, int line, int character){
         *current_index += 1;
         keyword_length++;
     }
+    if(current[*current_index] != '.'){
+        keyword_name[keyword_length] = '\0';
+        TokenType type = TYPE_INT;
+        Token token = init_token(type, keyword_name, line, character);
+        return token;
+    }
+    keyword_name[keyword_length] = current[*current_index];
+    *current_index += 1;
+    keyword_length++;
+    while(isdigit(current[*current_index])){
+        keyword_name[keyword_length] = current[*current_index];
+        *current_index += 1;
+        keyword_length++;
+    }
     keyword_name[keyword_length] = '\0';
-    TokenType type = TYPE_INT;
+    TokenType type = TYPE_FLOAT;
     Token token = init_token(type, keyword_name, line, character);
+    return token;
+}
+
+Token generate_char(char *current, int *current_index, int line, int character){
+    char *character_name = malloc(sizeof(char) * 2);
+    *current_index += 1;
+    character_name[0] = current[*current_index];
+    *current_index += 1;
+    if(current[*current_index] != '\''){
+        fprintf(stderr, "ERROR: Expected close single quote\n");
+        exit(1);
+    }
+    character_name[1] = '\0';
+    TokenType type = TYPE_CHAR;
+    Token token = init_token(type, character_name, line, character);
     return token;
 }
 
@@ -244,10 +304,13 @@ Lexer lexer(char *file_name){
             push_token(&lex, token);
             current_index--;
         } else if(isdigit(current[current_index])){
-            Token token = generate_int(current, &current_index, line, character);
+            Token token = generate_num(current, &current_index, line, character);
             push_token(&lex, token);
             current_index--;
-        }         
+        } else if(current[current_index] == '\''){
+            Token token = generate_char(current, &current_index, line, character);
+            push_token(&lex, token);
+        } 
         character++;
         current_index++;
     }

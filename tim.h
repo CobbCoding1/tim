@@ -3,7 +3,9 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdbool.h>
 #include <string.h>
+#include <math.h>
 #include <assert.h>
 
 #define MAX_STACK_SIZE 1024
@@ -21,6 +23,11 @@ typedef enum {
     INST_MUL,
     INST_DIV,
     INST_MOD,
+    INST_ADD_F,
+    INST_SUB_F,
+    INST_MUL_F,
+    INST_DIV_F,
+    INST_MOD_F,
     INST_CMPE,
     INST_CMPNE,
     INST_CMPG,
@@ -34,13 +41,19 @@ typedef enum {
     INST_HALT,
 } Inst_Set;
 
+typedef union {
+    int64_t as_int;
+    double as_float;
+    char as_char;
+} Word;
+
 typedef struct {
     Inst_Set type;
-    int value;
+    Word value;
 } Inst;
 
 typedef struct {
-    int stack[MAX_STACK_SIZE];
+    Word stack[MAX_STACK_SIZE];
     int stack_size;
     size_t program_size;
     Inst *instructions;
@@ -70,10 +83,10 @@ typedef struct {
 #define DEF_INST_PRINT() {.type = INST_PRINT}
 #define DEF_INST_HALT() {.type = INST_HALT}
 
-void push(Machine *machine, int value);
-int pop(Machine *machine);
-void index_swap(Machine *machine, int index);
-void index_dup(Machine *machine, int index);
+void push(Machine *machine, Word value);
+Word pop(Machine *machine);
+void index_swap(Machine *machine, int64_t index);
+void index_dup(Machine *machine, int64_t index);
 void print_stack(Machine *machine);
 void write_program_to_file(Machine *machine, char *file_path);
 Machine *read_program_from_file(Machine *machine, char *file_path);

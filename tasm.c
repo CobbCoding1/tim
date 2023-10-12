@@ -26,7 +26,15 @@ Inst *generate_instructions(ParseList *head, int *program_size){
             case TYPE_PUSH:
                 head = head->next;
                 instruction->type = INST_PUSH;
-                instruction->value = atoi(head->value.text);
+                if(head->value.type == TYPE_INT){
+                    instruction->value.as_int = atoi(head->value.text);
+                } else if(head->value.type == TYPE_FLOAT){
+                    instruction->value.as_float = atof(head->value.text);
+                } else if(head->value.type == TYPE_CHAR){
+                    instruction->value.as_char = head->value.text[0];
+                } else {
+                    assert(false && "You should not be here\n");
+                }
                 break;
             case TYPE_POP:
                 instruction->type = INST_POP;
@@ -37,8 +45,7 @@ Inst *generate_instructions(ParseList *head, int *program_size){
             case TYPE_INDUP:
                 head = head->next;
                 instruction->type = INST_INDUP;
-                instruction->value = atoi(head->value.text);
-                break;
+                instruction->value.as_int = atoi(head->value.text);
                 break;
             case TYPE_SWAP:
                 instruction->type = INST_SWAP;
@@ -46,8 +53,7 @@ Inst *generate_instructions(ParseList *head, int *program_size){
             case TYPE_INSWAP:
                 head = head->next;
                 instruction->type = INST_INSWAP;
-                instruction->value = atoi(head->value.text);
-                break;
+                instruction->value.as_int = atoi(head->value.text);
                 break;
             case TYPE_ADD:
                 instruction->type = INST_ADD;
@@ -63,6 +69,21 @@ Inst *generate_instructions(ParseList *head, int *program_size){
                 break;
             case TYPE_MOD:
                 instruction->type = INST_MOD;
+                break;
+            case TYPE_ADD_F:
+                instruction->type = INST_ADD_F;
+                break;
+            case TYPE_SUB_F:
+                instruction->type = INST_SUB_F;
+                break;
+            case TYPE_MUL_F:
+                instruction->type = INST_MUL_F;
+                break;
+            case TYPE_DIV_F:
+                instruction->type = INST_DIV_F;
+                break;
+            case TYPE_MOD_F:
+                instruction->type = INST_MOD_F;
                 break;
             case TYPE_CMPE:
                 instruction->type = INST_CMPE;
@@ -85,23 +106,29 @@ Inst *generate_instructions(ParseList *head, int *program_size){
             case TYPE_JMP:
                 head = head->next;
                 instruction->type = INST_JMP;
-                instruction->value = atoi(head->value.text);
+                instruction->value.as_int = atoi(head->value.text);
                 break;
             case TYPE_ZJMP:
                 head = head->next;
                 instruction->type = INST_ZJMP;
-                instruction->value = atoi(head->value.text);
+                instruction->value.as_int = atoi(head->value.text);
                 break;
             case TYPE_NZJMP:
                 head = head->next;
                 instruction->type = INST_NZJMP;
-                instruction->value = atoi(head->value.text);
+                instruction->value.as_int = atoi(head->value.text);
                 break;
             case TYPE_PRINT:
                 instruction->type = INST_PRINT;
                 break;
             case TYPE_INT:
                 assert(false && "ERROR: Should not be INT\n");
+                break;
+            case TYPE_FLOAT:
+                assert(false && "ERROR: Should not be FLOAT\n");
+                break;
+            case TYPE_CHAR:
+                assert(false && "ERROR: Should not be CHAR\n");
                 break;
             case TYPE_LABEL_DEF:
                 assert(false && "ERROR: Should not be LABEL DEF\n");
