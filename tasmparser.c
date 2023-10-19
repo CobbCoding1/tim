@@ -26,23 +26,29 @@ void print_list(ParseList *head){
 
 void handle_token_def(Lexer *lexer, int index, int line_num, struct hashmap_s *hashmap){
     if (hashmap_remove(hashmap, lexer->token_stack[index].text, strlen(lexer->token_stack[index].text)) == 0) {
-        printf("ERROR: Redeclaration of label %s\n", lexer->token_stack[index].text);
+        fprintf(stderr, "%s:%d:%d: error: label '%s' already declared\n", lexer->file_name, lexer->token_stack[index].line, lexer->token_stack[index].character, lexer->token_stack[index].text);
+        exit(1);
     }
     int *in = malloc(sizeof(int));
     *in = line_num;
 
-    if(hashmap_put(hashmap, lexer->token_stack[index].text, strlen(lexer->token_stack[index].text), in) != 0){
-        fprintf(stderr, "ERROR: Could not place %s in the hashmap\n", lexer->token_stack[index].text);
-        exit(1);
-    }
+    int hashmap_error = hashmap_put(hashmap, lexer->token_stack[index].text, strlen(lexer->token_stack[index].text), in);
+    assert(hashmap_error == 0 && "could not place item in hashmap\n");
 
     lexer->token_stack[index].type = TYPE_NOP;
+}
+
+void print_syntax_error(Lexer *lexer, Token *current_token, char *type_of_error, char *expected){
+    fprintf(stderr, "%s:%d:%d %s error: Expected %s but found %s", lexer->file_name, current_token->line, current_token->character, 
+            type_of_error, expected, pretty_token(*current_token));
+    exit(1);
 }
 
 void generate_list(ParseList *root, Lexer *lexer, struct hashmap_s *hashmap){
     int line_num = 0;
     for(int index = 0; index < lexer->stack_size; index++){
         assert(lexer->token_stack[index].type != TYPE_NONE && "Should not be none\n");
+        Token current_token = lexer->token_stack[index];
         if(lexer->token_stack[index].type == TYPE_INT && lexer->token_stack[index].type == TYPE_FLOAT && 
            lexer->token_stack[index].type == TYPE_CHAR && lexer->token_stack[index].type == TYPE_LABEL){
             index -= 2;
@@ -58,19 +64,19 @@ void generate_list(ParseList *root, Lexer *lexer, struct hashmap_s *hashmap){
            lexer->token_stack[index].type == TYPE_JMP || lexer->token_stack[index].type == TYPE_ZJMP || 
            lexer->token_stack[index].type == TYPE_NZJMP){
             index++;
+            current_token = lexer->token_stack[index];
             if(lexer->token_stack[index].type != TYPE_INT && lexer->token_stack[index].type != TYPE_LABEL){
-                fprintf(stderr, "ERROR: Expected type INT but found %s\n", pretty_token(lexer->token_stack[index]));
-                exit(1);
+                print_syntax_error(lexer, &current_token, "syntax", "type of int or type of label");
             }
             append(root, lexer->token_stack[index]);
         }
 
         if(lexer->token_stack[index].type == TYPE_PUSH){
             index++;
+            current_token = lexer->token_stack[index];
             if(lexer->token_stack[index].type != TYPE_INT && lexer->token_stack[index].type != TYPE_FLOAT && 
-               lexer->token_stack[index].type != TYPE_CHAR && lexer->token_stack[index].type != TYPE_LABEL){
-                fprintf(stderr, "ERROR: Expected type INT but found %s\n", pretty_token(lexer->token_stack[index]));
-                exit(1);
+                lexer->token_stack[index].type != TYPE_CHAR){
+                print_syntax_error(lexer, &current_token, "syntax", "type of int or type of float or type of char");
             }
             append(root, lexer->token_stack[index]);
         }
@@ -78,12 +84,12 @@ void generate_list(ParseList *root, Lexer *lexer, struct hashmap_s *hashmap){
     }
 }
 
-void check_labels(ParseList *head, struct hashmap_s *hashmap){
+void check_labels(ParseList *head, Lexer *lexer, struct hashmap_s *hashmap){
     while(head != NULL){
         if(head->value.type == TYPE_LABEL){
             void *const label_index = hashmap_get(hashmap, head->value.text, strlen(head->value.text));
             if(label_index == NULL){
-                fprintf(stderr, "ERROR: Undeclared label: %s\n", head->value.text);
+                fprintf(stderr, "%s:%d:%d: error: undeclared label: '%s'\n", lexer->file_name, head->value.line, head->value.character, head->value.text);
                 exit(1);
             }
             head->value.type = TYPE_INT;
@@ -94,17 +100,16 @@ void check_labels(ParseList *head, struct hashmap_s *hashmap){
 }
 
 ParseList parser(Lexer lexer){
-
     const unsigned initial_size = 2;
     struct hashmap_s label_map;
-    if(hashmap_create(initial_size, &label_map) != 0){
-        fprintf(stderr, "ERROR: Could not initialize hashmap\n");
-        exit(1);
-    }
+
+    int hashmap_error = hashmap_create(initial_size, &label_map);
+    assert(hashmap_error == 0 && "could not initialize hashmap\n");
+
     ParseList root = {0};
     generate_list(&root, &lexer, &label_map);
     root = *root.next;
-    check_labels(&root, &label_map);
+    check_labels(&root, &lexer, &label_map);
     //print_list(&root);
 
     return root;

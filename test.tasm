@@ -1,7 +1,8 @@
-push 0 
-zjmp main 
-push 5 
-
-main:
+jmp _this_is_label
 push 10
 print
+
+
+_this_is_label:
+    push 5
+    print

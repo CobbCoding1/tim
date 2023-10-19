@@ -4,7 +4,7 @@
 char *open_file(char *file_path, int *length){
     FILE *file = fopen(file_path, "r");
     if(!file){
-        fprintf(stderr, "ERROR: Could not open file %s\n", file_path);
+        fprintf(stderr, "error: could not find file: %s\n", file_path);
         exit(1);
     }
     char *current = {0};
@@ -16,7 +16,7 @@ char *open_file(char *file_path, int *length){
     current = malloc(sizeof(char) * *length);
     fread(current, 1, *length, file);
     if(!current){
-        fprintf(stderr, "ERROR: Could not read from file\n");
+        fprintf(stderr, "error: could not read from file: %s\n", file_path);
     }
 
     fclose(file);
@@ -24,134 +24,128 @@ char *open_file(char *file_path, int *length){
 }
 
 void push_token(Lexer *lexer, Token value){
-     if(lexer->stack_size >= MAX_TOKEN_STACK_SIZE){
-        fprintf(stderr, "ERROR: Stack Overflow\n");
-        exit(1);
-    }
+    assert(lexer->stack_size < MAX_TOKEN_STACK_SIZE && "stack overflow\n");
     lexer->token_stack[lexer->stack_size++] = value;
 }
 
 Token pop_token(Lexer *lexer){
-     if(lexer->stack_size <= 0){
-        fprintf(stderr, "ERROR: Stack Underflow\n");
-        exit(1);
-    }
+    assert(lexer->stack_size > 0 && "stack underflow\n");
     return lexer->token_stack[lexer->stack_size];
 }
 
 char *pretty_token(Token token){
     switch(token.type){
         case TYPE_NONE:
-            return "TYPE NONE\n";
+            return "none\n";
             break;
         case TYPE_NOP:
-            return "TYPE NOP\n";
+            return "nop\n";
             break;
         case TYPE_PUSH:
-            return "TYPE PUSH\n";
+            return "push\n";
             break;
         case TYPE_POP:
-            return "TYPE POP\n";
+            return "pop\n";
             break;
         case TYPE_DUP:
-            return "TYPE DUP\n";
+            return "dup\n";
             break;
         case TYPE_INDUP:
-            return "TYPE INDUP\n";
+            return "indup\n";
             break;
         case TYPE_SWAP:
-            return "TYPE SWAP\n";
+            return "swap\n";
             break;
         case TYPE_INSWAP:
-            return "TYPE INSWAP\n";
+            return "inswap\n";
             break;
         case TYPE_ADD:
-            return "TYPE ADD\n";
+            return "add\n";
             break;
         case TYPE_SUB:
-            return "TYPE SUB\n";
+            return "sub\n";
             break;
         case TYPE_MUL:
-            return "TYPE MUL\n";
+            return "mul\n";
             break;
         case TYPE_DIV:
-            return "TYPE DIV\n";
+            return "div\n";
             break;
         case TYPE_MOD:
-            return "TYPE MOD\n";
+            return "mod\n";
             break;
         case TYPE_ADD_F:
-            return "TYPE ADD F\n";
+            return "addf\n";
             break;
         case TYPE_SUB_F:
-            return "TYPE SUB F\n";
+            return "subf\n";
             break;
         case TYPE_MUL_F:
-            return "TYPE MUL F\n";
+            return "mulf\n";
             break;
         case TYPE_DIV_F:
-            return "TYPE DIV F\n";
+            return "divf\n";
             break;
         case TYPE_MOD_F:
-            return "TYPE MOD F\n";
+            return "modf\n";
             break;
         case TYPE_CMPE:
-            return "TYPE CMPE\n";
+            return "cmpe\n";
             break;
         case TYPE_CMPNE:
-            return "TYPE CMPNE\n";
+            return "cmpne\n";
             break;
         case TYPE_CMPG:
-            return "TYPE CMPG\n";
+            return "cmpg\n";
             break;
         case TYPE_CMPL:
-            return "TYPE CMPL\n";
+            return "cmpl\n";
             break;
         case TYPE_CMPGE:
-            return "TYPE CMPGE\n";
+            return "cmpge\n";
             break;
         case TYPE_CMPLE:
-            return "TYPE CMPLE\n";
+            return "cmple\n";
             break;
         case TYPE_JMP:
-            return "TYPE JMP\n";
+            return "jmp\n";
             break;
         case TYPE_ZJMP:
-            return "TYPE ZJMP\n";
+            return "zjmp\n";
             break;
         case TYPE_NZJMP:
-            return "TYPE NZJMP\n";
+            return "nzjmp\n";
             break;
         case TYPE_PRINT:
-            return "TYPE PRINT\n";
+            return "print\n";
             break;
         case TYPE_INT:
-            return "TYPE INT\n";
+            return "type of int\n";
             break;
         case TYPE_FLOAT:
-            return "TYPE FLOAT\n";
+            return "type of float\n";
             break;
         case TYPE_CHAR:
-            return "TYPE CHAR\n";
+            return "type of char\n";
             break;
         case TYPE_LABEL_DEF:
-            return "TYPE LABEL DEF\n";
+            return "label def\n";
             break;
         case TYPE_LABEL:
-            return "TYPE LABEL\n";
+            return "type of label\n";
             break;
         case TYPE_HALT:
-            return "TYPE HALT\n";
+            return "halt\n";
             break;
         case TYPE_COUNT:
-            return "TYPE COUNT";
+            return "count of types\n";
             break;
     }
-    return "TYPE NONE\n";
+    return "none\n";
 }
 
 void print_token(Token token){
-    assert(&token != NULL && "ERROR: Token cannot be NULL\n");
+    assert(&token != NULL && "error: token cannot be NULL\n");
     printf("%s\n", pretty_token(token));
     printf("text: %s, line: %d, character: %d\n", token.text, token.line, token.character);
 }
@@ -229,10 +223,10 @@ TokenType check_label_type(char *current, int *current_index){
     return TYPE_LABEL;
 }
 
-Token generate_keyword(char *current, int *current_index, int line, int character){
+Token generate_keyword(char *current, int *current_index, int line, int *character){
     char *keyword_name = malloc(sizeof(char) * 16);
     int keyword_length = 0;
-    while(isalpha(current[*current_index])){
+    while(isalpha(current[*current_index]) || current[*current_index] == '_'){
         keyword_name[keyword_length] = current[*current_index];
         *current_index += 1;
         keyword_length++;
@@ -242,11 +236,13 @@ Token generate_keyword(char *current, int *current_index, int line, int characte
     if(type == TYPE_NONE){
         type = check_label_type(current, current_index);
     }
-    Token token = init_token(type, keyword_name, line, character);
+    Token token = init_token(type, keyword_name, line, *character);
+    // Increment character by lenth of keyword, also subtract one because iteration occurs in lexer function as well
+    *character += keyword_length - 1;
     return token;
 }
 
-Token generate_num(char *current, int *current_index, int line, int character){
+Token generate_num(char *current, int *current_index, int line, int *character){
     char *keyword_name = malloc(sizeof(char) * 16);
     int keyword_length = 0;
     while(isdigit(current[*current_index])){
@@ -257,7 +253,7 @@ Token generate_num(char *current, int *current_index, int line, int character){
     if(current[*current_index] != '.'){
         keyword_name[keyword_length] = '\0';
         TokenType type = TYPE_INT;
-        Token token = init_token(type, keyword_name, line, character);
+        Token token = init_token(type, keyword_name, line, *character);
         return token;
     }
     keyword_name[keyword_length] = current[*current_index];
@@ -270,22 +266,26 @@ Token generate_num(char *current, int *current_index, int line, int character){
     }
     keyword_name[keyword_length] = '\0';
     TokenType type = TYPE_FLOAT;
-    Token token = init_token(type, keyword_name, line, character);
+    Token token = init_token(type, keyword_name, line, *character);
+    // Increment character by lenth of number, also subtract one because iteration occurs in lexer function as well
+    *character += keyword_length - 1;
     return token;
 }
 
-Token generate_char(char *current, int *current_index, int line, int character){
+Token generate_char(char *file_name, char *current, int *current_index, int line, int *character){
     char *character_name = malloc(sizeof(char) * 2);
     *current_index += 1;
     character_name[0] = current[*current_index];
     *current_index += 1;
     if(current[*current_index] != '\''){
-        fprintf(stderr, "ERROR: Expected close single quote\n");
+        fprintf(stderr, "%s:%d:%d error: expected '\n", file_name, line, *character);
         exit(1);
     }
     character_name[1] = '\0';
     TokenType type = TYPE_CHAR;
-    Token token = init_token(type, character_name, line, character);
+    Token token = init_token(type, character_name, line, *character);
+    // Increment character by 3 because of the character length, also subtract one because iteration occurs in lexer function as well
+    *character += 3 - 1;
     return token;
 }
 
@@ -305,16 +305,16 @@ Lexer lexer(char *file_name){
             character = 0;
         }
 
-        if(isalpha(current[current_index])){
-            Token token = generate_keyword(current, &current_index, line, character);
+        if(isalpha(current[current_index]) || current[current_index] == '_'){
+            Token token = generate_keyword(current, &current_index, line, &character);
             push_token(&lex, token);
             current_index--;
         } else if(isdigit(current[current_index])){
-            Token token = generate_num(current, &current_index, line, character);
+            Token token = generate_num(current, &current_index, line, &character);
             push_token(&lex, token);
             current_index--;
         } else if(current[current_index] == '\''){
-            Token token = generate_char(current, &current_index, line, character);
+            Token token = generate_char(file_name, current, &current_index, line, &character);
             push_token(&lex, token);
         } else if(current[current_index] == ';'){
             while(current[current_index] != '\n'){
