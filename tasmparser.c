@@ -6,7 +6,6 @@ void append(ParseList *head, Token value){
     new->next = NULL;
 
     if(head == NULL){
-        printf("ASDHKJL\n");
         head = new;
         return;
     }

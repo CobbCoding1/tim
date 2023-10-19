@@ -152,7 +152,7 @@ char *pretty_token(Token token){
 
 void print_token(Token token){
     assert(&token != NULL && "ERROR: Token cannot be NULL\n");
-    printf(pretty_token(token));
+    printf("%s\n", pretty_token(token));
     printf("text: %s, line: %d, character: %d\n", token.text, token.line, token.character);
 }
 
