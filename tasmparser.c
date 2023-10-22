@@ -24,9 +24,9 @@ void print_list(ParseList *head){
     }
 }
 
-void handle_token_def(Lexer *lexer, int index, int line_num, struct hashmap_s *hashmap){
+void handle_token_def(Lexer *lexer, Token token, int index, int line_num, struct hashmap_s *hashmap){
     if (hashmap_remove(hashmap, lexer->token_stack[index].text, strlen(lexer->token_stack[index].text)) == 0) {
-        fprintf(stderr, "%s:%d:%d: error: label '%s' already declared\n", lexer->file_name, lexer->token_stack[index].line, lexer->token_stack[index].character, lexer->token_stack[index].text);
+        fprintf(stderr, "%s:%d:%d: error: label '%s' already declared\n", token.file_name, lexer->token_stack[index].line, lexer->token_stack[index].character, lexer->token_stack[index].text);
         exit(1);
     }
     int *in = malloc(sizeof(int));
@@ -38,8 +38,8 @@ void handle_token_def(Lexer *lexer, int index, int line_num, struct hashmap_s *h
     lexer->token_stack[index].type = TYPE_NOP;
 }
 
-void print_syntax_error(Lexer *lexer, Token *current_token, char *type_of_error, char *expected){
-    fprintf(stderr, "%s:%d:%d %s error: Expected %s but found %s", lexer->file_name, current_token->line, current_token->character, 
+void print_syntax_error(Token *current_token, char *type_of_error, char *expected){
+    fprintf(stderr, "%s:%d:%d %s error: Expected %s but found %s", current_token->file_name, current_token->line, current_token->character, 
             type_of_error, expected, pretty_token(*current_token));
     exit(1);
 }
@@ -56,7 +56,7 @@ void generate_list(ParseList *root, Lexer *lexer, struct hashmap_s *hashmap){
         }
 
         if(lexer->token_stack[index].type == TYPE_LABEL_DEF){
-            handle_token_def(lexer, index, line_num, hashmap);
+            handle_token_def(lexer, current_token, index, line_num, hashmap);
         }
         append(root, lexer->token_stack[index]);
 
@@ -66,7 +66,7 @@ void generate_list(ParseList *root, Lexer *lexer, struct hashmap_s *hashmap){
             index++;
             current_token = lexer->token_stack[index];
             if(lexer->token_stack[index].type != TYPE_INT && lexer->token_stack[index].type != TYPE_LABEL){
-                print_syntax_error(lexer, &current_token, "syntax", "type of int or type of label");
+                print_syntax_error(&current_token, "syntax", "type of int or type of label");
             }
             append(root, lexer->token_stack[index]);
         }
@@ -76,7 +76,7 @@ void generate_list(ParseList *root, Lexer *lexer, struct hashmap_s *hashmap){
             current_token = lexer->token_stack[index];
             if(lexer->token_stack[index].type != TYPE_INT && lexer->token_stack[index].type != TYPE_FLOAT && 
                 lexer->token_stack[index].type != TYPE_CHAR){
-                print_syntax_error(lexer, &current_token, "syntax", "type of int or type of float or type of char");
+                print_syntax_error(&current_token, "syntax", "type of int or type of float or type of char");
             }
             append(root, lexer->token_stack[index]);
         }

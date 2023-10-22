@@ -1,6 +1,9 @@
 
 #include "tasmlexer.h"
 
+#define TIPP_IMPLEMENTATION
+#include "tipp.h"
+
 char *open_file(char *file_path, int *length){
     FILE *file = fopen(file_path, "r");
     if(!file){
@@ -17,6 +20,7 @@ char *open_file(char *file_path, int *length){
     fread(current, 1, *length, file);
     if(!current){
         fprintf(stderr, "error: could not read from file: %s\n", file_path);
+        exit(1);
     }
 
     fclose(file);
@@ -150,8 +154,8 @@ void print_token(Token token){
     printf("text: %s, line: %d, character: %d\n", token.text, token.line, token.character);
 }
 
-Token init_token(TokenType type, char *text, int line, int character){
-    Token token = {.type = type, .text = text, .line = line, .character = character};
+Token init_token(TokenType type, char *text, int line, int character, char *file_name){
+    Token token = {.type = type, .text = text, .line = line, .character = character, .file_name = file_name};
     return token;
 }
 
@@ -223,7 +227,7 @@ TokenType check_label_type(char *current, int *current_index){
     return TYPE_LABEL;
 }
 
-Token generate_keyword(char *current, int *current_index, int line, int *character){
+Token generate_keyword(char *current, int *current_index, int line, int *character, Lexer lex){
     char *keyword_name = malloc(sizeof(char) * 16);
     int keyword_length = 0;
     while(isalpha(current[*current_index]) || current[*current_index] == '_'){
@@ -236,13 +240,13 @@ Token generate_keyword(char *current, int *current_index, int line, int *charact
     if(type == TYPE_NONE){
         type = check_label_type(current, current_index);
     }
-    Token token = init_token(type, keyword_name, line, *character);
+    Token token = init_token(type, keyword_name, line, *character, lex.file_name);
     // Increment character by lenth of keyword, also subtract one because iteration occurs in lexer function as well
     *character += keyword_length - 1;
     return token;
 }
 
-Token generate_num(char *current, int *current_index, int line, int *character){
+Token generate_num(char *current, int *current_index, int line, int *character, Lexer lex){
     char *keyword_name = malloc(sizeof(char) * 16);
     int keyword_length = 0;
     while(isdigit(current[*current_index])){
@@ -253,7 +257,7 @@ Token generate_num(char *current, int *current_index, int line, int *character){
     if(current[*current_index] != '.'){
         keyword_name[keyword_length] = '\0';
         TokenType type = TYPE_INT;
-        Token token = init_token(type, keyword_name, line, *character);
+        Token token = init_token(type, keyword_name, line, *character, lex.file_name);
         return token;
     }
     keyword_name[keyword_length] = current[*current_index];
@@ -266,13 +270,13 @@ Token generate_num(char *current, int *current_index, int line, int *character){
     }
     keyword_name[keyword_length] = '\0';
     TokenType type = TYPE_FLOAT;
-    Token token = init_token(type, keyword_name, line, *character);
+    Token token = init_token(type, keyword_name, line, *character, lex.file_name);
     // Increment character by lenth of number, also subtract one because iteration occurs in lexer function as well
     *character += keyword_length - 1;
     return token;
 }
 
-Token generate_char(char *file_name, char *current, int *current_index, int line, int *character){
+Token generate_char(char *file_name, char *current, int *current_index, int line, int *character, Lexer lex){
     char *character_name = malloc(sizeof(char) * 2);
     *current_index += 1;
     character_name[0] = current[*current_index];
@@ -283,21 +287,22 @@ Token generate_char(char *file_name, char *current, int *current_index, int line
     }
     character_name[1] = '\0';
     TokenType type = TYPE_CHAR;
-    Token token = init_token(type, character_name, line, *character);
+    Token token = init_token(type, character_name, line, *character, lex.file_name);
     // Increment character by 3 because of the character length, also subtract one because iteration occurs in lexer function as well
     *character += 3 - 1;
     return token;
 }
 
 Lexer lexer(char *file_name){
-    int length;
-    char *current = open_file(file_name, &length);
-    int current_index = 0;
+    int length = 0;
+    char *current = prepro(file_name, &length, 0);
+    length--;
 
+    int current_index = 0;
     int line = 1;
     int character = 1;
 
-    Lexer lex = {.stack_size = 0, .file_name = "test.tasm"};
+    Lexer lex = {.stack_size = 0, .file_name = file_name};
 
     while(current_index < length){
         if(current[current_index] == '\n'){
@@ -306,21 +311,48 @@ Lexer lexer(char *file_name){
         }
 
         if(isalpha(current[current_index]) || current[current_index] == '_'){
-            Token token = generate_keyword(current, &current_index, line, &character);
+            Token token = generate_keyword(current, &current_index, line, &character, lex);
             push_token(&lex, token);
             current_index--;
         } else if(isdigit(current[current_index])){
-            Token token = generate_num(current, &current_index, line, &character);
+            Token token = generate_num(current, &current_index, line, &character, lex);
             push_token(&lex, token);
             current_index--;
         } else if(current[current_index] == '\''){
-            Token token = generate_char(file_name, current, &current_index, line, &character);
+            Token token = generate_char(file_name, current, &current_index, line, &character, lex);
             push_token(&lex, token);
         } else if(current[current_index] == ';'){
             while(current[current_index] != '\n'){
                 current_index++;
             }
             line++;
+        } else if(current[current_index] == '@'){
+            current_index++;
+            if(current[current_index] != '"' || current_index > length){
+                fprintf(stderr, "error: expected open paren\n");
+                exit(1);
+            }
+            current_index++;
+            if(current_index > length){
+                fprintf(stderr, "error: expected file path\n");
+                exit(1);
+            }
+            char *defined_file_path = get_filename(current, &current_index, length);
+            lex.file_name = defined_file_path;
+            
+            current_index++;
+            if(current_index > length){
+                fprintf(stderr, "error: expected file path\n");
+                exit(1);
+            }
+            current_index++;
+            if(!isdigit(current[current_index]) || current_index > length){
+                fprintf(stderr, "error: expected file path\n");
+                exit(1);
+            }
+            Token num = generate_num(current, &current_index, line, &character, lex);
+            line = atoi(num.text);
+            character = 0;
         } 
         character++;
         current_index++;
