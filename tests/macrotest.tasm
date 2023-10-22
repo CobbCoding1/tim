@@ -1,0 +1,21 @@
+@imp "stddefs.tash"
+@def N 100
+push N
+print
+
+push STDIN
+push STDOUT
+push STDERR
+print
+print
+print
+
+; syscall numbers
+push SYS_READ
+push SYS_WRITE
+push SYS_OPEN
+push SYS_EXIT
+print
+print
+print
+print

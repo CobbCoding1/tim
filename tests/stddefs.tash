@@ -1,0 +1,8 @@
+@def STDERR 2
+@def STDOUT 1
+@def STDIN 0
+
+@def SYS_READ 0
+@def SYS_WRITE 1
+@def SYS_OPEN 2
+@def SYS_EXIT 60

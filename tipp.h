@@ -67,7 +67,7 @@ char *read_file_to_buff(char *file_name, int *length){
 char *get_word(char *buffer, int *index, int length){
     char *word = malloc(sizeof(char));
     int word_size = 0;
-    while(isalpha(buffer[*index]) && *index < length){
+    while((isalpha(buffer[*index]) || buffer[*index] == '_') && *index < length){
         word[word_size] = buffer[*index];
         word_size++;
         *index += 1;
