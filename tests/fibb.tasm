@@ -1,4 +1,5 @@
-push 60 
+@def N 30 
+push N 
 push 1
 push 1
 push 0
