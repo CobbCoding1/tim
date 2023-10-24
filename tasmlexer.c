@@ -227,7 +227,7 @@ TokenType check_label_type(char *current, int *current_index){
     return TYPE_LABEL;
 }
 
-Token generate_keyword(char *current, int *current_index, int line, int *character, Lexer lex){
+Token generate_keyword(char *current, int *current_index, int *line, int *character, Lexer lex){
     char *keyword_name = malloc(sizeof(char) * 16);
     int keyword_length = 0;
     while(isalpha(current[*current_index]) || current[*current_index] == '_'){
@@ -240,7 +240,7 @@ Token generate_keyword(char *current, int *current_index, int line, int *charact
     if(type == TYPE_NONE){
         type = check_label_type(current, current_index);
     }
-    Token token = init_token(type, keyword_name, line, *character, lex.file_name);
+    Token token = init_token(type, keyword_name, *line, *character, lex.file_name);
     // Increment character by lenth of keyword, also subtract one because iteration occurs in lexer function as well
     *character += keyword_length - 1;
     return token;
@@ -311,7 +311,7 @@ Lexer lexer(char *file_name){
         }
 
         if(isalpha(current[current_index]) || current[current_index] == '_'){
-            Token token = generate_keyword(current, &current_index, line, &character, lex);
+            Token token = generate_keyword(current, &current_index, &line, &character, lex);
             push_token(&lex, token);
             current_index--;
         } else if(isdigit(current[current_index])){
@@ -320,6 +320,7 @@ Lexer lexer(char *file_name){
             current_index--;
         } else if(current[current_index] == '\''){
             Token token = generate_char(file_name, current, &current_index, line, &character, lex);
+            current_index--;
             push_token(&lex, token);
         } else if(current[current_index] == ';'){
             while(current[current_index] != '\n'){
@@ -351,6 +352,7 @@ Lexer lexer(char *file_name){
                 exit(1);
             }
             Token num = generate_num(current, &current_index, line, &character, lex);
+            current_index--;
             line = atoi(num.text);
             character = 0;
         } 

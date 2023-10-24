@@ -69,7 +69,7 @@ char *pretty_token(Token token);
 void print_token(Token token);
 Token init_token(TokenType type, char *text, int line, int character, char *file_name);
 TokenType check_builtin_keywords(char *name);
-Token generate_keyword(char *current, int *current_index, int line, int *character, Lexer lex);
+Token generate_keyword(char *current, int *current_index, int *line, int *character, Lexer lex);
 Token generate_num(char *current, int *current_index, int line, int *character, Lexer lex);
 Token generate_char(char *file_name, char *current, int *current_index, int line, int *character, Lexer lex);
 Lexer lexer();

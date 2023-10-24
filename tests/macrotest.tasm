@@ -1,6 +1,7 @@
 @imp "stddefs.tash"
-@def N 100
+@imp "linuxsyscalls.tash"
 push N
+push push
 print
 
 push STDIN

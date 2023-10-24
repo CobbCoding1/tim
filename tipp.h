@@ -39,6 +39,7 @@ char *pass(char *buffer, int length, int depth, char *file_name);
 
 const unsigned initial_size = 1;
 struct hashmap_s hashmap;
+int hashmap_initted = 0;
 
 char *read_file_to_buff(char *file_name, int *length){
     FILE *file = fopen(file_name, "r"); 
@@ -108,8 +109,11 @@ void eof_error(char *buffer, int index, int length){
 }
 
 char *prepro(char *file_name, int *length, int depth){
-    int hashmap_error = hashmap_create(initial_size, &hashmap);
-    assert(hashmap_error == 0 && "COULD NOT INITIALIZE HASHMAP\n");
+    if(!hashmap_initted){
+        int hashmap_error = hashmap_create(initial_size, &hashmap);
+        assert(hashmap_error == 0 && "COULD NOT INITIALIZE HASHMAP\n");
+        hashmap_initted = 1;
+    }
     char *buffer = read_file_to_buff(file_name, length);
     if(!buffer){
         fprintf(stderr, "error reading file\n");
@@ -152,6 +156,7 @@ char *pass(char *buffer, int length, int depth, char *file_name){
                 index++;
                 eof_error(buffer, index, length);
                 char *value = get_value(buffer, &index, length);
+                line++;
                 int put_error = hashmap_put(&hashmap, def, strlen(def), value);
                 assert(put_error == 0 && "COULD NOT PLACE INTO HASHMAP\n");
             } else if(strcmp(word, "imp") == 0){
@@ -173,14 +178,15 @@ char *pass(char *buffer, int length, int depth, char *file_name){
                 eof_error(buffer, index, length);
                 int imported_length = 0;
                 char *imported_buffer = prepro(imported_file, &imported_length, depth + 1);
-                imported_length = strlen(imported_buffer);
+                imported_length = strlen(imported_buffer) - 1;
                 char *file_info = malloc(sizeof(char) * 64);
-                sprintf(file_info, "\n@\"%s\" %d\n", imported_file, 1);
+                sprintf(file_info, "\n@\"%s\" %d", imported_file, 1);
                 append_to_output(output, &output_index, file_info, strlen(file_info));
 
                 append_to_output(output, &output_index, imported_buffer, imported_length);
 
-                sprintf(file_info, "\n@\"%s\" %d\n", file_name, line);
+                sprintf(file_info, "\n@\"%s\" %d", file_name, line);
+                line++;
 
                 append_to_output(output, &output_index, file_info, strlen(file_info));
             } else {
