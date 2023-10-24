@@ -296,7 +296,6 @@ Token generate_char(char *file_name, char *current, int *current_index, int line
 Lexer lexer(char *file_name){
     int length = 0;
     char *current = prepro(file_name, &length, 0);
-    printf("%s\n", current);
 
     int current_index = 0;
     int line = 1;
