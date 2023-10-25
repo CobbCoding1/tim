@@ -132,6 +132,9 @@ char *pretty_token(Token token){
         case TYPE_CHAR:
             return "type of char\n";
             break;
+        case TYPE_STRING:
+            return "type of string\n";
+            break;
         case TYPE_LABEL_DEF:
             return "label def\n";
             break;
@@ -298,6 +301,8 @@ char valid_escape_character(char *current, int *current_index){
             return '\?';
         case '\'':
             return '\'';
+        case '\"':
+            return '\"';
         case '0':
             return '\0';
         default:
@@ -320,7 +325,7 @@ Token generate_char(char *file_name, char *current, int *current_index, int line
     }
     *current_index += 1;
     if(current[*current_index] != '\''){
-        fprintf(stderr, "%s:%d:%d error: expected close paren\n", file_name, line, *character);
+        fprintf(stderr, "%s:%d:%d error: expected close single quote\n", file_name, line, *character);
         exit(1);
     }
 
@@ -330,6 +335,44 @@ Token generate_char(char *file_name, char *current, int *current_index, int line
     Token token = init_token(type, character_name, line, *character, lex.file_name);
     // Increment character by 3 because of the character length, also subtract one because iteration occurs in lexer function as well
     *character += (3) - 1;
+    return token;
+}
+
+Token generate_string(char *file_name, char *current, int *current_index, int line, int *character, Lexer lex){
+    char *string_name = malloc(sizeof(char) * 64);
+    int string_index = 0;
+    *current_index += 1;
+    if(current[*current_index] == '\0'){
+        fprintf(stderr, "%s:%d:%d error: invalid string\n", file_name, line, *character);
+        exit(1);
+    }
+
+    while(current[*current_index] != '"' && current[*current_index] != '\0'){
+        if(current[*current_index] == '\\'){
+            *current_index += 1;
+            char escape_character = valid_escape_character(current, current_index);
+            if(escape_character == ' '){
+                fprintf(stderr, "%s:%d:%d error: invalid escape character\n", file_name, line, *character);
+                exit(1);
+            }
+        }
+        string_name[string_index] = current[*current_index];
+        *current_index += 1;
+        string_index++;
+    }
+
+    if(current[*current_index] != '"'){
+        fprintf(stderr, "%s:%d:%d error: expected close quote\n", file_name, line, *character);
+        exit(1);
+    }
+
+    string_name[string_index] = '\0';
+
+
+    TokenType type = TYPE_STRING;
+    Token token = init_token(type, string_name, line, *character, lex.file_name);
+    // Increment character by 3 because of the character length, also subtract one because iteration occurs in lexer function as well
+    *character += (string_index) - 1;
     return token;
 }
 
@@ -359,6 +402,9 @@ Lexer lexer(char *file_name){
             current_index--;
         } else if(current[current_index] == '\''){
             Token token = generate_char(file_name, current, &current_index, line, &character, lex);
+            push_token(&lex, token);
+        } else if(current[current_index] == '"'){
+            Token token = generate_string(file_name, current, &current_index, line, &character, lex);
             push_token(&lex, token);
         } else if(current[current_index] == ';'){
             while(current[current_index] != '\n'){

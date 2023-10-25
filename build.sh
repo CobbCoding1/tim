@@ -1,5 +1,5 @@
 set -xe
-gcc tim.c time.c -o time -Wall -Wextra 
+gcc tim.c time.c -o time -Wall -Wextra -ggdb 
 gcc tasm.c  tasmlexer.c tasmparser.c tim.c -o tasm -Wall -Wextra 
 
 while getopts "t" flag; do

@@ -89,6 +89,7 @@ void run_instructions(Machine *machine){
                 continue;
                 break;
             case INST_PUSH:
+                printf("VALUE IS: %c\n", machine->instructions[ip].value.as_char);
                 push(machine, machine->instructions[ip].value);
                 break;
             case INST_POP:
@@ -264,7 +265,7 @@ void run_instructions(Machine *machine){
                 break;
             case INST_PRINT:
                 a = pop(machine);
-                printf("as float: %f, as int: %ld, as char: %c\n", a.as_float, a.as_int, a.as_char);
+                printf("as float: %f, as int: %ld, as char: %c, as pointer: %p\n", a.as_float, a.as_int, a.as_char, a.as_pointer);
                 break;
             case INST_HALT:
                 ip = machine->program_size;

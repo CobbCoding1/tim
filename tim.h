@@ -46,6 +46,7 @@ typedef union {
     int64_t as_int;
     double as_float;
     char as_char;
+    void *as_pointer;
 } Word;
 
 typedef struct {

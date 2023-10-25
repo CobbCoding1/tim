@@ -43,6 +43,7 @@ typedef enum {
     TYPE_INT,
     TYPE_FLOAT,
     TYPE_CHAR,
+    TYPE_STRING,
     TYPE_LABEL_DEF,
     TYPE_LABEL,
     TYPE_COUNT,

@@ -37,6 +37,20 @@ Inst *generate_instructions(ParseList *head, int *program_size){
                 instruction->value.as_float = atof(head->value.text);
             } else if(head->value.type == TYPE_CHAR){
                 instruction->value.as_char = head->value.text[0];
+            } else if(head->value.type == TYPE_STRING){
+                int i = 0;
+                while(head->value.text[i] != '\0'){
+                    instruction = malloc(sizeof(Inst));
+                    instruction->type = insts[TYPE_PUSH];
+                    instruction->value.as_char = head->value.text[i];
+                    printf("typoe is %c\n", head->value.text[i]);
+                    push_program(program, program_size, *instruction);
+                    i++;
+                }
+                    printf("broke out is %c\n", head->value.text[i]);
+                instruction->type = insts[TYPE_PUSH];
+                instruction->value.as_char = '\0';
+                //instruction->value.as_pointer = head->value.text[0];
             } else {
                 assert(false && "you should not be here\n");
             }
