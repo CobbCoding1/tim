@@ -282,7 +282,7 @@ Token generate_char(char *file_name, char *current, int *current_index, int line
     character_name[0] = current[*current_index];
     *current_index += 1;
     if(current[*current_index] != '\''){
-        fprintf(stderr, "%s:%d:%d error: expected '\n", file_name, line, *character);
+        fprintf(stderr, "%s:%d:%d error: expected close paren\n", file_name, line, *character);
         exit(1);
     }
     character_name[1] = '\0';
@@ -319,7 +319,6 @@ Lexer lexer(char *file_name){
             current_index--;
         } else if(current[current_index] == '\''){
             Token token = generate_char(file_name, current, &current_index, line, &character, lex);
-            current_index--;
             push_token(&lex, token);
         } else if(current[current_index] == ';'){
             while(current[current_index] != '\n'){
