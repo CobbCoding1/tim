@@ -1,0 +1,22 @@
+push '\0'
+push '\n'
+push '\t'
+push '\v'
+push '\b'
+push '\r'
+push '\f'
+push '\a'
+push '\\'
+push '\?'
+push '\''
+print
+print
+print
+print
+print
+print
+print
+print
+print
+print
+print

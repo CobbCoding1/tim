@@ -275,17 +275,3 @@ void run_instructions(Machine *machine){
     }
 
 }
-
-/*
-int tim(){
-    Machine *loaded_machine = malloc(sizeof(Machine) * MAX_STACK_SIZE);
-
-    loaded_machine->instructions = program;
-    write_program_to_file(loaded_machine, "test.tim");
-    loaded_machine = read_program_from_file(loaded_machine, "test.tim");
-    
-    run_instructions(loaded_machine);
-    print_stack(loaded_machine);
-    return 0;
-}
-*/

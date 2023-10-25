@@ -276,20 +276,60 @@ Token generate_num(char *current, int *current_index, int line, int *character, 
     return token;
 }
 
+char valid_escape_character(char *current, int *current_index){
+    switch(current[*current_index]){
+        case 'n':
+            return '\n';
+        case 't':
+            return '\t';
+        case 'v':
+            return '\v';
+        case 'b':
+            return '\b';
+        case 'r':
+            return '\r';
+        case 'f':
+            return '\f';
+        case 'a':
+            return '\a';
+        case '\\':
+            return '\\';
+        case '?':
+            return '\?';
+        case '\'':
+            return '\'';
+        case '0':
+            return '\0';
+        default:
+            return ' ';
+    }
+}
+
 Token generate_char(char *file_name, char *current, int *current_index, int line, int *character, Lexer lex){
     char *character_name = malloc(sizeof(char) * 2);
     *current_index += 1;
     character_name[0] = current[*current_index];
+    if(current[*current_index] == '\\'){
+        *current_index += 1;
+        char escape_character = valid_escape_character(current, current_index);
+        if(escape_character == ' '){
+            fprintf(stderr, "%s:%d:%d error: invalid escape character\n", file_name, line, *character);
+            exit(1);
+        }
+        character_name[0] = escape_character; 
+    }
     *current_index += 1;
     if(current[*current_index] != '\''){
         fprintf(stderr, "%s:%d:%d error: expected close paren\n", file_name, line, *character);
         exit(1);
     }
+
     character_name[1] = '\0';
+
     TokenType type = TYPE_CHAR;
     Token token = init_token(type, character_name, line, *character, lex.file_name);
     // Increment character by 3 because of the character length, also subtract one because iteration occurs in lexer function as well
-    *character += 3 - 1;
+    *character += (3) - 1;
     return token;
 }
 
