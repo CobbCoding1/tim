@@ -7,6 +7,7 @@
 #include <string.h>
 #include <math.h>
 #include <assert.h>
+#include <unistd.h>
 
 #define MAX_STACK_SIZE 1024
 
@@ -38,6 +39,7 @@ typedef enum {
     INST_ZJMP,
     INST_NZJMP,
     INST_PRINT,
+    INST_WRITE,
     INST_HALT,
     INST_COUNT,
 } Inst_Set;
@@ -52,6 +54,7 @@ typedef union {
 typedef struct {
     Inst_Set type;
     Word value;
+    size_t length;
 } Inst;
 
 typedef struct {

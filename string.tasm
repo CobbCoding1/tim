@@ -1,1 +1,4 @@
-push "hello, world"
+push "Hello, world!\n"
+push "Again\n"
+write 1 6
+write 1 14

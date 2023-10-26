@@ -36,6 +36,21 @@ void index_dup(Machine *machine, int64_t index){
     push(machine, machine->stack[index]);
 }
 
+char *get_str_from_stack(Machine *machine, int length){
+    if(length > machine->stack_size){
+        fprintf(stderr, "ERROR: Stack Underflow\n");
+        exit(1);
+    }
+    char *buffer = malloc(sizeof(char) * length);
+    int buffer_index = 0;
+    while(length > 0){
+        buffer[buffer_index] = machine->stack[machine->stack_size - length].as_char;
+        length--;
+        buffer_index++;
+    }
+    return buffer;
+}
+
 void print_stack(Machine *machine){
     printf("------ STACK\n");
     for(int i = machine->stack_size - 1; i >= 0; i--){
@@ -69,7 +84,7 @@ Machine *read_program_from_file(Machine *machine, char *file_path){
     fseek(file, 0, SEEK_SET);
     fread(instructions, sizeof(instructions[0]), length, file);
 
-    machine->program_size = length;
+    machine->program_size = length / 16;
     machine->instructions = instructions;
 
     fclose(file);
@@ -83,13 +98,11 @@ void run_instructions(Machine *machine){
     Word no;
     no.as_int = 0;
     for(size_t ip = 0; ip < machine->program_size; ip++){
-        //print_stack(machine);
         switch(machine->instructions[ip].type){
             case INST_NOP:
                 continue;
                 break;
             case INST_PUSH:
-                printf("VALUE IS: %c\n", machine->instructions[ip].value.as_char);
                 push(machine, machine->instructions[ip].value);
                 break;
             case INST_POP:
@@ -267,6 +280,12 @@ void run_instructions(Machine *machine){
                 a = pop(machine);
                 printf("as float: %f, as int: %ld, as char: %c, as pointer: %p\n", a.as_float, a.as_int, a.as_char, a.as_pointer);
                 break;
+            case INST_WRITE: {
+                char *str = get_str_from_stack(machine, machine->instructions[ip].length);    
+                machine->stack_size -= machine->instructions[ip].length;
+                write(machine->instructions[ip].value.as_int, str, machine->instructions[ip].length);
+                break;
+            }
             case INST_HALT:
                 ip = machine->program_size;
                 break;
@@ -274,5 +293,4 @@ void run_instructions(Machine *machine){
                 assert(false);
         }
     }
-
 }

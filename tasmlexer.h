@@ -39,6 +39,7 @@ typedef enum {
     TYPE_ZJMP,
     TYPE_NZJMP,
     TYPE_PRINT,
+    TYPE_WRITE,
     TYPE_HALT,
     TYPE_INT,
     TYPE_FLOAT,

@@ -123,6 +123,9 @@ char *pretty_token(Token token){
         case TYPE_PRINT:
             return "print\n";
             break;
+        case TYPE_WRITE:
+            return "write\n";
+            break;
         case TYPE_INT:
             return "type of int\n";
             break;
@@ -217,6 +220,8 @@ TokenType check_builtin_keywords(char *name){
         return TYPE_NZJMP;
     } else if(strcmp(name, "print") == 0){
         return TYPE_PRINT;
+    } else if(strcmp(name, "write") == 0){
+        return TYPE_WRITE;
     } else if(strcmp(name, "halt") == 0){
         return TYPE_HALT;
     }
@@ -355,6 +360,7 @@ Token generate_string(char *file_name, char *current, int *current_index, int li
                 fprintf(stderr, "%s:%d:%d error: invalid escape character\n", file_name, line, *character);
                 exit(1);
             }
+            current[*current_index] = escape_character;
         }
         string_name[string_index] = current[*current_index];
         *current_index += 1;

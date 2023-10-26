@@ -12,12 +12,22 @@ Inst pop_program(Inst program[], int program_size){
     return program[--program_size];
 }
 
+size_t length_of_list(ParseList *head){
+    ParseList *tmp = head;
+    size_t result = 1;
+    while(tmp->next != NULL){
+        result += 1;
+        tmp = tmp->next;
+    }
+    return result;
+}
+
 Inst *generate_instructions(ParseList *head, int *program_size){
-    Inst *program = malloc(sizeof(Inst));
+    Inst *program = malloc(sizeof(Inst) * length_of_list(head));
     Inst_Set insts[INST_COUNT + 1] = {    
         INST_NOP, INST_PUSH, INST_POP, INST_DUP, INST_INDUP, INST_SWAP, INST_INSWAP, INST_ADD, INST_SUB, INST_MUL, 
         INST_DIV, INST_MOD, INST_ADD_F, INST_SUB_F, INST_MUL_F, INST_DIV_F, INST_MOD_F, INST_CMPE, INST_CMPNE, INST_CMPG, 
-        INST_CMPL, INST_CMPGE, INST_CMPLE, INST_JMP, INST_ZJMP, INST_NZJMP, INST_PRINT, INST_HALT, INST_COUNT};
+        INST_CMPL, INST_CMPGE, INST_CMPLE, INST_JMP, INST_ZJMP, INST_NZJMP, INST_PRINT, INST_WRITE, INST_HALT, INST_COUNT};
 
     while(head != NULL){
         assert(head->value.type != TYPE_NONE && "Value should not be none\n");
@@ -29,6 +39,14 @@ Inst *generate_instructions(ParseList *head, int *program_size){
             head = head->next;
             instruction->value.as_int = atoi(head->value.text);
         }
+
+        if(head->value.type == TYPE_WRITE){
+            head = head->next;
+            instruction->value.as_int = atoi(head->value.text);
+            head = head->next;
+            instruction->length = atoi(head->value.text);
+        }
+
         if(head->value.type == TYPE_PUSH){
             head = head->next;
             if(head->value.type == TYPE_INT){
@@ -41,16 +59,13 @@ Inst *generate_instructions(ParseList *head, int *program_size){
                 int i = 0;
                 while(head->value.text[i] != '\0'){
                     instruction = malloc(sizeof(Inst));
-                    instruction->type = insts[TYPE_PUSH];
+                    instruction->type = INST_PUSH;
                     instruction->value.as_char = head->value.text[i];
-                    printf("typoe is %c\n", head->value.text[i]);
-                    push_program(program, program_size, *instruction);
+                    if(head->value.text[i+1] != '\0'){
+                        push_program(program, program_size, *instruction);
+                    }
                     i++;
                 }
-                    printf("broke out is %c\n", head->value.text[i]);
-                instruction->type = insts[TYPE_PUSH];
-                instruction->value.as_char = '\0';
-                //instruction->value.as_pointer = head->value.text[0];
             } else {
                 assert(false && "you should not be here\n");
             }
