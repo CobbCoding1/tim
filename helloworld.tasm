@@ -1,3 +1,4 @@
 @imp "stddefs.tash"
+
 push "Hello, world!\n"
 write STDOUT 14
