@@ -293,5 +293,4 @@ void run_instructions(Machine *machine){
                 assert(false);
         }
     }
-    print_stack(machine);
 }
