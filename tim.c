@@ -54,7 +54,8 @@ char *get_str_from_stack(Machine *machine, int length){
 void print_stack(Machine *machine){
     printf("------ STACK\n");
     for(int i = machine->stack_size - 1; i >= 0; i--){
-        printf("as int: %ld, as float: %f, as char: %c\n", machine->stack[i].as_int, machine->stack[i].as_float, machine->stack[i].as_char);
+        printf("as int: %ld, as float: %f, as char: %c, as pointer: %p\n", machine->stack[i].as_int, 
+               machine->stack[i].as_float, machine->stack[i].as_char, machine->stack[i].as_pointer);
     }
     printf("------ END OF STACK\n");
 }
@@ -175,10 +176,9 @@ void run_instructions(Machine *machine){
                 push(machine, (Word)(a.as_float / b.as_float));
                 break;
             case INST_MOD_F:
-                assert(false && "TODO: NOT IMPLEMENTED YET\n");
-                //b = pop(machine);
-                //a = pop(machine);
-                //push(machine, (Word)(modf(a.as_float, b.as_float)));
+                b = pop(machine);
+                a = pop(machine);
+                push(machine, (Word)(fmod(a.as_float, b.as_float)));
                 break;
             case INST_CMPE:
                 a = pop(machine);
@@ -293,4 +293,5 @@ void run_instructions(Machine *machine){
                 assert(false);
         }
     }
+    print_stack(machine);
 }
