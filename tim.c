@@ -1,5 +1,29 @@
 #include "tim.h"
 
+// native functions
+
+void native_write(Machine *machine){
+    int fd = pop(machine).as_int;
+    int length = pop(machine).as_int;
+    char *str = get_str_from_stack(machine, length);    
+    machine->stack_size -= length;
+    write(fd, str, length);
+}
+
+
+void native_malloc(Machine *machine){
+    int num_of_bytes = pop(machine).as_int;
+    void *ptr = malloc(1 * num_of_bytes);
+    push(machine, (Word)ptr);
+}
+
+void native_free(Machine *machine){
+    int *ptr = pop(machine).as_pointer;
+    free(ptr);
+}
+
+// end native functions
+
 void push(Machine *machine, Word value){
     if(machine->stack_size >= MAX_STACK_SIZE){
         fprintf(stderr, "ERROR: Stack Overflow\n");
@@ -280,12 +304,27 @@ void run_instructions(Machine *machine){
                 a = pop(machine);
                 printf("as float: %f, as int: %ld, as char: %c, as pointer: %p\n", a.as_float, a.as_int, a.as_char, a.as_pointer);
                 break;
-            case INST_WRITE: {
-                char *str = get_str_from_stack(machine, machine->instructions[ip].length);    
-                machine->stack_size -= machine->instructions[ip].length;
-                write(machine->instructions[ip].value.as_int, str, machine->instructions[ip].length);
+            case INST_NATIVE:
+                switch(machine->instructions[ip].value.as_int){
+                    case 0:
+                        printf("CASE OF 0\n");
+                        break;
+                    case 1:
+                        native_write(machine);
+                        break;
+                    case 2:
+                        break;
+                    case 3:
+                        native_malloc(machine);
+                        break;
+                    case 4:
+                        native_free(machine);
+                        break;
+                    default:
+                        fprintf(stderr, "error: unexpected native call\n");
+                        exit(1);
+                }
                 break;
-            }
             case INST_HALT:
                 ip = machine->program_size;
                 break;

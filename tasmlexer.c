@@ -123,8 +123,8 @@ char *pretty_token(Token token){
         case TYPE_PRINT:
             return "print\n";
             break;
-        case TYPE_WRITE:
-            return "write\n";
+        case TYPE_NATIVE:
+            return "native\n";
             break;
         case TYPE_INT:
             return "type of int\n";
@@ -220,8 +220,8 @@ TokenType check_builtin_keywords(char *name){
         return TYPE_NZJMP;
     } else if(strcmp(name, "print") == 0){
         return TYPE_PRINT;
-    } else if(strcmp(name, "write") == 0){
-        return TYPE_WRITE;
+    } else if(strcmp(name, "native") == 0){
+        return TYPE_NATIVE;
     } else if(strcmp(name, "halt") == 0){
         return TYPE_HALT;
     }

@@ -27,7 +27,7 @@ Inst *generate_instructions(ParseList *head, int *program_size){
     Inst_Set insts[INST_COUNT + 1] = {    
         INST_NOP, INST_PUSH, INST_POP, INST_DUP, INST_INDUP, INST_SWAP, INST_INSWAP, INST_ADD, INST_SUB, INST_MUL, 
         INST_DIV, INST_MOD, INST_ADD_F, INST_SUB_F, INST_MUL_F, INST_DIV_F, INST_MOD_F, INST_CMPE, INST_CMPNE, INST_CMPG, 
-        INST_CMPL, INST_CMPGE, INST_CMPLE, INST_JMP, INST_ZJMP, INST_NZJMP, INST_PRINT, INST_WRITE, INST_HALT, INST_COUNT};
+        INST_CMPL, INST_CMPGE, INST_CMPLE, INST_JMP, INST_ZJMP, INST_NZJMP, INST_PRINT, INST_NATIVE, INST_HALT, INST_COUNT};
 
     while(head != NULL){
         assert(head->value.type != TYPE_NONE && "Value should not be none\n");
@@ -40,11 +40,9 @@ Inst *generate_instructions(ParseList *head, int *program_size){
             instruction->value.as_int = atoi(head->value.text);
         }
 
-        if(head->value.type == TYPE_WRITE){
+        if(head->value.type == TYPE_NATIVE){
             head = head->next;
             instruction->value.as_int = atoi(head->value.text);
-            head = head->next;
-            instruction->length = atoi(head->value.text);
         }
 
         if(head->value.type == TYPE_PUSH){

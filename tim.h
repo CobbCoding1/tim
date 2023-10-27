@@ -39,7 +39,7 @@ typedef enum {
     INST_ZJMP,
     INST_NZJMP,
     INST_PRINT,
-    INST_WRITE,
+    INST_NATIVE,
     INST_HALT,
     INST_COUNT,
 } Inst_Set;
@@ -54,7 +54,6 @@ typedef union {
 typedef struct {
     Inst_Set type;
     Word value;
-    size_t length;
 } Inst;
 
 typedef struct {
@@ -92,6 +91,7 @@ void push(Machine *machine, Word value);
 Word pop(Machine *machine);
 void index_swap(Machine *machine, int64_t index);
 void index_dup(Machine *machine, int64_t index);
+char *get_str_from_stack(Machine *machine, int length);
 void print_stack(Machine *machine);
 void write_program_to_file(Machine *machine, char *file_path);
 Machine *read_program_from_file(Machine *machine, char *file_path);
