@@ -1,0 +1,4 @@
+push "Hello, world!\n"
+push 14
+push 1
+native 1

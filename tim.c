@@ -10,7 +10,6 @@ void native_write(Machine *machine){
     write(fd, str, length);
 }
 
-
 void native_malloc(Machine *machine){
     int num_of_bytes = pop(machine).as_int;
     void *ptr = malloc(1 * num_of_bytes);
