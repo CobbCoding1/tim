@@ -1,0 +1,8 @@
+push 28
+native 3
+push 28
+push 0
+native 2
+push 2
+push 64
+native 0

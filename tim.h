@@ -8,6 +8,7 @@
 #include <math.h>
 #include <assert.h>
 #include <unistd.h>
+#include <fcntl.h>
 
 #define MAX_STACK_SIZE 1024
 

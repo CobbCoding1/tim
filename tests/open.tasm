@@ -1,0 +1,17 @@
+@imp "stddefs.tash"
+push 1
+push "Hello, world!\n"
+push 14 
+push 28
+malloc
+push 28
+push STDIN
+read
+push RDWR 
+push CREAT
+open
+dup
+inswap 0
+pop
+write
+close

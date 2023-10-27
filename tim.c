@@ -2,6 +2,14 @@
 
 // native functions
 
+void native_open(Machine *machine){
+    int flag_mode = pop(machine).as_int;
+    int flag_creation = pop(machine).as_int;
+    char *path = pop(machine).as_pointer;
+    int64_t fd = open(path, flag_mode | flag_creation, 0666);
+    push(machine, (Word)fd);
+}
+
 void native_write(Machine *machine){
     int fd = pop(machine).as_int;
     int length = pop(machine).as_int;
@@ -16,6 +24,11 @@ void native_read(Machine *machine){
     char *buffer = pop(machine).as_pointer;
     read(fd, buffer, length);
     push_ptr(machine, (Word*)buffer);
+}
+
+void native_close(Machine *machine){
+    int64_t fd = pop(machine).as_int;
+    close(fd);
 }
 
 void native_malloc(Machine *machine){
@@ -323,7 +336,7 @@ void run_instructions(Machine *machine){
             case INST_NATIVE:
                 switch(machine->instructions[ip].value.as_int){
                     case 0:
-                        printf("CASE OF 0\n");
+                        native_open(machine);
                         break;
                     case 1:
                         native_write(machine);
@@ -332,9 +345,12 @@ void run_instructions(Machine *machine){
                         native_read(machine);
                         break;
                     case 3:
-                        native_malloc(machine);
+                        native_close(machine);
                         break;
                     case 4:
+                        native_malloc(machine);
+                        break;
+                    case 5:
                         native_free(machine);
                         break;
                     default:
