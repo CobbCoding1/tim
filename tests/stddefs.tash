@@ -3,6 +3,7 @@
 @def STDIN 0
 
 @def write native 1
+@def read native 2
 @def malloc native 3
 @def free native 4
 

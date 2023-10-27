@@ -10,6 +10,14 @@ void native_write(Machine *machine){
     write(fd, str, length);
 }
 
+void native_read(Machine *machine){
+    int fd = pop(machine).as_int;
+    int length = pop(machine).as_int;
+    char *buffer = pop(machine).as_pointer;
+    read(fd, buffer, length);
+    push_ptr(machine, (Word*)buffer);
+}
+
 void native_malloc(Machine *machine){
     int num_of_bytes = pop(machine).as_int;
     void *ptr = malloc(1 * num_of_bytes);
@@ -17,11 +25,20 @@ void native_malloc(Machine *machine){
 }
 
 void native_free(Machine *machine){
-    int *ptr = pop(machine).as_pointer;
-    free(ptr);
+    Word ptr = pop(machine);
+    free(ptr.as_pointer);
 }
 
 // end native functions
+
+void push_ptr(Machine *machine, Word *value){
+    if(machine->stack_size >= MAX_STACK_SIZE){
+        fprintf(stderr, "ERROR: Stack Overflow\n");
+        exit(1);
+    }
+    machine->stack[machine->stack_size++].as_pointer = value;
+   // machine->stack_size++;
+}
 
 void push(Machine *machine, Word value){
     if(machine->stack_size >= MAX_STACK_SIZE){
@@ -312,6 +329,7 @@ void run_instructions(Machine *machine){
                         native_write(machine);
                         break;
                     case 2:
+                        native_read(machine);
                         break;
                     case 3:
                         native_malloc(machine);

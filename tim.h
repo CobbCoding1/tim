@@ -87,6 +87,7 @@ typedef struct {
 #define DEF_INST_PRINT() {.type = INST_PRINT}
 #define DEF_INST_HALT() {.type = INST_HALT}
 
+void push_ptr(Machine *machine, Word *value);
 void push(Machine *machine, Word value);
 Word pop(Machine *machine);
 void index_swap(Machine *machine, int64_t index);

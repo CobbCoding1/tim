@@ -1,0 +1,7 @@
+@imp "stddefs.tash"
+push 14
+malloc
+push 14
+push STDIN
+read
+free
