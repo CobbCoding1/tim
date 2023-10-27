@@ -4,7 +4,7 @@ push "Hello, world!\n"
 push 14 
 push 28
 malloc
-push 28
+push 4 
 push STDIN
 read
 push RDWR 

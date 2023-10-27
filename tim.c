@@ -5,7 +5,7 @@
 void native_open(Machine *machine){
     int flag_mode = pop(machine).as_int;
     int flag_creation = pop(machine).as_int;
-    char *path = pop(machine).as_pointer;
+    char *path = (char*)pop(machine).as_pointer;
     int64_t fd = open(path, flag_mode | flag_creation, 0666);
     push(machine, (Word)fd);
 }
