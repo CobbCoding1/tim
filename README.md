@@ -2,7 +2,7 @@
 
 Implementation of a virtual machine in C.
 
-VM currently has 29 instructions. List can be found in tim.h.
+VM currently has 29 instructions as well as a couple native functions. List can be found in tim.h.
 There is also a working assembly which contains support for all instructions in the VM. 
 
 Example of hello world in assembly:
@@ -10,5 +10,7 @@ Example of hello world in assembly:
 @imp "stddefs.tash"
 
 push "Hello, world!\n"
-write STDOUT 14
+push 14
+push STDOUT
+write
 ```
