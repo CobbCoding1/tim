@@ -30,7 +30,7 @@ void native_write(Machine *machine){
     int fd = pop(machine).as_int;
     char *str = get_str_from_stack(machine);    
     int length = strlen(str);
-    machine->stack_size -= length;
+    machine->stack_size -= length + 1;
     write(fd, str, length);
 }
 
