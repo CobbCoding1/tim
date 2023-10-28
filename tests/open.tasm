@@ -1,7 +1,6 @@
 @imp "stddefs.tash"
 push 1
 push "Hello, world!\n"
-push 14 
 push 28
 malloc
 push 4 

@@ -10,7 +10,6 @@ Example of hello world in assembly:
 @imp "stddefs.tash"
 
 push "Hello, world!\n"
-push 14
 push STDOUT
-write
+write ; length is inferred because the string is null-terminated
 ```

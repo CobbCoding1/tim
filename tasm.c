@@ -25,7 +25,7 @@ size_t length_of_list(ParseList *head){
 Inst *generate_instructions(ParseList *head, int *program_size){
     Inst *program = malloc(sizeof(Inst) * length_of_list(head));
     Inst_Set insts[INST_COUNT + 1] = {    
-        INST_NOP, INST_PUSH, INST_POP, INST_DUP, INST_INDUP, INST_SWAP, INST_INSWAP, INST_ADD, INST_SUB, INST_MUL, 
+        INST_NOP, INST_PUSH, INST_PUSH_PTR, INST_POP, INST_DUP, INST_INDUP, INST_SWAP, INST_INSWAP, INST_ADD, INST_SUB, INST_MUL, 
         INST_DIV, INST_MOD, INST_ADD_F, INST_SUB_F, INST_MUL_F, INST_DIV_F, INST_MOD_F, INST_CMPE, INST_CMPNE, INST_CMPG, 
         INST_CMPL, INST_CMPGE, INST_CMPLE, INST_JMP, INST_ZJMP, INST_NZJMP, INST_PRINT, INST_NATIVE, INST_HALT, INST_COUNT};
 
@@ -55,9 +55,12 @@ Inst *generate_instructions(ParseList *head, int *program_size){
                 instruction->value.as_char = head->value.text[0];
             } else if(head->value.type == TYPE_STRING){
                 int i = 0;
+                instruction->type = INST_PUSH_PTR;
+                instruction->value.as_char = '\0';
+                push_program(program, program_size, *instruction);
                 while(head->value.text[i] != '\0'){
                     instruction = malloc(sizeof(Inst));
-                    instruction->type = INST_PUSH;
+                    instruction->type = INST_PUSH_PTR;
                     instruction->value.as_char = head->value.text[i];
                     if(head->value.text[i+1] != '\0'){
                         push_program(program, program_size, *instruction);

@@ -17,6 +17,7 @@
 typedef enum {
     INST_NOP = 0,
     INST_PUSH,
+    INST_PUSH_PTR,
     INST_POP,
     INST_DUP,
     INST_INDUP,
@@ -95,10 +96,12 @@ void push(Machine *machine, Word value);
 Word pop(Machine *machine);
 void index_swap(Machine *machine, int64_t index);
 void index_dup(Machine *machine, int64_t index);
-char *get_str_from_stack(Machine *machine, int length);
+char *get_str_from_stack(Machine *machine);
 void print_stack(Machine *machine);
 void write_program_to_file(Machine *machine, char *file_path);
 Machine *read_program_from_file(Machine *machine, char *file_path);
 void run_instructions(Machine *machine);
+char *reverse_string(char *str);
+
 
 #endif

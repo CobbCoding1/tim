@@ -1,5 +1,21 @@
 #include "tim.h"
 
+char *reverse_string(char *str){
+    int length = strlen(str);
+    int start = 0;
+    int end = length - 1;
+    char temp;
+
+    while (start < end) {
+        temp = str[start];
+        str[start] = str[end];
+        str[end] = temp;
+        start++;
+        end--;
+    }
+    return str;
+}
+
 // native functions
 
 void native_open(Machine *machine){
@@ -12,8 +28,8 @@ void native_open(Machine *machine){
 
 void native_write(Machine *machine){
     int fd = pop(machine).as_int;
-    int length = pop(machine).as_int;
-    char *str = get_str_from_stack(machine, length);    
+    char *str = get_str_from_stack(machine);    
+    int length = strlen(str);
     machine->stack_size -= length;
     write(fd, str, length);
 }
@@ -89,18 +105,22 @@ void index_dup(Machine *machine, int64_t index){
     push(machine, machine->stack[index]);
 }
 
-char *get_str_from_stack(Machine *machine, int length){
-    if(length > machine->stack_size){
-        fprintf(stderr, "ERROR: Stack Underflow\n");
-        exit(1);
-    }
-    char *buffer = malloc(sizeof(char) * length);
+char *get_str_from_stack(Machine *machine){
+    char *buffer = malloc(sizeof(char));
     int buffer_index = 0;
-    while(length > 0){
-        buffer[buffer_index] = machine->stack[machine->stack_size - length].as_char;
-        length--;
+    char *current = (char*)&(machine->stack[machine->stack_size].as_pointer);
+    while(*current != '\0'){
+        if(buffer_index > machine->stack_size){
+            fprintf(stderr, "ERROR: Stack Underflow\n");
+            exit(1);
+        }
+        buffer[buffer_index] = *current;   
+        current = current - sizeof(Word);
         buffer_index++;
     }
+    buffer = reverse_string(buffer);
+    buffer = realloc(buffer, sizeof(char) * strlen(buffer));
+    buffer[buffer_index] = '\0';
     return buffer;
 }
 
@@ -158,6 +178,9 @@ void run_instructions(Machine *machine){
                 break;
             case INST_PUSH:
                 push(machine, machine->instructions[ip].value);
+                break;
+            case INST_PUSH_PTR:
+                push_ptr(machine, machine->instructions[ip].value.as_pointer);
                 break;
             case INST_POP:
                 pop(machine);

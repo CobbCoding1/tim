@@ -48,6 +48,9 @@ char *pretty_token(Token token){
         case TYPE_PUSH:
             return "push\n";
             break;
+        case TYPE_PUSH_PTR:
+            return "push_ptr\n";
+            break;
         case TYPE_POP:
             return "pop\n";
             break;

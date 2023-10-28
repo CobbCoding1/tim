@@ -14,6 +14,7 @@ typedef enum {
     TYPE_NONE = -1,
     TYPE_NOP = 0,
     TYPE_PUSH,
+    TYPE_PUSH_PTR,
     TYPE_POP,
     TYPE_DUP,
     TYPE_INDUP,
