@@ -107,7 +107,7 @@ char *get_str_from_stack(Machine *machine, int length){
 void print_stack(Machine *machine){
     printf("------ STACK\n");
     for(int i = machine->stack_size - 1; i >= 0; i--){
-        printf("as int: %ld, as float: %f, as char: %c, as pointer: %p\n", machine->stack[i].as_int, 
+        printf("as int: %" PRId64 ", as float: %f, as char: %c, as pointer: %p\n", machine->stack[i].as_int, 
                machine->stack[i].as_float, machine->stack[i].as_char, machine->stack[i].as_pointer);
     }
     printf("------ END OF STACK\n");
@@ -313,7 +313,6 @@ void run_instructions(Machine *machine){
                         fprintf(stderr, "ERROR: Cannot jump out of bounds\n");
                         exit(1);
                     }
-                    printf("%ld\n", machine->instructions[ip].value.as_int);
                 } else {
                     break;
                 }
@@ -331,7 +330,7 @@ void run_instructions(Machine *machine){
                 break;
             case INST_PRINT:
                 a = pop(machine);
-                printf("as float: %f, as int: %ld, as char: %c, as pointer: %p\n", a.as_float, a.as_int, a.as_char, a.as_pointer);
+                printf("as float: %f, as int: %" PRId64 ", as char: %c, as pointer: %p\n", a.as_float, a.as_int, a.as_char, a.as_pointer);
                 break;
             case INST_NATIVE:
                 switch(machine->instructions[ip].value.as_int){

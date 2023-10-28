@@ -2,15 +2,19 @@ set -xe
 gcc -lm tim.c tire.c -o tire -Wall -Wextra -ggdb 
 gcc -lm tasm.c  tasmlexer.c tasmparser.c tim.c -o tasm -Wall -Wextra 
 
-cd tests
 
-while getopts "t" flag; do
+while getopts "tw" flag; do
  case $flag in
    t)
-       for file in *.tasm
-       do
-           ../tasm $file
-       done
+        cd tests
+        for file in *.tasm
+        do
+            ../tasm $file
+        done
+   ;;
+    w)
+        i686-w64-mingw32-gcc -lm tim.c tire.c -o tire -Wall -Wextra
+        i686-w64-mingw32-gcc -lm tasm.c tasmlexer.c tasmparser.c tim.c -o tasm -Wall -Wextra
    ;;
    \?)
    ;;
