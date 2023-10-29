@@ -22,10 +22,12 @@ size_t length_of_list(ParseList *head){
     return result;
 }
 
-Inst *generate_instructions(ParseList *head, int *program_size){
+int str_stack_size = 0;
+
+Inst *generate_instructions(ParseList *head, int *program_size, char str_stack[MAX_STACK_SIZE][MAX_STRING_SIZE]){
     Inst *program = malloc(sizeof(Inst) * length_of_list(head));
     Inst_Set insts[INST_COUNT + 1] = {    
-        INST_NOP, INST_PUSH, INST_PUSH_PTR, INST_POP, INST_DUP, INST_INDUP, INST_SWAP, INST_INSWAP, INST_ADD, INST_SUB, INST_MUL, 
+        INST_NOP, INST_PUSH, INST_PUSH_PTR, INST_PUSH_STR, INST_POP, INST_DUP, INST_INDUP, INST_SWAP, INST_INSWAP, INST_ADD, INST_SUB, INST_MUL, 
         INST_DIV, INST_MOD, INST_ADD_F, INST_SUB_F, INST_MUL_F, INST_DIV_F, INST_MOD_F, INST_CMPE, INST_CMPNE, INST_CMPG, 
         INST_CMPL, INST_CMPGE, INST_CMPLE, INST_JMP, INST_ZJMP, INST_NZJMP, INST_PRINT, INST_NATIVE, INST_HALT, INST_COUNT};
 
@@ -45,7 +47,7 @@ Inst *generate_instructions(ParseList *head, int *program_size){
             instruction->value.as_int = atoi(head->value.text);
         }
 
-        if(head->value.type == TYPE_PUSH){
+        if(head->value.type == TYPE_PUSH || head->value.type == TYPE_PUSH_STR){
             head = head->next;
             if(head->value.type == TYPE_INT){
                 instruction->value.as_int = atoi(head->value.text);
@@ -54,19 +56,7 @@ Inst *generate_instructions(ParseList *head, int *program_size){
             } else if(head->value.type == TYPE_CHAR){
                 instruction->value.as_char = head->value.text[0];
             } else if(head->value.type == TYPE_STRING){
-                int i = 0;
-                instruction->type = INST_PUSH_PTR;
-                instruction->value.as_char = '\0';
-                push_program(program, program_size, *instruction);
-                while(head->value.text[i] != '\0'){
-                    instruction = malloc(sizeof(Inst));
-                    instruction->type = INST_PUSH_PTR;
-                    instruction->value.as_char = head->value.text[i];
-                    if(head->value.text[i+1] != '\0'){
-                        push_program(program, program_size, *instruction);
-                    }
-                    i++;
-                }
+                strncpy(str_stack[str_stack_size++], head->value.text, MAX_STRING_SIZE - 1);
             } else {
                 assert(false && "you should not be here\n");
             }
@@ -99,8 +89,11 @@ int main(int argc, char *argv[]){
     ParseList list = parser(lex);
     //print_list(&list);
     int program_size = 0;
-    Inst *program = generate_instructions(&list, &program_size);
-    Machine machine = {.instructions = program, .program_size = program_size};
+    Machine machine;
+    Inst *program = generate_instructions(&list, &program_size, machine.str_stack);
+    machine.instructions = program;
+    machine.program_size = program_size;
+    machine.str_stack_size = str_stack_size;
     write_program_to_file(&machine, output_file);
     return 0;
 }

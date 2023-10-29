@@ -18,6 +18,7 @@ typedef enum {
     INST_NOP = 0,
     INST_PUSH,
     INST_PUSH_PTR,
+    INST_PUSH_STR,
     INST_POP,
     INST_DUP,
     INST_INDUP,
@@ -60,8 +61,12 @@ typedef struct {
     Word value;
 } Inst;
 
+#define MAX_STRING_SIZE 256
+
 typedef struct {
     Word stack[MAX_STACK_SIZE];
+    char str_stack[MAX_STACK_SIZE][MAX_STRING_SIZE];
+    int str_stack_size;
     int stack_size;
     size_t program_size;
     Inst *instructions;

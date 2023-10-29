@@ -51,6 +51,9 @@ char *pretty_token(Token token){
         case TYPE_PUSH_PTR:
             return "push_ptr\n";
             break;
+        case TYPE_PUSH_STR:
+            return "push_str\n";
+            break;
         case TYPE_POP:
             return "pop\n";
             break;
@@ -173,6 +176,8 @@ TokenType check_builtin_keywords(char *name){
         return TYPE_NOP;
     } else if(strcmp(name, "push") == 0){
         return TYPE_PUSH;
+    } else if(strcmp(name, "push_str") == 0){
+        return TYPE_PUSH_STR;
     } else if(strcmp(name, "pop") == 0){
         return TYPE_POP;
     } else if(strcmp(name, "dup") == 0){

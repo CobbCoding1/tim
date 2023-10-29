@@ -1,6 +1,6 @@
-@def STDERR 2
-@def STDOUT 1
 @def STDIN 0
+@def STDOUT 1
+@def STDERR 2
 
 @def RONLY 0
 @def WONLY 1
@@ -14,4 +14,5 @@
 @def close native 3
 @def malloc native 4
 @def free native 5
+@def exit native 60
 

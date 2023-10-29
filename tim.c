@@ -16,35 +16,62 @@ char *reverse_string(char *str){
     return str;
 }
 
+void *get_stream(Word stream){
+    switch(stream.as_int){
+        case 0:
+            return stdin;
+            break;
+        case 1:
+            return stdout;
+            break;
+        case 2:
+            return stderr;
+            break;
+        default:
+            return stream.as_pointer;
+            break;
+    }
+    return stream.as_pointer;
+}
+
 // native functions
 
+#define MODES_LENGTH 3
+char *open_modes[MODES_LENGTH] = {"r", "w", "wr"};
+
 void native_open(Machine *machine){
-    int flag_mode = pop(machine).as_int;
-    int flag_creation = pop(machine).as_int;
-    char *path = (char*)pop(machine).as_pointer;
-    int64_t fd = open(path, flag_mode | flag_creation, 0666);
+    Word flag_mode = pop(machine);
+    if(flag_mode.as_int > MODES_LENGTH - 1){
+        fprintf(stderr, "error: mode %" PRId64 "out of bounds\n", flag_mode.as_int);
+        exit(1);
+    }
+    Word path = pop(machine);
+    char *mode = open_modes[flag_mode.as_int];
+    void *fd = fopen(path.as_pointer, mode);
     push(machine, (Word)fd);
 }
 
 void native_write(Machine *machine){
-    int fd = pop(machine).as_int;
+    Word stream = pop(machine);
     char *str = get_str_from_stack(machine);    
+    stream.as_pointer = get_stream(stream);
     int length = strlen(str);
     machine->stack_size -= length + 1;
-    write(fd, str, length);
+    fwrite(str, 1, length, stream.as_pointer);
 }
 
 void native_read(Machine *machine){
-    int fd = pop(machine).as_int;
+    Word ptr = pop(machine);
+    ptr.as_pointer = get_stream(ptr);
     int length = pop(machine).as_int;
-    char *buffer = pop(machine).as_pointer;
-    read(fd, buffer, length);
-    push_ptr(machine, (Word*)buffer);
+    void *buffer = pop(machine).as_pointer;
+    fread(buffer, length, 1, ptr.as_pointer);
+    push_ptr(machine, buffer);
 }
 
 void native_close(Machine *machine){
-    int64_t fd = pop(machine).as_int;
-    close(fd);
+    void *stream = pop(machine).as_pointer;
+    fclose(stream);
 }
 
 void native_malloc(Machine *machine){
@@ -58,16 +85,12 @@ void native_free(Machine *machine){
     free(ptr.as_pointer);
 }
 
-// end native functions
-
-void push_ptr(Machine *machine, Word *value){
-    if(machine->stack_size >= MAX_STACK_SIZE){
-        fprintf(stderr, "ERROR: Stack Overflow\n");
-        exit(1);
-    }
-    machine->stack[machine->stack_size++].as_pointer = value;
-   // machine->stack_size++;
+void native_exit(Machine *machine){
+    int64_t code = pop(machine).as_int;
+    exit(code);
 }
+
+// end native functions
 
 void push(Machine *machine, Word value){
     if(machine->stack_size >= MAX_STACK_SIZE){
@@ -75,7 +98,22 @@ void push(Machine *machine, Word value){
         exit(1);
     }
     machine->stack[machine->stack_size++] = value;
-   // machine->stack_size++;
+}
+
+void push_ptr(Machine *machine, Word *value){
+    if(machine->stack_size >= MAX_STACK_SIZE){
+        fprintf(stderr, "ERROR: Stack Overflow\n");
+        exit(1);
+    }
+    machine->stack[machine->stack_size++].as_pointer = value;
+}
+
+void push_str(Machine *machine, char *value){
+    if(machine->stack_size >= MAX_STACK_SIZE){
+        fprintf(stderr, "ERROR: Stack Overflow\n");
+        exit(1);
+    }
+    strncpy(machine->str_stack[machine->str_stack_size++], value, MAX_STRING_SIZE - 1);
 }
 
 Word pop(Machine *machine){
@@ -106,7 +144,7 @@ void index_dup(Machine *machine, int64_t index){
 }
 
 char *get_str_from_stack(Machine *machine){
-    char *buffer = malloc(sizeof(char));
+    char *buffer = malloc(sizeof(char) * 16);
     int buffer_index = 0;
     char *current = (char*)&(machine->stack[machine->stack_size].as_pointer);
     while(*current != '\0'){
@@ -119,7 +157,8 @@ char *get_str_from_stack(Machine *machine){
         buffer_index++;
     }
     buffer = reverse_string(buffer);
-    buffer = realloc(buffer, sizeof(char) * strlen(buffer));
+    //buffer = realloc(buffer, sizeof(char) * strlen(buffer));
+    buffer_index--;
     buffer[buffer_index] = '\0';
     return buffer;
 }
@@ -139,6 +178,10 @@ void write_program_to_file(Machine *machine, char *file_path){
         fprintf(stderr, "ERROR: Could not write to file %s\n", file_path);
         exit(1);
     }
+    for(int i = 0; i < machine->str_stack_size; i++){
+        fwrite(machine->str_stack[i], 1, strlen(machine->str_stack[i]) + 1, file);
+    }
+    fwrite("DATA_END", 1, strlen("DATA_END") + 1, file);
 
     fwrite(machine->instructions, sizeof(machine->instructions[0]), machine->program_size, file);
 
@@ -147,6 +190,31 @@ void write_program_to_file(Machine *machine, char *file_path){
 
 Machine *read_program_from_file(Machine *machine, char *file_path){
     FILE *file = fopen(file_path, "rb");
+
+    int i = 1;
+    int index = 0;
+    int length;
+    
+    while (i < MAX_STACK_SIZE) {
+        char charRead;
+        int char_index = 0;
+
+        while ((charRead = fgetc(file)) != EOF && charRead != '\0') {
+            if (char_index < MAX_STRING_SIZE - 1) { // Avoid buffer overflow
+                machine->str_stack[i][char_index] = charRead;
+                char_index++;
+            }
+        }
+        machine->str_stack[i][char_index] = '\0';
+        if (charRead == EOF || strcmp(machine->str_stack[i], "DATA_END") == 0) {
+            index += char_index + i; 
+            break;
+        }
+        index += char_index;
+        i++;
+    }
+
+
     if(file == NULL){
         fprintf(stderr, "ERROR: Could not read from file %s\n", file_path);
         exit(1);
@@ -154,13 +222,15 @@ Machine *read_program_from_file(Machine *machine, char *file_path){
     Inst *instructions = malloc(sizeof(Inst) * MAX_STACK_SIZE);
 
     fseek(file, 0, SEEK_END);
-    int length = ftell(file);
+    length = ftell(file);
     fseek(file, 0, SEEK_SET);
-    fread(instructions, sizeof(instructions[0]), length, file);
+    fseek(file, index, SEEK_SET);
+    length = fread(instructions, sizeof(instructions[0]), length, file);
 
-    machine->program_size = length / 16;
+    machine->program_size = length;
     machine->instructions = instructions;
 
+    machine->str_stack_size = i;
     fclose(file);
     return machine;
 }
@@ -181,6 +251,9 @@ void run_instructions(Machine *machine){
                 break;
             case INST_PUSH_PTR:
                 push_ptr(machine, machine->instructions[ip].value.as_pointer);
+                break;
+            case INST_PUSH_STR:
+                push_str(machine, machine->str_stack[ip]);
                 break;
             case INST_POP:
                 pop(machine);
@@ -374,6 +447,9 @@ void run_instructions(Machine *machine){
                         break;
                     case 5:
                         native_free(machine);
+                        break;
+                    case 60:
+                        native_exit(machine);
                         break;
                     default:
                         fprintf(stderr, "error: unexpected native call\n");

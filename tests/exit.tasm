@@ -1,5 +1,7 @@
 @imp "stddefs.tash"
-push_str "test"
-mov_str 0
+push "exit_\n"
 push STDOUT
 write
+push 69
+exit
+
