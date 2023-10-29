@@ -24,7 +24,7 @@ size_t length_of_list(ParseList *head){
 
 int str_stack_size = 0;
 
-Inst *generate_instructions(ParseList *head, int *program_size, char str_stack[MAX_STACK_SIZE][MAX_STRING_SIZE]){
+Inst *generate_instructions(ParseList *head, int *program_size, Data str_stack[MAX_STACK_SIZE]){
     Inst *program = malloc(sizeof(Inst) * length_of_list(head));
     Inst_Set insts[INST_COUNT + 1] = {    
         INST_NOP, INST_PUSH, INST_PUSH_PTR, INST_PUSH_STR, INST_POP, INST_DUP, INST_INDUP, INST_SWAP, INST_INSWAP, INST_ADD, INST_SUB, INST_MUL, 
@@ -56,7 +56,7 @@ Inst *generate_instructions(ParseList *head, int *program_size, char str_stack[M
             } else if(head->value.type == TYPE_CHAR){
                 instruction->value.as_char = head->value.text[0];
             } else if(head->value.type == TYPE_STRING){
-                strncpy(str_stack[str_stack_size++], head->value.text, MAX_STRING_SIZE - 1);
+                strncpy(str_stack[str_stack_size++].str, head->value.text, MAX_STRING_SIZE - 1);
             } else {
                 assert(false && "you should not be here\n");
             }

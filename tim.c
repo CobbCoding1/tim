@@ -113,7 +113,7 @@ void push_str(Machine *machine, char *value){
         fprintf(stderr, "ERROR: Stack Overflow\n");
         exit(1);
     }
-    strncpy(machine->str_stack[machine->str_stack_size++], value, MAX_STRING_SIZE - 1);
+    strncpy(machine->str_stack[machine->str_stack_size++].str, value, MAX_STRING_SIZE - 1);
 }
 
 Word pop(Machine *machine){
@@ -179,7 +179,7 @@ void write_program_to_file(Machine *machine, char *file_path){
         exit(1);
     }
     for(int i = 0; i < machine->str_stack_size; i++){
-        fwrite(machine->str_stack[i], 1, strlen(machine->str_stack[i]) + 1, file);
+        fwrite(machine->str_stack[i].str, 1, strlen(machine->str_stack[i].str) + 1, file);
     }
     fwrite("DATA_END", 1, strlen("DATA_END") + 1, file);
 
@@ -201,12 +201,12 @@ Machine *read_program_from_file(Machine *machine, char *file_path){
 
         while ((charRead = fgetc(file)) != EOF && charRead != '\0') {
             if (char_index < MAX_STRING_SIZE - 1) { // Avoid buffer overflow
-                machine->str_stack[i][char_index] = charRead;
+                machine->str_stack[i].str[char_index] = charRead;
                 char_index++;
             }
         }
-        machine->str_stack[i][char_index] = '\0';
-        if (charRead == EOF || strcmp(machine->str_stack[i], "DATA_END") == 0) {
+        machine->str_stack[i].str[char_index] = '\0';
+        if (charRead == EOF || strcmp(machine->str_stack[i].str, "DATA_END") == 0) {
             index += char_index + i; 
             break;
         }
@@ -231,6 +231,9 @@ Machine *read_program_from_file(Machine *machine, char *file_path){
     machine->instructions = instructions;
 
     machine->str_stack_size = i;
+    for(int i = 0; i < machine->str_stack_size; i++){
+        printf("%s\n", machine->str_stack[i].str);
+    }
     fclose(file);
     return machine;
 }
@@ -253,7 +256,7 @@ void run_instructions(Machine *machine){
                 push_ptr(machine, machine->instructions[ip].value.as_pointer);
                 break;
             case INST_PUSH_STR:
-                push_str(machine, machine->str_stack[ip]);
+                //push_str(machine, machine->str_stack[ip]);
                 break;
             case INST_POP:
                 pop(machine);

@@ -63,9 +63,14 @@ typedef struct {
 
 #define MAX_STRING_SIZE 256
 
+typedef union {
+    Word word;
+    char str[MAX_STRING_SIZE];
+} Data;
+
 typedef struct {
     Word stack[MAX_STACK_SIZE];
-    char str_stack[MAX_STACK_SIZE][MAX_STRING_SIZE];
+    Data str_stack[MAX_STACK_SIZE];
     int str_stack_size;
     int stack_size;
     size_t program_size;
