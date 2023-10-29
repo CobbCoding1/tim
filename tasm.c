@@ -27,7 +27,7 @@ int str_stack_size = 0;
 Inst *generate_instructions(ParseList *head, int *program_size, Data str_stack[MAX_STACK_SIZE]){
     Inst *program = malloc(sizeof(Inst) * length_of_list(head));
     Inst_Set insts[INST_COUNT + 1] = {    
-        INST_NOP, INST_PUSH, INST_PUSH_PTR, INST_PUSH_STR, INST_POP, INST_DUP, INST_INDUP, INST_SWAP, INST_INSWAP, INST_ADD, INST_SUB, INST_MUL, 
+        INST_NOP, INST_PUSH, INST_PUSH_PTR, INST_PUSH_STR, INST_GET_STR, INST_POP, INST_DUP, INST_INDUP, INST_SWAP, INST_INSWAP, INST_ADD, INST_SUB, INST_MUL, 
         INST_DIV, INST_MOD, INST_ADD_F, INST_SUB_F, INST_MUL_F, INST_DIV_F, INST_MOD_F, INST_CMPE, INST_CMPNE, INST_CMPG, 
         INST_CMPL, INST_CMPGE, INST_CMPLE, INST_JMP, INST_ZJMP, INST_NZJMP, INST_PRINT, INST_NATIVE, INST_HALT, INST_COUNT};
 
@@ -42,12 +42,12 @@ Inst *generate_instructions(ParseList *head, int *program_size, Data str_stack[M
             instruction->value.as_int = atoi(head->value.text);
         }
 
-        if(head->value.type == TYPE_NATIVE){
+        if(head->value.type == TYPE_NATIVE || head->value.type == TYPE_GET_STR){
             head = head->next;
             instruction->value.as_int = atoi(head->value.text);
         }
 
-        if(head->value.type == TYPE_PUSH || head->value.type == TYPE_PUSH_STR){
+        if(head->value.type == TYPE_PUSH){
             head = head->next;
             if(head->value.type == TYPE_INT){
                 instruction->value.as_int = atoi(head->value.text);
@@ -55,13 +55,22 @@ Inst *generate_instructions(ParseList *head, int *program_size, Data str_stack[M
                 instruction->value.as_float = atof(head->value.text);
             } else if(head->value.type == TYPE_CHAR){
                 instruction->value.as_char = head->value.text[0];
-            } else if(head->value.type == TYPE_STRING){
-                strncpy(str_stack[str_stack_size++].str, head->value.text, MAX_STRING_SIZE - 1);
             } else {
                 assert(false && "you should not be here\n");
             }
         }
-        push_program(program, program_size, *instruction);
+        
+        if(head->value.type == TYPE_PUSH_STR){
+            head = head->next;
+            if(head->value.type != TYPE_STRING){
+                assert(false && "why are you here\n");
+            }
+            strncpy(str_stack[str_stack_size++].str, head->value.text, MAX_STRING_SIZE - 1);
+        }
+
+        if(instruction->type != INST_PUSH_STR){
+            push_program(program, program_size, *instruction);
+        }
         head = head->next;
     }
     return program;

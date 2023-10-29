@@ -1,5 +1,0 @@
-push_str "hello world0\n"
-push_str "hello world1\n"
-push_str "hello world2\n"
-push 5
-print

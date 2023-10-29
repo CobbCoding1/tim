@@ -53,10 +53,10 @@ void native_open(Machine *machine){
 
 void native_write(Machine *machine){
     Word stream = pop(machine);
-    char *str = get_str_from_stack(machine);    
+    char *str = (char*)pop(machine).as_pointer;    
     stream.as_pointer = get_stream(stream);
     int length = strlen(str);
-    machine->stack_size -= length + 1;
+    //machine->stack_size -= length + 1;
     fwrite(str, 1, length, stream.as_pointer);
 }
 
@@ -223,7 +223,7 @@ Machine *read_program_from_file(Machine *machine, char *file_path){
 
     fseek(file, 0, SEEK_END);
     length = ftell(file);
-    fseek(file, 0, SEEK_SET);
+    //fseek(file, 0, SEEK_SET);
     fseek(file, index, SEEK_SET);
     length = fread(instructions, sizeof(instructions[0]), length, file);
 
@@ -231,9 +231,6 @@ Machine *read_program_from_file(Machine *machine, char *file_path){
     machine->instructions = instructions;
 
     machine->str_stack_size = i;
-    for(int i = 0; i < machine->str_stack_size; i++){
-        printf("%s\n", machine->str_stack[i].str);
-    }
     fclose(file);
     return machine;
 }
@@ -256,8 +253,13 @@ void run_instructions(Machine *machine){
                 push_ptr(machine, machine->instructions[ip].value.as_pointer);
                 break;
             case INST_PUSH_STR:
-                //push_str(machine, machine->str_stack[ip]);
+                assert(false && "unreachable\n");
                 break;
+            case INST_GET_STR: {
+                int index = machine->instructions[ip].value.as_int + 1;
+                push_ptr(machine, (void*)machine->str_stack[index].str);
+                break;
+            }
             case INST_POP:
                 pop(machine);
                 break;

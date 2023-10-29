@@ -1,5 +1,5 @@
 @imp "stddefs.tash"
-push_str "test"
-mov_str 0
+push_str "Hello, world!\n"
+get_str 0
 push STDOUT
 write

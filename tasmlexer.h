@@ -16,6 +16,7 @@ typedef enum {
     TYPE_PUSH,
     TYPE_PUSH_PTR,
     TYPE_PUSH_STR,
+    TYPE_GET_STR,
     TYPE_POP,
     TYPE_DUP,
     TYPE_INDUP,
@@ -51,6 +52,8 @@ typedef enum {
     TYPE_LABEL,
     TYPE_COUNT,
 } TokenType;
+
+
 
 typedef struct {
     TokenType type;

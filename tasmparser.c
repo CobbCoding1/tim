@@ -90,7 +90,7 @@ void generate_list(ParseList *root, Lexer *lexer, struct hashmap_s *hashmap){
             append(root, lexer->token_stack[index]);
         }
 
-        if(lexer->token_stack[index].type == TYPE_NATIVE){
+        if(lexer->token_stack[index].type == TYPE_NATIVE || lexer->token_stack[index].type == TYPE_GET_STR){
             index++;
             current_token = lexer->token_stack[index];
             if(lexer->token_stack[index].type != TYPE_INT) {

@@ -1,5 +1,6 @@
 @imp "stddefs.tash"
-push "exit_\n"
+push_str "test\n"
+get_str 0
 push STDOUT
 write
 push 69

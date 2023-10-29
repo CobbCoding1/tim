@@ -1,7 +1,7 @@
 @imp "stddefs.tash"
 push 1
-push "push 10\nprint\n"
-push 28
+push_str "push 10\nprint\n"
+push 4 
 malloc
 push 4 
 push STDIN
@@ -11,5 +11,7 @@ open
 dup
 inswap 0
 pop
+get_str 0
+swap
 write
 close

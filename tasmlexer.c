@@ -37,127 +37,13 @@ Token pop_token(Lexer *lexer){
     return lexer->token_stack[lexer->stack_size];
 }
 
+char *token_type_text[TYPE_COUNT + 1] = {"type_none""nop","push","push_ptr","push_str","get_str","pop","dup","indup","swap","inswap","add","sub", "mul","div", "mod","add_f","sub_f","mul_f","div_f","mod_f","cmpe","cmpne","cmpg","cmpl","cmpge","cmple","jmp","zjmp","nzjmp","print", "native","halt","int","float","char","string","label_def","label","count"};
+
 char *pretty_token(Token token){
-    switch(token.type){
-        case TYPE_NONE:
-            return "none\n";
-            break;
-        case TYPE_NOP:
-            return "nop\n";
-            break;
-        case TYPE_PUSH:
-            return "push\n";
-            break;
-        case TYPE_PUSH_PTR:
-            return "push_ptr\n";
-            break;
-        case TYPE_PUSH_STR:
-            return "push_str\n";
-            break;
-        case TYPE_POP:
-            return "pop\n";
-            break;
-        case TYPE_DUP:
-            return "dup\n";
-            break;
-        case TYPE_INDUP:
-            return "indup\n";
-            break;
-        case TYPE_SWAP:
-            return "swap\n";
-            break;
-        case TYPE_INSWAP:
-            return "inswap\n";
-            break;
-        case TYPE_ADD:
-            return "add\n";
-            break;
-        case TYPE_SUB:
-            return "sub\n";
-            break;
-        case TYPE_MUL:
-            return "mul\n";
-            break;
-        case TYPE_DIV:
-            return "div\n";
-            break;
-        case TYPE_MOD:
-            return "mod\n";
-            break;
-        case TYPE_ADD_F:
-            return "addf\n";
-            break;
-        case TYPE_SUB_F:
-            return "subf\n";
-            break;
-        case TYPE_MUL_F:
-            return "mulf\n";
-            break;
-        case TYPE_DIV_F:
-            return "divf\n";
-            break;
-        case TYPE_MOD_F:
-            return "modf\n";
-            break;
-        case TYPE_CMPE:
-            return "cmpe\n";
-            break;
-        case TYPE_CMPNE:
-            return "cmpne\n";
-            break;
-        case TYPE_CMPG:
-            return "cmpg\n";
-            break;
-        case TYPE_CMPL:
-            return "cmpl\n";
-            break;
-        case TYPE_CMPGE:
-            return "cmpge\n";
-            break;
-        case TYPE_CMPLE:
-            return "cmple\n";
-            break;
-        case TYPE_JMP:
-            return "jmp\n";
-            break;
-        case TYPE_ZJMP:
-            return "zjmp\n";
-            break;
-        case TYPE_NZJMP:
-            return "nzjmp\n";
-            break;
-        case TYPE_PRINT:
-            return "print\n";
-            break;
-        case TYPE_NATIVE:
-            return "native\n";
-            break;
-        case TYPE_INT:
-            return "type of int\n";
-            break;
-        case TYPE_FLOAT:
-            return "type of float\n";
-            break;
-        case TYPE_CHAR:
-            return "type of char\n";
-            break;
-        case TYPE_STRING:
-            return "type of string\n";
-            break;
-        case TYPE_LABEL_DEF:
-            return "label def\n";
-            break;
-        case TYPE_LABEL:
-            return "type of label\n";
-            break;
-        case TYPE_HALT:
-            return "halt\n";
-            break;
-        case TYPE_COUNT:
-            return "count of types\n";
-            break;
+    if(token.type > TYPE_COUNT){
+        return "none";
     }
-    return "none\n";
+    return(token_type_text[token.type]);
 }
 
 void print_token(Token token){
@@ -172,66 +58,10 @@ Token init_token(TokenType type, char *text, int line, int character, char *file
 }
 
 TokenType check_builtin_keywords(char *name){
-    if(strcmp(name, "nop") == 0){
-        return TYPE_NOP;
-    } else if(strcmp(name, "push") == 0){
-        return TYPE_PUSH;
-    } else if(strcmp(name, "push_str") == 0){
-        return TYPE_PUSH_STR;
-    } else if(strcmp(name, "pop") == 0){
-        return TYPE_POP;
-    } else if(strcmp(name, "dup") == 0){
-        return TYPE_DUP;
-    } else if(strcmp(name, "indup") == 0){
-        return TYPE_INDUP;
-    } else if(strcmp(name, "swap") == 0){
-        return TYPE_SWAP;
-    } else if(strcmp(name, "inswap") == 0){
-        return TYPE_INSWAP;
-    } else if(strcmp(name, "add") == 0){
-        return TYPE_ADD;
-    } else if(strcmp(name, "sub") == 0){
-        return TYPE_SUB;
-    } else if(strcmp(name, "mul") == 0){
-        return TYPE_MUL;
-    } else if(strcmp(name, "div") == 0){
-        return TYPE_DIV;
-    } else if(strcmp(name, "mod") == 0){
-        return TYPE_MOD;
-    } else if(strcmp(name, "addf") == 0){
-        return TYPE_ADD_F;
-    } else if(strcmp(name, "subf") == 0){
-        return TYPE_SUB_F;
-    } else if(strcmp(name, "mulf") == 0){
-        return TYPE_MUL_F;
-    } else if(strcmp(name, "divf") == 0){
-        return TYPE_DIV_F;
-    } else if(strcmp(name, "modf") == 0){
-        return TYPE_MOD_F;
-    } else if(strcmp(name, "cmpe") == 0){
-        return TYPE_CMPE;
-    } else if(strcmp(name, "cmpne") == 0){
-        return TYPE_CMPNE;
-    } else if(strcmp(name, "cmpg") == 0){
-        return TYPE_CMPG;
-    } else if(strcmp(name, "cmpl") == 0){
-        return TYPE_CMPL;
-    } else if(strcmp(name, "cmpge") == 0){
-        return TYPE_CMPGE;
-    } else if(strcmp(name, "cmple") == 0){
-        return TYPE_CMPLE;
-    } else if(strcmp(name, "jmp") == 0){
-        return TYPE_JMP;
-    } else if(strcmp(name, "zjmp") == 0){
-        return TYPE_ZJMP;
-    } else if(strcmp(name, "nzjmp") == 0){
-        return TYPE_NZJMP;
-    } else if(strcmp(name, "print") == 0){
-        return TYPE_PRINT;
-    } else if(strcmp(name, "native") == 0){
-        return TYPE_NATIVE;
-    } else if(strcmp(name, "halt") == 0){
-        return TYPE_HALT;
+    for(int i = 0; i < TYPE_COUNT; i++){
+        if(strcmp(name, token_type_text[i]) == 0){
+            return (TokenType)i;
+        }
     }
     return TYPE_NONE;
 }    

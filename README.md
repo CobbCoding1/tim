@@ -9,7 +9,8 @@ Example of hello world in assembly:
 ```asm
 @imp "stddefs.tash"
 
-push "Hello, world!\n"
+push_str "Hello, world!\n"
+get_str 0 ; Index of the string on the data stack
 push STDOUT
 write ; length is inferred because the string is null-terminated
 ```
