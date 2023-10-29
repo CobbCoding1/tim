@@ -39,9 +39,22 @@ void handle_token_def(Lexer *lexer, Token token, int index, int line_num, struct
 }
 
 void print_syntax_error(Token *current_token, char *type_of_error, char *expected){
-    fprintf(stderr, "%s:%d:%d %s error: Expected %s but found %s", current_token->file_name, current_token->line, current_token->character, 
+    fprintf(stderr, "%s:%d:%d %s error: Expected %s but found %s\n", current_token->file_name, current_token->line, current_token->character, 
             type_of_error, expected, pretty_token(*current_token));
     exit(1);
+}
+
+int expect_token(Lexer *lexer, int index, int count, ...){
+    int result = 0;
+    va_list list;
+    va_start(list, count);
+    for(int i = 0; i < count; i++){
+        if(lexer->token_stack[index].type == va_arg(list, int)){
+            result = 1;
+        }
+    }
+    va_end(list);
+    return result;
 }
 
 void generate_list(ParseList *root, Lexer *lexer, struct hashmap_s *hashmap){
@@ -55,14 +68,12 @@ void generate_list(ParseList *root, Lexer *lexer, struct hashmap_s *hashmap){
             continue;
         }
 
-        if(lexer->token_stack[index].type == TYPE_LABEL_DEF){
+        if(expect_token(lexer, index, 1, TYPE_LABEL_DEF)){
             handle_token_def(lexer, current_token, index, line_num, hashmap);
         }
         append(root, lexer->token_stack[index]);
 
-        if(lexer->token_stack[index].type == TYPE_INDUP || lexer->token_stack[index].type == TYPE_INSWAP || 
-           lexer->token_stack[index].type == TYPE_JMP || lexer->token_stack[index].type == TYPE_ZJMP || 
-           lexer->token_stack[index].type == TYPE_NZJMP){
+        if(expect_token(lexer, index, 5, TYPE_INDUP, TYPE_INSWAP, TYPE_JMP, TYPE_ZJMP, TYPE_NZJMP)){
             index++;
             current_token = lexer->token_stack[index];
             if(lexer->token_stack[index].type != TYPE_INT && lexer->token_stack[index].type != TYPE_LABEL){
@@ -71,17 +82,17 @@ void generate_list(ParseList *root, Lexer *lexer, struct hashmap_s *hashmap){
             append(root, lexer->token_stack[index]);
         }
 
-        if(lexer->token_stack[index].type == TYPE_PUSH){
+        if(expect_token(lexer, index, 1, TYPE_PUSH)){
             index++;
             current_token = lexer->token_stack[index];
-            if(lexer->token_stack[index].type != TYPE_INT && lexer->token_stack[index].type != TYPE_FLOAT && 
-                lexer->token_stack[index].type != TYPE_CHAR && lexer->token_stack[index].type != TYPE_STRING){
+            if(lexer->token_stack[index].type != TYPE_INT && lexer->token_stack[index].type != TYPE_STRING && 
+               lexer->token_stack[index].type && TYPE_CHAR && lexer->token_stack[index].type && TYPE_FLOAT){
                 print_syntax_error(&current_token, "syntax", "type of int or type of float or type of char or type of string");
             }
             append(root, lexer->token_stack[index]);
         }
 
-        if(lexer->token_stack[index].type == TYPE_PUSH_STR){
+        if(expect_token(lexer, index, 1, TYPE_PUSH_STR)){
             index++;
             current_token = lexer->token_stack[index];
             if(lexer->token_stack[index].type != TYPE_STRING){
@@ -90,10 +101,10 @@ void generate_list(ParseList *root, Lexer *lexer, struct hashmap_s *hashmap){
             append(root, lexer->token_stack[index]);
         }
 
-        if(lexer->token_stack[index].type == TYPE_NATIVE || lexer->token_stack[index].type == TYPE_GET_STR){
+        if(expect_token(lexer, index, 2, TYPE_NATIVE, TYPE_GET_STR)){
             index++;
             current_token = lexer->token_stack[index];
-            if(lexer->token_stack[index].type != TYPE_INT) {
+            if(!expect_token(lexer, index, 1, TYPE_INT)){
                 print_syntax_error(&current_token, "syntax", "type of int");
             }
             append(root, lexer->token_stack[index]);

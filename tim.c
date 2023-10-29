@@ -56,7 +56,6 @@ void native_write(Machine *machine){
     char *str = (char*)pop(machine).as_pointer;    
     stream.as_pointer = get_stream(stream);
     int length = strlen(str);
-    //machine->stack_size -= length + 1;
     fwrite(str, 1, length, stream.as_pointer);
 }
 
@@ -64,9 +63,10 @@ void native_read(Machine *machine){
     Word ptr = pop(machine);
     ptr.as_pointer = get_stream(ptr);
     int length = pop(machine).as_int;
-    void *buffer = pop(machine).as_pointer;
-    fread(buffer, length, 1, ptr.as_pointer);
-    push_ptr(machine, buffer);
+    char *buffer = pop(machine).as_pointer;
+    fread(buffer, 1, length, ptr.as_pointer);
+    buffer[length] = '\0';
+    push_ptr(machine, (Word*)buffer);
 }
 
 void native_close(Machine *machine){
@@ -76,8 +76,8 @@ void native_close(Machine *machine){
 
 void native_malloc(Machine *machine){
     int num_of_bytes = pop(machine).as_int;
-    void *ptr = malloc(1 * num_of_bytes);
-    push(machine, (Word)ptr);
+    void *ptr = malloc(sizeof(char) * num_of_bytes);
+    push_ptr(machine, ptr);
 }
 
 void native_free(Machine *machine){

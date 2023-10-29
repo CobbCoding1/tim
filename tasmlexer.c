@@ -4,6 +4,13 @@
 #define TIPP_IMPLEMENTATION
 #include "tipp.h"
 
+int is_name(char character){
+    if(isalpha(character) || character == '_'){
+        return 1;
+    }
+    return 0;
+}
+
 char *open_file(char *file_path, int *length){
     FILE *file = fopen(file_path, "r");
     if(!file){
@@ -37,7 +44,12 @@ Token pop_token(Lexer *lexer){
     return lexer->token_stack[lexer->stack_size];
 }
 
-char *token_type_text[TYPE_COUNT + 1] = {"type_none""nop","push","push_ptr","push_str","get_str","pop","dup","indup","swap","inswap","add","sub", "mul","div", "mod","add_f","sub_f","mul_f","div_f","mod_f","cmpe","cmpne","cmpg","cmpl","cmpge","cmple","jmp","zjmp","nzjmp","print", "native","halt","int","float","char","string","label_def","label","count"};
+char *token_type_text[TYPE_COUNT + 1] = {
+    "type_none""nop","push","push_ptr","push_str","get_str","pop","dup","indup",
+    "swap","inswap","add","sub", "mul","div", "mod","add_f","sub_f","mul_f","div_f",
+    "mod_f","cmpe","cmpne","cmpg","cmpl","cmpge","cmple","jmp","zjmp","nzjmp","print", 
+    "native","halt","int","float","char","string","label_def","label","count"
+};
 
 char *pretty_token(Token token){
     if(token.type > TYPE_COUNT){
@@ -76,7 +88,7 @@ TokenType check_label_type(char *current, int *current_index){
 Token generate_keyword(char *current, int *current_index, int *line, int *character, Lexer lex){
     char *keyword_name = malloc(sizeof(char) * 16);
     int keyword_length = 0;
-    while(isalpha(current[*current_index]) || current[*current_index] == '_'){
+    while(is_name(current[*current_index])){
         keyword_name[keyword_length] = current[*current_index];
         *current_index += 1;
         keyword_length++;
@@ -236,7 +248,7 @@ Lexer lexer(char *file_name){
             character = 0;
         }
 
-        if(isalpha(current[current_index]) || current[current_index] == '_'){
+        if(is_name(current[current_index])){
             Token token = generate_keyword(current, &current_index, &line, &character, lex);
             push_token(&lex, token);
             current_index--;
