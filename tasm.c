@@ -65,12 +65,11 @@ Inst *generate_instructions(ParseList *head, int *program_size, Data str_stack[M
             if(head->value.type != TYPE_STRING){
                 assert(false && "why are you here\n");
             }
+            instruction->type = INST_NOP;
             strncpy(str_stack[str_stack_size++].str, head->value.text, MAX_STRING_SIZE - 1);
         }
 
-        if(instruction->type != INST_PUSH_STR){
-            push_program(program, program_size, *instruction);
-        }
+        push_program(program, program_size, *instruction);
         head = head->next;
     }
     return program;
