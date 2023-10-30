@@ -90,6 +90,21 @@ void native_exit(Machine *machine){
     exit(code);
 }
 
+int int_to_str(char *str, int *str_index, int64_t *x){
+    if(*x < 0){
+        str[*str_index] = '-';
+        *x = -*x;
+    }
+    if(*x > 9){
+        int64_t new = *x / 10;
+        int_to_str(str, str_index, &new);
+    }
+    *x = (*x % 10) + '0';
+    str[*str_index] = (char)(*x);
+    *str_index += 1;
+    return 0;
+}
+
 // end native functions
 
 void push(Machine *machine, Word value){
@@ -456,6 +471,15 @@ void run_instructions(Machine *machine){
                     case 60:
                         native_exit(machine);
                         break;
+                    case 99: {
+                        int64_t x = pop(machine).as_int;
+                        int str_index = 0;
+                        char *str = malloc(sizeof(char) * 64);
+                        int_to_str(str, &str_index, &x);
+                        str[str_index] = '\0';
+                        push_ptr(machine, (Word*)str);
+                        break;
+                    }
                     default:
                         fprintf(stderr, "error: unexpected native call\n");
                         exit(1);

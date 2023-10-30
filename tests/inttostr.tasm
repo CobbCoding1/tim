@@ -1,0 +1,9 @@
+@imp "stddefs.tash"
+push_str "\n"
+push 420 ; number to convert to string 
+int_to_str
+push STDOUT
+write ; write number
+get_str 0
+push STDOUT
+write ; write \n

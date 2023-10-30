@@ -15,4 +15,5 @@
 @def malloc native 4
 @def free native 5
 @def exit native 60
+@def int_to_str native 99
 
