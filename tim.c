@@ -51,8 +51,8 @@ void *get_stream(Word stream){
 
 // native functions
 
-#define MODES_LENGTH 3
-char *open_modes[MODES_LENGTH] = {"r", "w", "wr"};
+#define MODES_LENGTH 7
+char *open_modes[MODES_LENGTH] = {"r", "w", "wr", "a", "rb", "wb", "ab"};
 
 void native_open(Machine *machine){
     Word flag_mode = pop(machine);
