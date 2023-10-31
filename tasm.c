@@ -54,6 +54,9 @@ Inst *generate_instructions(ParseList *head, int *program_size, char str_stack[M
                 instruction->value.as_float = atof(head->value.text);
             } else if(head->value.type == TYPE_CHAR){
                 instruction->value.as_char = head->value.text[0];
+            } else if(head->value.type == TYPE_NULL){
+                instruction->type = INST_PUSH_PTR;
+                instruction->value.as_pointer = NULL;
             } else {
                 assert(false && "you should not be here\n");
             }

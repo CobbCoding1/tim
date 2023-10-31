@@ -48,6 +48,7 @@ typedef enum {
     TYPE_FLOAT,
     TYPE_CHAR,
     TYPE_STRING,
+    TYPE_NULL,
     TYPE_LABEL_DEF,
     TYPE_LABEL,
     TYPE_COUNT,

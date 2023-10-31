@@ -94,9 +94,22 @@ void native_malloc(Machine *machine){
     push_ptr(machine, ptr);
 }
 
+void native_realloc(Machine *machine){
+    void *ptr = pop(machine).as_pointer;
+    int num_of_bytes = pop(machine).as_int;
+    void *result = realloc(ptr, sizeof(char) * num_of_bytes);
+    push_ptr(machine, result);
+}
+
 void native_free(Machine *machine){
     Word ptr = pop(machine);
     free(ptr.as_pointer);
+}
+
+void native_time(Machine *machine){
+    time_t seconds;
+    seconds = time(NULL);
+    push(machine, (Word)seconds);
 }
 
 void native_exit(Machine *machine){
@@ -126,6 +139,19 @@ void native_memcpy(Machine *machine){
     push_ptr(machine, result);
 }
 
+void native_strcat(Machine *machine){
+    char *str = (char*)pop(machine).as_pointer;
+    char *dest = (char*)pop(machine).as_pointer;
+    char *result = strcat(dest, str);
+    push_ptr(machine, (Word*)result);
+}
+
+void native_strlen(Machine *machine){
+    char *str = (char*)pop(machine).as_pointer;
+    int64_t result = strlen(str);
+    push(machine, (Word)result);
+}
+
 void native_itoa(Machine *machine){
     int64_t x = pop(machine).as_int;
     int str_index = 0;
@@ -134,6 +160,12 @@ void native_itoa(Machine *machine){
     str = realloc(str, sizeof(char) * str_index);
     str[str_index] = '\0';
     push_ptr(machine, (Word*)str);
+}
+
+void native_assert(Machine *machine){
+    int64_t code = pop(machine).as_int;
+    printf("%ld\n", code);
+    assert(code);
 }
 
 // end native functions
@@ -498,7 +530,13 @@ void run_instructions(Machine *machine){
                         native_malloc(machine);
                         break;
                     case 5:
+                        native_realloc(machine);
+                        break;
+                    case 6:
                         native_free(machine);
+                        break;
+                    case 10:
+                        native_time(machine);
                         break;
                     case 60:
                         native_exit(machine);
@@ -512,10 +550,18 @@ void run_instructions(Machine *machine){
                     case 92:
                         native_memcpy(machine);
                         break;
-                    case 99: {
+                    case 93:
+                        native_strcat(machine);
+                        break;
+                    case 94:
+                        native_strlen(machine);
+                        break;
+                    case 99:
                         native_itoa(machine);
                         break;
-                    }
+                    case 100:
+                        native_assert(machine);
+                        break;
                     default:
                         fprintf(stderr, "error: unexpected native call\n");
                         exit(1);

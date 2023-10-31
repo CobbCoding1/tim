@@ -85,9 +85,9 @@ void generate_list(ParseList *root, Lexer *lexer, struct hashmap_s *hashmap){
         if(expect_token(lexer, index, 1, TYPE_PUSH)){
             index++;
             current_token = lexer->token_stack[index];
-            if(lexer->token_stack[index].type != TYPE_INT && lexer->token_stack[index].type != TYPE_STRING && 
+            if(lexer->token_stack[index].type != TYPE_INT && lexer->token_stack[index].type != TYPE_NULL &&
                lexer->token_stack[index].type != TYPE_CHAR && lexer->token_stack[index].type != TYPE_FLOAT){
-                print_syntax_error(&current_token, "syntax", "type of int or type of float or type of char or type of string");
+                print_syntax_error(&current_token, "syntax", "type of int or type of float or type of char");
             }
             append(root, lexer->token_stack[index]);
         }
