@@ -107,6 +107,13 @@ Token generate_keyword(char *current, int *current_index, int *line, int *charac
 Token generate_num(char *current, int *current_index, int line, int *character, Lexer lex){
     char *keyword_name = malloc(sizeof(char) * 16);
     int keyword_length = 0;
+
+    if(current[*current_index] == '-'){
+        keyword_name[keyword_length] = '-';
+        *current_index += 1;
+        keyword_length++;
+    }
+
     while(isdigit(current[*current_index])){
         keyword_name[keyword_length] = current[*current_index];
         *current_index += 1;
@@ -254,6 +261,10 @@ Lexer lexer(char *file_name){
             current_index--;
         } else if(isdigit(current[current_index])){
             Token token = generate_num(current, &current_index, line, &character, lex);
+            push_token(&lex, token);
+            current_index--;
+        } else if(current[current_index] == '-'){
+            Token token = generate_num(current, &current_index, line, &character, lex); 
             push_token(&lex, token);
             current_index--;
         } else if(current[current_index] == '\''){
