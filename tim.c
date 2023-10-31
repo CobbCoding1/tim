@@ -46,7 +46,6 @@ void *get_stream(Word stream){
             return stream.as_pointer;
             break;
     }
-    return stream.as_pointer;
 }
 
 // native functions
@@ -105,11 +104,34 @@ void native_exit(Machine *machine){
     exit(code);
 }
 
+void native_strcmp(Machine *machine){
+    char *str1 = (char*)pop(machine).as_pointer;
+    char *str2 = (char*)pop(machine).as_pointer;
+    int64_t result = strcmp(str1, str2) == 0;
+    push(machine, (Word)result);
+}
+
+void native_strcpy(Machine *machine){
+    char *str = (char*)pop(machine).as_pointer;
+    void *dest = pop(machine).as_pointer;
+    char *result = strcpy(dest, str);
+    push_ptr(machine, (Word*)result);
+}
+
+void native_memcpy(Machine *machine){
+    int64_t size = pop(machine).as_int;
+    void *src = pop(machine).as_pointer;
+    void *dest = pop(machine).as_pointer;
+    void *result = memcpy(dest, src, size);
+    push_ptr(machine, result);
+}
+
 void native_itoa(Machine *machine){
     int64_t x = pop(machine).as_int;
     int str_index = 0;
     char *str = malloc(sizeof(char) * 64);
     int_to_str(str, &str_index, x);
+    str = realloc(str, sizeof(char) * str_index);
     str[str_index] = '\0';
     push_ptr(machine, (Word*)str);
 }
@@ -137,7 +159,7 @@ void push_str(Machine *machine, char *value){
         fprintf(stderr, "ERROR: Stack Overflow\n");
         exit(1);
     }
-    strncpy(machine->str_stack[machine->str_stack_size++].str, value, MAX_STRING_SIZE - 1);
+    strncpy(machine->str_stack[machine->str_stack_size++], value, MAX_STRING_SIZE - 1);
 }
 
 Word pop(Machine *machine){
@@ -181,8 +203,8 @@ char *get_str_from_stack(Machine *machine){
         buffer_index++;
     }
     buffer = reverse_string(buffer);
-    //buffer = realloc(buffer, sizeof(char) * strlen(buffer));
     buffer_index--;
+    buffer = realloc(buffer, sizeof(char) * buffer_index);
     buffer[buffer_index] = '\0';
     return buffer;
 }
@@ -203,7 +225,7 @@ void write_program_to_file(Machine *machine, char *file_path){
         exit(1);
     }
     for(int i = 0; i < machine->str_stack_size; i++){
-        fwrite(machine->str_stack[i].str, 1, strlen(machine->str_stack[i].str) + 1, file);
+        fwrite(machine->str_stack[i], 1, strlen(machine->str_stack[i]) + 1, file);
     }
     fwrite("DATA_END", 1, strlen("DATA_END") + 1, file);
 
@@ -225,12 +247,12 @@ Machine *read_program_from_file(Machine *machine, char *file_path){
 
         while ((charRead = fgetc(file)) != EOF && charRead != '\0') {
             if (char_index < MAX_STRING_SIZE - 1) { // Avoid buffer overflow
-                machine->str_stack[i].str[char_index] = charRead;
+                machine->str_stack[i][char_index] = charRead;
                 char_index++;
             }
         }
-        machine->str_stack[i].str[char_index] = '\0';
-        if (charRead == EOF || strcmp(machine->str_stack[i].str, "DATA_END") == 0) {
+        machine->str_stack[i][char_index] = '\0';
+        if (charRead == EOF || strcmp(machine->str_stack[i], "DATA_END") == 0) {
             index += char_index + i; 
             break;
         }
@@ -247,12 +269,13 @@ Machine *read_program_from_file(Machine *machine, char *file_path){
 
     fseek(file, 0, SEEK_END);
     length = ftell(file);
-    //fseek(file, 0, SEEK_SET);
     fseek(file, index, SEEK_SET);
     length = fread(instructions, sizeof(instructions[0]), length, file);
 
     machine->program_size = length;
     machine->instructions = instructions;
+
+    instructions = realloc(instructions, sizeof(Inst) * machine->program_size);
 
     machine->str_stack_size = i;
     fclose(file);
@@ -281,7 +304,7 @@ void run_instructions(Machine *machine){
                 break;
             case INST_GET_STR: {
                 int index = machine->instructions[ip].value.as_int + 1;
-                push_ptr(machine, (void*)machine->str_stack[index].str);
+                push_ptr(machine, (void*)machine->str_stack[index]);
                 break;
             }
             case INST_POP:
@@ -479,6 +502,15 @@ void run_instructions(Machine *machine){
                         break;
                     case 60:
                         native_exit(machine);
+                        break;
+                    case 90:
+                        native_strcmp(machine);
+                        break;
+                    case 91:
+                        native_strcpy(machine);
+                        break;
+                    case 92:
+                        native_memcpy(machine);
                         break;
                     case 99: {
                         native_itoa(machine);

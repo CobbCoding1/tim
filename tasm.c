@@ -22,9 +22,7 @@ size_t length_of_list(ParseList *head){
     return result;
 }
 
-int str_stack_size = 0;
-
-Inst *generate_instructions(ParseList *head, int *program_size, Data str_stack[MAX_STACK_SIZE]){
+Inst *generate_instructions(ParseList *head, int *program_size, char str_stack[MAX_STACK_SIZE][MAX_STRING_SIZE]){
     Inst *program = malloc(sizeof(Inst) * length_of_list(head));
     Inst_Set insts[INST_COUNT + 1] = {    
         INST_NOP, INST_PUSH, INST_PUSH_PTR, INST_PUSH_STR, INST_GET_STR, INST_POP, INST_DUP, INST_INDUP, INST_SWAP, INST_INSWAP, 
@@ -67,10 +65,11 @@ Inst *generate_instructions(ParseList *head, int *program_size, Data str_stack[M
                 assert(false && "why are you here\n");
             }
             instruction->type = INST_NOP;
-            strncpy(str_stack[str_stack_size++].str, head->value.text, MAX_STRING_SIZE - 1);
+            strncpy(str_stack[str_stack_size++], head->value.text, MAX_STRING_SIZE - 1);
         }
 
         push_program(program, program_size, *instruction);
+        free(instruction);
         head = head->next;
     }
     return program;
@@ -83,6 +82,7 @@ char *chop_file_by_dot(char *file_name){
         result[index] = file_name[index];
     }
     snprintf(result + index, 5, ".tim");
+    result = realloc(result, sizeof(char) * index);
     return result;
 }
 

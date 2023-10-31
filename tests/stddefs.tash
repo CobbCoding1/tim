@@ -15,5 +15,8 @@
 @def malloc native 4
 @def free native 5
 @def exit native 60
+@def strcmp native 90
+@def strcpy native 91
+@def memcpy native 92
 @def int_to_str native 99
 

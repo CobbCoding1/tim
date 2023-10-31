@@ -69,6 +69,7 @@ typedef struct {
     char *file_name;
 } Lexer;
 
+int is_name(char character);
 char *open_file(char *file_path, int *length);
 void push_token(Lexer *lexer, Token value);
 Token pop_token(Lexer *lexer);
@@ -76,9 +77,12 @@ char *pretty_token(Token token);
 void print_token(Token token);
 Token init_token(TokenType type, char *text, int line, int character, char *file_name);
 TokenType check_builtin_keywords(char *name);
+TokenType check_label_type(char *current, int *current_index);
 Token generate_keyword(char *current, int *current_index, int *line, int *character, Lexer lex);
 Token generate_num(char *current, int *current_index, int line, int *character, Lexer lex);
+char valid_escape_character(char *current, int *current_index);
 Token generate_char(char *file_name, char *current, int *current_index, int line, int *character, Lexer lex);
+Token generate_string(char *file_name, char *current, int *current_index, int line, int *character, Lexer lex);
 Lexer lexer();
 
 #endif

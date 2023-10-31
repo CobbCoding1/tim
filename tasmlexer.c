@@ -101,43 +101,46 @@ Token generate_keyword(char *current, int *current_index, int *line, int *charac
     Token token = init_token(type, keyword_name, *line, *character, lex.file_name);
     // Increment character by lenth of keyword, also subtract one because iteration occurs in lexer function as well
     *character += keyword_length - 1;
+    keyword_name = realloc(keyword_name, sizeof(char) * keyword_length);
     return token;
 }
 
 Token generate_num(char *current, int *current_index, int line, int *character, Lexer lex){
-    char *keyword_name = malloc(sizeof(char) * 16);
-    int keyword_length = 0;
+    char *num_name = malloc(sizeof(char) * 16);
+    int num_length = 0;
 
     if(current[*current_index] == '-'){
-        keyword_name[keyword_length] = '-';
+        num_name[num_length] = '-';
         *current_index += 1;
-        keyword_length++;
+        num_length++;
     }
 
     while(isdigit(current[*current_index])){
-        keyword_name[keyword_length] = current[*current_index];
+        num_name[num_length] = current[*current_index];
         *current_index += 1;
-        keyword_length++;
+        num_length++;
     }
     if(current[*current_index] != '.'){
-        keyword_name[keyword_length] = '\0';
+        num_name[num_length] = '\0';
         TokenType type = TYPE_INT;
-        Token token = init_token(type, keyword_name, line, *character, lex.file_name);
+        Token token = init_token(type, num_name, line, *character, lex.file_name);
         return token;
     }
-    keyword_name[keyword_length] = current[*current_index];
+    num_name[num_length] = current[*current_index];
     *current_index += 1;
-    keyword_length++;
+    num_length++;
     while(isdigit(current[*current_index])){
-        keyword_name[keyword_length] = current[*current_index];
+        num_name[num_length] = current[*current_index];
         *current_index += 1;
-        keyword_length++;
+        num_length++;
     }
-    keyword_name[keyword_length] = '\0';
+    num_name[num_length] = '\0';
     TokenType type = TYPE_FLOAT;
-    Token token = init_token(type, keyword_name, line, *character, lex.file_name);
+    Token token = init_token(type, num_name, line, *character, lex.file_name);
+
     // Increment character by lenth of number, also subtract one because iteration occurs in lexer function as well
-    *character += keyword_length - 1;
+    *character += num_length - 1;
+    num_name = realloc(num_name, sizeof(char) * num_length);
     return token;
 }
 
@@ -236,6 +239,7 @@ Token generate_string(char *file_name, char *current, int *current_index, int li
     Token token = init_token(type, string_name, line, *character, lex.file_name);
     // Increment character by 3 because of the character length, also subtract one because iteration occurs in lexer function as well
     *character += (string_index) - 1;
+    string_name = realloc(string_name, sizeof(char) * string_index);
     return token;
 }
 
