@@ -1,0 +1,5 @@
+add ret keyword and functionality
+
+add access to string stack, specifically str_pop, str_dup (and indup), and str_swap (and inswap)
+
+test turing completeness

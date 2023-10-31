@@ -1,4 +1,9 @@
-push_str "123\n"
-get_str 0
-native 11 
-
+jalskd:
+push_str
+str_inswap
+str_swap
+str_indup
+str_dup
+pop_str
+get_str
+ret
