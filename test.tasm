@@ -1,0 +1,4 @@
+push_str "123\n"
+get_str 0
+native 11 
+

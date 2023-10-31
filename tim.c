@@ -512,61 +512,22 @@ void run_instructions(Machine *machine){
                 a = pop(machine);
                 printf("as float: %f, as int: %" PRId64 ", as char: %c, as pointer: %p\n", a.as_float, a.as_int, a.as_char, a.as_pointer);
                 break;
-            case INST_NATIVE:
-                switch(machine->instructions[ip].value.as_int){
-                    case 0:
-                        native_open(machine);
-                        break;
-                    case 1:
-                        native_write(machine);
-                        break;
-                    case 2:
-                        native_read(machine);
-                        break;
-                    case 3:
-                        native_close(machine);
-                        break;
-                    case 4:
-                        native_malloc(machine);
-                        break;
-                    case 5:
-                        native_realloc(machine);
-                        break;
-                    case 6:
-                        native_free(machine);
-                        break;
-                    case 10:
-                        native_time(machine);
-                        break;
-                    case 60:
-                        native_exit(machine);
-                        break;
-                    case 90:
-                        native_strcmp(machine);
-                        break;
-                    case 91:
-                        native_strcpy(machine);
-                        break;
-                    case 92:
-                        native_memcpy(machine);
-                        break;
-                    case 93:
-                        native_strcat(machine);
-                        break;
-                    case 94:
-                        native_strlen(machine);
-                        break;
-                    case 99:
-                        native_itoa(machine);
-                        break;
-                    case 100:
-                        native_assert(machine);
-                        break;
-                    default:
-                        fprintf(stderr, "error: unexpected native call\n");
-                        exit(1);
-                }
+            case INST_NATIVE: {
+                void (*native_ptrs[100])(Machine*) = {native_open, native_write, native_read, 
+                                                   native_close, native_malloc, native_realloc, 
+                                                   native_free};
+                native_ptrs[10] = native_time;
+                native_ptrs[60] = native_exit;
+                native_ptrs[90] = native_strcmp;
+                native_ptrs[91] = native_strcpy;
+                native_ptrs[92] = native_memcpy;
+                native_ptrs[93] = native_strcat;
+                native_ptrs[94] = native_strlen;
+                native_ptrs[99] = native_itoa;
+                native_ptrs[100] = native_assert;
+                (*native_ptrs[machine->instructions[ip].value.as_int])(machine);
                 break;
+            }
             case INST_HALT:
                 ip = machine->program_size;
                 break;
