@@ -1,7 +1,7 @@
 @imp "stddefs.tash"
 push_str "Put string here for length"
 jmp main
-strlen:
+stringlen:
     push_str "\0"
     push 0
     swap
@@ -26,7 +26,7 @@ strlen:
 
 main:
     get_str 0
-    jmp strlen 
+    jmp stringlen 
 
 end:
 push 0

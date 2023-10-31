@@ -62,6 +62,9 @@ void generate_list(ParseList *root, Lexer *lexer, struct hashmap_s *hashmap){
     for(int index = 0; index < lexer->stack_size; index++){
         assert(lexer->token_stack[index].type != TYPE_NONE && "Should not be none\n");
         Token current_token = lexer->token_stack[index];
+        if(expect_token(lexer, index, 6, TYPE_INT, TYPE_FLOAT, TYPE_CHAR, TYPE_LABEL, TYPE_STRING, TYPE_NULL)){
+            print_syntax_error(&current_token, "unexpected token", "non-type");
+        }
         if(lexer->token_stack[index].type == TYPE_INT && lexer->token_stack[index].type == TYPE_FLOAT && 
            lexer->token_stack[index].type == TYPE_CHAR && lexer->token_stack[index].type == TYPE_LABEL){
             index -= 2;
