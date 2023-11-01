@@ -42,6 +42,8 @@ typedef enum {
     INST_CMPL,
     INST_CMPGE,
     INST_CMPLE,
+    INST_CALL,
+    INST_RET,
     INST_JMP,
     INST_ZJMP,
     INST_NZJMP,
@@ -67,9 +69,11 @@ typedef struct {
 
 typedef struct {
     Word stack[MAX_STACK_SIZE];
+    int stack_size;
     char str_stack[MAX_STACK_SIZE][MAX_STRING_SIZE];
     int str_stack_size;
-    int stack_size;
+    size_t return_stack[MAX_STACK_SIZE];
+    int return_stack_size;
     size_t program_size;
     Inst *instructions;
 } Machine;

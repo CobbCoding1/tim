@@ -1,0 +1,48 @@
+@imp "stddefs.tash"
+@def N 30
+push_str "\n"
+entrypoint main
+fib:
+    push 2
+    swap
+    cmpl 
+    zjmp else 
+    swap
+    pop 
+    ret
+    else:
+    swap
+    pop
+    dup
+    push 1 
+    sub 
+    call fib
+    swap
+    push 2 
+    sub 
+    call fib
+    add 
+    endfib:
+    ret
+
+main:
+    push N 
+    loop:
+        push -1 
+        cmpge
+        nzjmp end
+        pop
+        dup
+        call fib
+        int_to_str
+        push STDOUT 
+        write
+        get_str 0
+        push STDOUT
+        write
+        push 1
+        sub
+        jmp loop
+    end:
+        push 11
+        exit

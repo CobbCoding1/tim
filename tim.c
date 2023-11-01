@@ -321,6 +321,7 @@ void run_instructions(Machine *machine){
     Word no;
     no.as_int = 0;
     for(size_t ip = 0; ip < machine->program_size; ip++){
+        //print_stack(machine);
         switch(machine->instructions[ip].type){
             case INST_NOP:
                 continue;
@@ -418,7 +419,7 @@ void run_instructions(Machine *machine){
                 b = pop(machine);
                 push(machine, b);
                 push(machine, a);
-                if(a.as_float == b.as_float){
+                if(a.as_int == b.as_int){
                     push(machine, yes);
                 } else {
                     push(machine, no);
@@ -429,7 +430,7 @@ void run_instructions(Machine *machine){
                 b = pop(machine);
                 push(machine, b);
                 push(machine, a);
-                if(a.as_float != b.as_float){
+                if(a.as_int != b.as_int){
                     push(machine, yes);
                 } else {
                     push(machine, no);
@@ -440,7 +441,7 @@ void run_instructions(Machine *machine){
                 b = pop(machine);
                 push(machine, b);
                 push(machine, a);
-                if(a.as_float > b.as_float){
+                if(a.as_int > b.as_int){
                     push(machine, yes);
                 } else {
                     push(machine, no);
@@ -451,7 +452,7 @@ void run_instructions(Machine *machine){
                 b = pop(machine);
                 push(machine, b);
                 push(machine, a);
-                if(a.as_float < b.as_float){
+                if(a.as_int < b.as_int){
                     push(machine, yes);
                 } else {
                     push(machine, no);
@@ -462,7 +463,7 @@ void run_instructions(Machine *machine){
                 b = pop(machine);
                 push(machine, b);
                 push(machine, a);
-                if(a.as_float >= b.as_float){
+                if(a.as_int >= b.as_int){
                     push(machine, yes);
                 } else {
                     push(machine, no);
@@ -473,11 +474,18 @@ void run_instructions(Machine *machine){
                 b = pop(machine);
                 push(machine, b);
                 push(machine, a);
-                if(a.as_float <= b.as_float){
+                if(a.as_int <= b.as_int){
                     push(machine, yes);
                 } else {
                     push(machine, no);
                 }
+                break;
+            case INST_CALL:
+                machine->return_stack[machine->return_stack_size++] = ip;
+                ip = machine->instructions[ip].value.as_int - 1;
+                break;
+            case INST_RET:
+                ip = machine->return_stack[--machine->return_stack_size];
                 break;
             case INST_JMP:
                 ip = machine->instructions[ip].value.as_int - 1;

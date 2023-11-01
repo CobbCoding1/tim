@@ -1,9 +1,0 @@
-jalskd:
-push_str
-str_inswap
-str_swap
-str_indup
-str_dup
-pop_str
-get_str
-ret
