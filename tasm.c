@@ -25,7 +25,7 @@ size_t length_of_list(ParseList *head){
 Inst *generate_instructions(ParseList *head, int *program_size, char str_stack[MAX_STACK_SIZE][MAX_STRING_SIZE]){
     Inst *program = malloc(sizeof(Inst) * length_of_list(head));
     Inst_Set insts[INST_COUNT + 1] = {    
-        INST_NOP, INST_PUSH, INST_PUSH_PTR, INST_PUSH_STR, INST_GET_STR, INST_POP, INST_DUP, INST_INDUP, INST_SWAP, INST_INSWAP, 
+        INST_NOP, INST_PUSH, INST_PUSH_PTR, INST_PUSH_STR, INST_GET_STR, INST_POP, INST_POP_STR, INST_DUP, INST_DUP_STR, INST_INDUP, INST_INDUP_STR, INST_SWAP, INST_SWAP_STR, INST_INSWAP, INST_INSWAP_STR,
         INST_ADD, INST_SUB, INST_MUL, INST_DIV, INST_MOD, INST_ADD_F, INST_SUB_F, INST_MUL_F, INST_DIV_F, INST_MOD_F, INST_CMPE, 
         INST_CMPNE, INST_CMPG, INST_CMPL, INST_CMPGE, INST_CMPLE, INST_CALL, INST_RET, INST_JMP, INST_ZJMP, INST_NZJMP, INST_PRINT, INST_NATIVE, 
         INST_HALT, INST_COUNT};
@@ -35,7 +35,11 @@ Inst *generate_instructions(ParseList *head, int *program_size, char str_stack[M
         assert(head->value.type < (TokenType)INST_COUNT);
         Inst *instruction = malloc(sizeof(Inst));
         instruction->type = insts[head->value.type];
-        if(head->value.type == TYPE_CALL || head->value.type == TYPE_NATIVE || head->value.type == TYPE_GET_STR || head->value.type == TYPE_INDUP || head->value.type == TYPE_INSWAP || head->value.type == TYPE_JMP || head->value.type == TYPE_ZJMP || head->value.type == TYPE_NZJMP){
+        if(head->value.type == TYPE_CALL || head->value.type == TYPE_NATIVE || head->value.type == TYPE_GET_STR || 
+                                head->value.type == TYPE_INDUP || head->value.type == TYPE_INDUP_STR || 
+                                head->value.type == TYPE_INSWAP || head->value.type == TYPE_INSWAP_STR || 
+                                head->value.type == TYPE_JMP || head->value.type == TYPE_ZJMP || 
+                                 head->value.type == TYPE_NZJMP){
             head = head->next;
             instruction->value.as_int = atoi(head->value.text);
         }

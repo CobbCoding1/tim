@@ -1,0 +1,6 @@
+push_str "test\n"
+push_str "test2\n"
+swap_str
+get_str 1
+push 1
+native 1 

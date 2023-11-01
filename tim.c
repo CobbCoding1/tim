@@ -187,8 +187,8 @@ void push_ptr(Machine *machine, Word *value){
 }
 
 void push_str(Machine *machine, char *value){
-    if(machine->stack_size >= MAX_STACK_SIZE){
-        fprintf(stderr, "ERROR: Stack Overflow\n");
+    if(machine->str_stack_size >= MAX_STACK_SIZE){
+        fprintf(stderr, "ERROR: String Stack Overflow\n");
         exit(1);
     }
     strncpy(machine->str_stack[machine->str_stack_size++], value, MAX_STRING_SIZE - 1);
@@ -196,11 +196,20 @@ void push_str(Machine *machine, char *value){
 
 Word pop(Machine *machine){
     if(machine->stack_size <= 0){
-        fprintf(stderr, "ERROR: Stack Underflow\n");
+        fprintf(stderr, "ErROR: Stack Underflow\n");
         exit(1);
     }
     machine->stack_size--;
     return machine->stack[machine->stack_size];
+}
+
+char *pop_str(Machine *machine){
+    if(machine->str_stack_size <= 0){
+        fprintf(stderr, "ERROR: String Stack Underflow\n");
+        exit(1);
+    }
+    machine->str_stack_size--;
+    return machine->str_stack[machine->str_stack_size];
 }
 
 void index_swap(Machine *machine, int64_t index){
@@ -213,12 +222,30 @@ void index_swap(Machine *machine, int64_t index){
     push(machine, temp_value);
 }
 
+void index_swap_str(Machine *machine, int64_t index){
+    if(index > machine->str_stack_size || index < 0){
+        fprintf(stderr, "ERROR: Index out of range\n");
+        exit(1);
+    }
+    char *temp_value = machine->str_stack[index];
+    strncpy(machine->str_stack[machine->str_stack_size++], pop_str(machine), MAX_STRING_SIZE - 1);
+    push_str(machine, temp_value);
+}
+
 void index_dup(Machine *machine, int64_t index){
     if(index > machine->stack_size || index < 0){
         fprintf(stderr, "ERROR: Index out of range\n");
         exit(1);
     }
     push(machine, machine->stack[index]);
+}
+
+void index_dup_str(Machine *machine, int64_t index){
+    if(index > machine->str_stack_size || index < 0){
+        fprintf(stderr, "ERROR: Index out of range\n");
+        exit(1);
+    }
+    push_str(machine, machine->str_stack[index]);
 }
 
 char *get_str_from_stack(Machine *machine){
@@ -309,13 +336,15 @@ Machine *read_program_from_file(Machine *machine, char *file_path){
 
     instructions = realloc(instructions, sizeof(Inst) * machine->program_size);
 
-    machine->str_stack_size = i;
+    machine->str_stack_size = i - 1;
     fclose(file);
     return machine;
 }
 
 void run_instructions(Machine *machine){
     Word a, b;
+    char *str1 = malloc(sizeof(char) * 64);
+    char *str2 = malloc(sizeof(char) * 64);
     Word yes;
     yes.as_int = 1;
     Word no;
@@ -337,19 +366,34 @@ void run_instructions(Machine *machine){
                 break;
             case INST_GET_STR: {
                 int index = machine->instructions[ip].value.as_int + 1;
+                if(index >= machine->str_stack_size){
+                    fprintf(stderr, "ERROR: String Stack Underflow\n");
+                    exit(1);
+                }
                 push_ptr(machine, (void*)machine->str_stack[index]);
                 break;
             }
             case INST_POP:
                 pop(machine);
                 break;
+            case INST_POP_STR:
+                pop_str(machine);
+                break;
             case INST_DUP:
                 a = pop(machine);
                 push(machine, a);
                 push(machine, a);
                 break;
+            case INST_DUP_STR:
+                str1 = pop_str(machine);
+                push_str(machine, str1);
+                push_str(machine, str1);
+                break;
             case INST_INDUP:
                 index_dup(machine, machine->instructions[ip].value.as_int);
+                break;
+            case INST_INDUP_STR:
+                index_dup_str(machine, machine->instructions[ip].value.as_int);
                 break;
             case INST_SWAP:
                 a = pop(machine);
@@ -357,8 +401,18 @@ void run_instructions(Machine *machine){
                 push(machine, a);
                 push(machine, b);
                 break;
+            case INST_SWAP_STR:
+                str1 = pop_str(machine);
+                str2 = pop_str(machine);
+                //printf("str_stack_size: %d\n%s%s\n", machine->str_stack_size, str1, str2);
+                push_str(machine, str1);
+                push_str(machine, str2);
+                break;
             case INST_INSWAP:
                 index_swap(machine, machine->instructions[ip].value.as_int);
+                break;
+            case INST_INSWAP_STR:
+                index_swap_str(machine, machine->instructions[ip].value.as_int);
                 break;
             case INST_ADD:
                 b = pop(machine);
