@@ -58,6 +58,13 @@ typedef enum {
     INST_COUNT,
 } Inst_Set;
 
+typedef enum {
+    INT_TYPE,
+    FLOAT_TYPE,
+    CHAR_TYPE,
+    PTR_TYPE,
+} DataType;
+
 typedef union {
     int64_t as_int;
     double as_float;
@@ -66,14 +73,20 @@ typedef union {
 } Word;
 
 typedef struct {
+    Word word;
+    DataType type; 
+} Data;
+
+typedef struct {
     Inst_Set type;
     Word value;
+    DataType data_type;
 } Inst;
 
 #define MAX_STRING_SIZE 256
 
 typedef struct {
-    Word stack[MAX_STACK_SIZE];
+    Data stack[MAX_STACK_SIZE];
     int stack_size;
     char str_stack[MAX_STACK_SIZE][MAX_STRING_SIZE];
     int str_stack_size;
@@ -103,9 +116,9 @@ void native_itoa(Machine *machine);
 // reverse_string
 
 void push_ptr(Machine *machine, Word *value);
-void push(Machine *machine, Word value);
+void push(Machine *machine, Word value, DataType type);
 void push_str(Machine *machine, char *value);
-Word pop(Machine *machine);
+Data pop(Machine *machine);
 void index_swap(Machine *machine, int64_t index);
 void index_dup(Machine *machine, int64_t index);
 char *get_str_from_stack(Machine *machine);

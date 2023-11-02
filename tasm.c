@@ -25,10 +25,15 @@ size_t length_of_list(ParseList *head){
 Inst *generate_instructions(ParseList *head, int *program_size, char str_stack[MAX_STACK_SIZE][MAX_STRING_SIZE]){
     Inst *program = malloc(sizeof(Inst) * length_of_list(head));
     Inst_Set insts[INST_COUNT + 1] = {    
-        INST_NOP, INST_PUSH, INST_PUSH_PTR, INST_PUSH_STR, INST_GET_STR, INST_POP, INST_POP_STR, INST_DUP, INST_DUP_STR, INST_INDUP, INST_INDUP_STR, INST_SWAP, INST_SWAP_STR, INST_INSWAP, INST_INSWAP_STR,
-        INST_ADD, INST_SUB, INST_MUL, INST_DIV, INST_MOD, INST_ADD_F, INST_SUB_F, INST_MUL_F, INST_DIV_F, INST_MOD_F, INST_CMPE, 
-        INST_CMPNE, INST_CMPG, INST_CMPL, INST_CMPGE, INST_CMPLE, INST_CALL, INST_RET, INST_JMP, INST_ZJMP, INST_NZJMP, INST_PRINT, INST_NATIVE, 
-        INST_HALT, INST_COUNT};
+        INST_NOP, INST_PUSH, INST_PUSH_PTR, INST_PUSH_STR, INST_GET_STR, 
+        INST_POP, INST_POP_STR, INST_DUP, INST_DUP_STR, INST_INDUP, INST_INDUP_STR, 
+        INST_SWAP, INST_SWAP_STR, INST_INSWAP, INST_INSWAP_STR,
+        INST_ADD, INST_SUB, INST_MUL, INST_DIV, INST_MOD, INST_ADD_F, INST_SUB_F, 
+        INST_MUL_F, INST_DIV_F, INST_MOD_F, INST_CMPE, 
+        INST_CMPNE, INST_CMPG, INST_CMPL, INST_CMPGE, INST_CMPLE, INST_CALL, INST_RET, 
+        INST_JMP, INST_ZJMP, INST_NZJMP, INST_PRINT, INST_NATIVE, 
+        INST_HALT, INST_COUNT
+    };
 
     while(head != NULL){
         assert(head->value.type != TYPE_NONE && "Value should not be none\n");
@@ -49,13 +54,17 @@ Inst *generate_instructions(ParseList *head, int *program_size, char str_stack[M
             head = head->next;
             if(head->value.type == TYPE_INT){
                 instruction->value.as_int = atoi(head->value.text);
+                instruction->data_type = INT_TYPE;
             } else if(head->value.type == TYPE_FLOAT){
                 instruction->value.as_float = atof(head->value.text);
+                instruction->data_type = FLOAT_TYPE;
             } else if(head->value.type == TYPE_CHAR){
                 instruction->value.as_char = head->value.text[0];
+                instruction->data_type = INT_TYPE;
             } else if(head->value.type == TYPE_NULL){
                 instruction->type = INST_PUSH_PTR;
                 instruction->value.as_pointer = NULL;
+                instruction->data_type = PTR_TYPE;
             } else {
                 assert(false && "you should not be here\n");
             }

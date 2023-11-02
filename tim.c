@@ -54,106 +54,106 @@ void *get_stream(Word stream){
 char *open_modes[MODES_LENGTH] = {"r", "w", "wr", "a", "rb", "wb", "ab"};
 
 void native_open(Machine *machine){
-    Word flag_mode = pop(machine);
+    Word flag_mode = pop(machine).word;
     if(flag_mode.as_int > MODES_LENGTH - 1){
         fprintf(stderr, "error: mode %" PRId64 "out of bounds\n", flag_mode.as_int);
         exit(1);
     }
-    Word path = pop(machine);
+    Word path = pop(machine).word;
     char *mode = open_modes[flag_mode.as_int];
     void *fd = fopen(path.as_pointer, mode);
-    push(machine, (Word)fd);
+    push(machine, (Word)fd, PTR_TYPE);
 }
 
 void native_write(Machine *machine){
-    Word stream = pop(machine);
-    char *str = (char*)pop(machine).as_pointer;    
+    Word stream = pop(machine).word;
+    char *str = (char*)pop(machine).word.as_pointer;    
     stream.as_pointer = get_stream(stream);
     int length = strlen(str);
     fwrite(str, 1, length, stream.as_pointer);
 }
 
 void native_read(Machine *machine){
-    Word ptr = pop(machine);
+    Word ptr = pop(machine).word;
     ptr.as_pointer = get_stream(ptr);
-    int length = pop(machine).as_int;
-    char *buffer = pop(machine).as_pointer;
+    int length = pop(machine).word.as_int;
+    char *buffer = pop(machine).word.as_pointer;
     fread(buffer, 1, length, ptr.as_pointer);
     buffer[length] = '\0';
     push_ptr(machine, (Word*)buffer);
 }
 
 void native_close(Machine *machine){
-    void *stream = pop(machine).as_pointer;
+    void *stream = pop(machine).word.as_pointer;
     fclose(stream);
 }
 
 void native_malloc(Machine *machine){
-    int num_of_bytes = pop(machine).as_int;
+    int num_of_bytes = pop(machine).word.as_int;
     void *ptr = malloc(sizeof(char) * num_of_bytes);
     push_ptr(machine, ptr);
 }
 
 void native_realloc(Machine *machine){
-    void *ptr = pop(machine).as_pointer;
-    int num_of_bytes = pop(machine).as_int;
+    void *ptr = pop(machine).word.as_pointer;
+    int num_of_bytes = pop(machine).word.as_int;
     void *result = realloc(ptr, sizeof(char) * num_of_bytes);
     push_ptr(machine, result);
 }
 
 void native_free(Machine *machine){
-    Word ptr = pop(machine);
+    Word ptr = pop(machine).word;
     free(ptr.as_pointer);
 }
 
 void native_time(Machine *machine){
     time_t seconds;
     seconds = time(NULL);
-    push(machine, (Word)seconds);
+    push(machine, (Word)seconds, INT_TYPE);
 }
 
 void native_exit(Machine *machine){
-    int64_t code = pop(machine).as_int;
+    int64_t code = pop(machine).word.as_int;
     exit(code);
 }
 
 void native_strcmp(Machine *machine){
-    char *str1 = (char*)pop(machine).as_pointer;
-    char *str2 = (char*)pop(machine).as_pointer;
+    char *str1 = (char*)pop(machine).word.as_pointer;
+    char *str2 = (char*)pop(machine).word.as_pointer;
     int64_t result = strcmp(str1, str2) == 0;
-    push(machine, (Word)result);
+    push(machine, (Word)result, INT_TYPE);
 }
 
 void native_strcpy(Machine *machine){
-    char *str = (char*)pop(machine).as_pointer;
-    void *dest = pop(machine).as_pointer;
+    char *str = (char*)pop(machine).word.as_pointer;
+    void *dest = pop(machine).word.as_pointer;
     char *result = strcpy(dest, str);
     push_ptr(machine, (Word*)result);
 }
 
 void native_memcpy(Machine *machine){
-    int64_t size = pop(machine).as_int;
-    void *src = pop(machine).as_pointer;
-    void *dest = pop(machine).as_pointer;
+    int64_t size = pop(machine).word.as_int;
+    void *src = pop(machine).word.as_pointer;
+    void *dest = pop(machine).word.as_pointer;
     void *result = memcpy(dest, src, size);
     push_ptr(machine, result);
 }
 
 void native_strcat(Machine *machine){
-    char *str = (char*)pop(machine).as_pointer;
-    char *dest = (char*)pop(machine).as_pointer;
+    char *str = (char*)pop(machine).word.as_pointer;
+    char *dest = (char*)pop(machine).word.as_pointer;
     char *result = strcat(dest, str);
     push_ptr(machine, (Word*)result);
 }
 
 void native_strlen(Machine *machine){
-    char *str = (char*)pop(machine).as_pointer;
+    char *str = (char*)pop(machine).word.as_pointer;
     int64_t result = strlen(str);
-    push(machine, (Word)result);
+    push(machine, (Word)result, INT_TYPE);
 }
 
 void native_itoa(Machine *machine){
-    int64_t x = pop(machine).as_int;
+    int64_t x = pop(machine).word.as_int;
     int str_index = 0;
     char *str = malloc(sizeof(char) * 64);
     int_to_str(str, &str_index, x);
@@ -163,19 +163,22 @@ void native_itoa(Machine *machine){
 }
 
 void native_assert(Machine *machine){
-    int64_t code = pop(machine).as_int;
+    int64_t code = pop(machine).word.as_int;
     printf("%ld\n", code);
     assert(code);
 }
 
 // end native functions
 
-void push(Machine *machine, Word value){
+void push(Machine *machine, Word value, DataType type){
     if(machine->stack_size >= MAX_STACK_SIZE){
         fprintf(stderr, "ERROR: Stack Overflow\n");
         exit(1);
     }
-    machine->stack[machine->stack_size++] = value;
+    Data data;
+    data.word = value;
+    data.type = type;
+    machine->stack[machine->stack_size++] = data;
 }
 
 void push_ptr(Machine *machine, Word *value){
@@ -183,7 +186,7 @@ void push_ptr(Machine *machine, Word *value){
         fprintf(stderr, "ERROR: Stack Overflow\n");
         exit(1);
     }
-    machine->stack[machine->stack_size++].as_pointer = value;
+    machine->stack[machine->stack_size++].word.as_pointer = value;
 }
 
 void push_str(Machine *machine, char *value){
@@ -194,7 +197,7 @@ void push_str(Machine *machine, char *value){
     strncpy(machine->str_stack[machine->str_stack_size++], value, MAX_STRING_SIZE - 1);
 }
 
-Word pop(Machine *machine){
+Data pop(Machine *machine){
     if(machine->stack_size <= 0){
         fprintf(stderr, "ErROR: Stack Underflow\n");
         exit(1);
@@ -204,12 +207,16 @@ Word pop(Machine *machine){
 }
 
 char *pop_str(Machine *machine){
-    if(machine->str_stack_size <= 0){
+    int length = strlen(machine->str_stack[--machine->str_stack_size]);
+    char *result = malloc(sizeof(char) * length); 
+    if(machine->str_stack_size < 0){
         fprintf(stderr, "ERROR: String Stack Underflow\n");
         exit(1);
     }
-    machine->str_stack_size--;
-    return machine->str_stack[machine->str_stack_size];
+    for(int i = 0; i < length; i++){
+        result[i] = machine->str_stack[machine->str_stack_size][i];
+    }
+    return result;
 }
 
 void index_swap(Machine *machine, int64_t index){
@@ -217,9 +224,9 @@ void index_swap(Machine *machine, int64_t index){
         fprintf(stderr, "ERROR: Index out of range\n");
         exit(1);
     }
-    Word temp_value = machine->stack[index];
+    Data temp_value = machine->stack[index];
     machine->stack[index] = pop(machine); 
-    push(machine, temp_value);
+    push(machine, temp_value.word, temp_value.type);
 }
 
 void index_swap_str(Machine *machine, int64_t index){
@@ -227,9 +234,14 @@ void index_swap_str(Machine *machine, int64_t index){
         fprintf(stderr, "ERROR: Index out of range\n");
         exit(1);
     }
-    char *temp_value = machine->str_stack[index];
-    strncpy(machine->str_stack[machine->str_stack_size++], pop_str(machine), MAX_STRING_SIZE - 1);
-    push_str(machine, temp_value);
+    int length = strlen(machine->str_stack[index]);
+    char *result = malloc(sizeof(char) * length); 
+    for(int i = 0; i < length; i++){
+        result[i] = machine->str_stack[index][i];
+    }
+    char *temp_value = pop_str(machine);
+    strncpy(machine->str_stack[index], temp_value, MAX_STRING_SIZE - 1);
+    push_str(machine, result);
 }
 
 void index_dup(Machine *machine, int64_t index){
@@ -237,7 +249,7 @@ void index_dup(Machine *machine, int64_t index){
         fprintf(stderr, "ERROR: Index out of range\n");
         exit(1);
     }
-    push(machine, machine->stack[index]);
+    push(machine, machine->stack[index].word, machine->stack[index].type);
 }
 
 void index_dup_str(Machine *machine, int64_t index){
@@ -251,7 +263,7 @@ void index_dup_str(Machine *machine, int64_t index){
 char *get_str_from_stack(Machine *machine){
     char *buffer = malloc(sizeof(char) * 16);
     int buffer_index = 0;
-    char *current = (char*)&(machine->stack[machine->stack_size].as_pointer);
+    char *current = (char*)&(machine->stack[machine->stack_size].word.as_pointer);
     while(*current != '\0'){
         if(buffer_index > machine->stack_size){
             fprintf(stderr, "ERROR: Stack Underflow\n");
@@ -271,8 +283,8 @@ char *get_str_from_stack(Machine *machine){
 void print_stack(Machine *machine){
     printf("------ STACK\n");
     for(int i = machine->stack_size - 1; i >= 0; i--){
-        printf("as int: %" PRId64 ", as float: %f, as char: %c, as pointer: %p\n", machine->stack[i].as_int, 
-               machine->stack[i].as_float, machine->stack[i].as_char, machine->stack[i].as_pointer);
+        printf("as int: %" PRId64 ", as float: %f, as char: %c, as pointer: %p\n", machine->stack[i].word.as_int, 
+               machine->stack[i].word.as_float, machine->stack[i].word.as_char, machine->stack[i].word.as_pointer);
     }
     printf("------ END OF STACK\n");
 }
@@ -306,12 +318,12 @@ Machine *read_program_from_file(Machine *machine, char *file_path){
 
         while ((charRead = fgetc(file)) != EOF && charRead != '\0') {
             if (char_index < MAX_STRING_SIZE - 1) { // Avoid buffer overflow
-                machine->str_stack[i][char_index] = charRead;
+                machine->str_stack[i - 1][char_index] = charRead;
                 char_index++;
             }
         }
-        machine->str_stack[i][char_index] = '\0';
-        if (charRead == EOF || strcmp(machine->str_stack[i], "DATA_END") == 0) {
+        machine->str_stack[i - 1][char_index] = '\0';
+        if (charRead == EOF || strcmp(machine->str_stack[i - 1], "DATA_END") == 0) {
             index += char_index + i; 
             break;
         }
@@ -342,9 +354,7 @@ Machine *read_program_from_file(Machine *machine, char *file_path){
 }
 
 void run_instructions(Machine *machine){
-    Word a, b;
-    char *str1 = malloc(sizeof(char) * 64);
-    char *str2 = malloc(sizeof(char) * 64);
+    Data a, b;
     Word yes;
     yes.as_int = 1;
     Word no;
@@ -356,7 +366,7 @@ void run_instructions(Machine *machine){
                 continue;
                 break;
             case INST_PUSH:
-                push(machine, machine->instructions[ip].value);
+                push(machine, machine->instructions[ip].value, machine->instructions[ip].data_type);
                 break;
             case INST_PUSH_PTR:
                 push_ptr(machine, machine->instructions[ip].value.as_pointer);
@@ -365,9 +375,9 @@ void run_instructions(Machine *machine){
                 assert(false && "unreachable\n");
                 break;
             case INST_GET_STR: {
-                int index = machine->instructions[ip].value.as_int + 1;
-                if(index >= machine->str_stack_size){
-                    fprintf(stderr, "ERROR: String Stack Underflow\n");
+                int index = machine->instructions[ip].value.as_int;
+                if(index >= machine->str_stack_size || index < 0){
+                    fprintf(stderr, "ERROR: String Stack Out Of Bounds\n");
                     exit(1);
                 }
                 push_ptr(machine, (void*)machine->str_stack[index]);
@@ -381,14 +391,16 @@ void run_instructions(Machine *machine){
                 break;
             case INST_DUP:
                 a = pop(machine);
-                push(machine, a);
-                push(machine, a);
+                push(machine, a.word, a.type);
+                push(machine, a.word, a.type);
                 break;
-            case INST_DUP_STR:
-                str1 = pop_str(machine);
+            case INST_DUP_STR: {
+                char *str1 = pop_str(machine);
                 push_str(machine, str1);
                 push_str(machine, str1);
+                free(str1);
                 break;
+            }
             case INST_INDUP:
                 index_dup(machine, machine->instructions[ip].value.as_int);
                 break;
@@ -398,16 +410,18 @@ void run_instructions(Machine *machine){
             case INST_SWAP:
                 a = pop(machine);
                 b = pop(machine);
-                push(machine, a);
-                push(machine, b);
+                push(machine, a.word, a.type);
+                push(machine, b.word, b.type);
                 break;
-            case INST_SWAP_STR:
-                str1 = pop_str(machine);
-                str2 = pop_str(machine);
-                //printf("str_stack_size: %d\n%s%s\n", machine->str_stack_size, str1, str2);
+            case INST_SWAP_STR: {
+                char *str1 = pop_str(machine);
+                char *str2 = pop_str(machine);
                 push_str(machine, str1);
                 push_str(machine, str2);
+                free(str1);
+                free(str2);
                 break;
+            }
             case INST_INSWAP:
                 index_swap(machine, machine->instructions[ip].value.as_int);
                 break;
@@ -417,121 +431,121 @@ void run_instructions(Machine *machine){
             case INST_ADD:
                 b = pop(machine);
                 a = pop(machine);
-                push(machine, (Word)(a.as_int + b.as_int));
+                push(machine, (Word)(a.word.as_int + b.word.as_int), INT_TYPE);
                 break;
             case INST_SUB:
                 b = pop(machine);
                 a = pop(machine);
-                push(machine, (Word)(a.as_int - b.as_int));
+                push(machine, (Word)(a.word.as_int - b.word.as_int), INT_TYPE);
                 break;
             case INST_MUL:
                 b = pop(machine);
                 a = pop(machine);
-                push(machine, (Word)(a.as_int * b.as_int));
+                push(machine, (Word)(a.word.as_int * b.word.as_int), INT_TYPE);
                 break;
             case INST_DIV:
                 b = pop(machine);
                 a = pop(machine);
-                if(b.as_int == 0){
+                if(b.word.as_int == 0){
                     fprintf(stderr, "ERROR: Cannot divide by 0\n");
                     exit(1);
                 }
-                push(machine, (Word)(a.as_int / b.as_int));
+                push(machine, (Word)(a.word.as_int / b.word.as_int), INT_TYPE);
                 break;
             case INST_MOD:
                 b = pop(machine);
                 a = pop(machine);
-                push(machine, (Word)(a.as_int % b.as_int));
+                push(machine, (Word)(a.word.as_int % b.word.as_int), INT_TYPE);
                 break;
             case INST_ADD_F:
                 b = pop(machine);
                 a = pop(machine);
-                push(machine, (Word)(a.as_float + b.as_float));
+                push(machine, (Word)(a.word.as_float + b.word.as_float), FLOAT_TYPE);
                 break;
             case INST_SUB_F:
                 b = pop(machine);
                 a = pop(machine);
-                push(machine, (Word)(a.as_float - b.as_float));
+                push(machine, (Word)(a.word.as_float - b.word.as_float), FLOAT_TYPE);
                 break;
             case INST_MUL_F:
                 b = pop(machine);
                 a = pop(machine);
-                push(machine, (Word)(a.as_float * b.as_float));
+                push(machine, (Word)(a.word.as_float * b.word.as_float), FLOAT_TYPE);
                 break;
             case INST_DIV_F:
                 b = pop(machine);
                 a = pop(machine);
-                push(machine, (Word)(a.as_float / b.as_float));
+                push(machine, (Word)(a.word.as_float / b.word.as_float), FLOAT_TYPE);
                 break;
             case INST_MOD_F:
                 b = pop(machine);
                 a = pop(machine);
-                push(machine, (Word)(fmod(a.as_float, b.as_float)));
+                push(machine, (Word)(fmod(a.word.as_float, b.word.as_float)), FLOAT_TYPE);
                 break;
             case INST_CMPE:
                 a = pop(machine);
                 b = pop(machine);
-                push(machine, b);
-                push(machine, a);
-                if(a.as_int == b.as_int){
-                    push(machine, yes);
+                push(machine, b.word, b.type);
+                push(machine, a.word, a.type);
+                if(a.word.as_int == b.word.as_int){
+                    push(machine, yes, INT_TYPE);
                 } else {
-                    push(machine, no);
+                    push(machine, no, INT_TYPE);
                 }
                 break;
             case INST_CMPNE:
                 a = pop(machine);
                 b = pop(machine);
-                push(machine, b);
-                push(machine, a);
-                if(a.as_int != b.as_int){
-                    push(machine, yes);
+                push(machine, b.word, b.type);
+                push(machine, a.word, a.type);
+                if(a.word.as_int != b.word.as_int){
+                    push(machine, yes, INT_TYPE);
                 } else {
-                    push(machine, no);
+                    push(machine, no, INT_TYPE);
                 }
                 break;
             case INST_CMPG:
                 a = pop(machine);
                 b = pop(machine);
-                push(machine, b);
-                push(machine, a);
-                if(a.as_int > b.as_int){
-                    push(machine, yes);
+                push(machine, b.word, b.type);
+                push(machine, a.word, a.type);
+                if(a.word.as_int > b.word.as_int){
+                    push(machine, yes, INT_TYPE);
                 } else {
-                    push(machine, no);
+                    push(machine, no, INT_TYPE);
                 }
                 break;
             case INST_CMPL:
                 a = pop(machine);
                 b = pop(machine);
-                push(machine, b);
-                push(machine, a);
-                if(a.as_int < b.as_int){
-                    push(machine, yes);
+                push(machine, b.word, b.type);
+                push(machine, a.word, a.type);
+                if(a.word.as_int < b.word.as_int){
+                    push(machine, yes, INT_TYPE);
                 } else {
-                    push(machine, no);
+                    push(machine, no, INT_TYPE);
                 }
                 break;
             case INST_CMPGE:
                 a = pop(machine);
                 b = pop(machine);
-                push(machine, b);
-                push(machine, a);
-                if(a.as_int >= b.as_int){
-                    push(machine, yes);
+                push(machine, b.word, b.type);
+                push(machine, a.word, a.type);
+                if(a.word.as_int >= b.word.as_int){
+                    push(machine, yes, INT_TYPE);
                 } else {
-                    push(machine, no);
+                    push(machine, no, INT_TYPE);
                 }
                 break;
             case INST_CMPLE:
                 a = pop(machine);
                 b = pop(machine);
-                push(machine, b);
-                push(machine, a);
-                if(a.as_int <= b.as_int){
-                    push(machine, yes);
+                push(machine, b.word, b.type);
+                push(machine, a.word, b.type);
+                if(a.word.as_int <= b.word.as_int){
+                    push(machine, yes, INT_TYPE);
                 } else {
-                    push(machine, no);
+                    push(machine, no, INT_TYPE);
                 }
                 break;
             case INST_CALL:
@@ -549,7 +563,7 @@ void run_instructions(Machine *machine){
                 }
                 break;
             case INST_ZJMP:
-                if(pop(machine).as_int == 0){
+                if(pop(machine).word.as_int == 0){
                     ip = machine->instructions[ip].value.as_int - 1;
                     if(ip + 1 >= machine->program_size){
                         fprintf(stderr, "ERROR: Cannot jump out of bounds\n");
@@ -560,7 +574,7 @@ void run_instructions(Machine *machine){
                 }
                 break;
             case INST_NZJMP:
-                if(pop(machine).as_int != 0){
+                if(pop(machine).word.as_int != 0){
                     ip = machine->instructions[ip].value.as_int - 1;
                     if(ip + 1 >= machine->program_size){
                         fprintf(stderr, "ERROR: Cannot jump out of bounds\n");
@@ -572,7 +586,7 @@ void run_instructions(Machine *machine){
                 break;
             case INST_PRINT:
                 a = pop(machine);
-                printf("as float: %f, as int: %" PRId64 ", as char: %c, as pointer: %p\n", a.as_float, a.as_int, a.as_char, a.as_pointer);
+                printf("as float: %f, as int: %" PRId64 ", as char: %c, as pointer: %p\n", a.word.as_float, a.word.as_int, a.word.as_char, a.word.as_pointer);
                 break;
             case INST_NATIVE: {
                 void (*native_ptrs[100])(Machine*) = {native_open, native_write, native_read, 
