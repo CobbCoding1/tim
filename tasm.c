@@ -40,13 +40,16 @@ Inst *generate_instructions(ParseList *head, int *program_size, char str_stack[M
         assert(head->value.type < (TokenType)INST_COUNT);
         Inst *instruction = malloc(sizeof(Inst));
         instruction->type = insts[head->value.type];
-        if(head->value.type == TYPE_CALL || head->value.type == TYPE_NATIVE || head->value.type == TYPE_GET_STR || 
-                                head->value.type == TYPE_INDUP || head->value.type == TYPE_INDUP_STR || 
-                                head->value.type == TYPE_INSWAP || head->value.type == TYPE_INSWAP_STR || 
-                                head->value.type == TYPE_JMP || head->value.type == TYPE_ZJMP || 
-                                 head->value.type == TYPE_NZJMP){
+        if(
+                head->value.type == TYPE_CALL || head->value.type == TYPE_NATIVE || head->value.type == TYPE_GET_STR || 
+                head->value.type == TYPE_INDUP || head->value.type == TYPE_INDUP_STR || 
+                head->value.type == TYPE_INSWAP || head->value.type == TYPE_INSWAP_STR || 
+                head->value.type == TYPE_JMP || head->value.type == TYPE_ZJMP || 
+                head->value.type == TYPE_NZJMP
+        ){
             head = head->next;
             instruction->value.as_int = atoi(head->value.text);
+            instruction->data_type = INT_TYPE;
         }
 
 
