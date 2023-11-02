@@ -1,6 +1,7 @@
 @imp "stddefs.tash"
 @def N 30
 push_str "\n"
+push_str "# of iterations "
 entrypoint main
 fib:
     push 2
@@ -26,11 +27,11 @@ fib:
     ret
 
 main:
-    push N 
+    push 0 
     loop:
-        push -1 
+        push N 
         cmpge
-        nzjmp end
+        zjmp end
         pop
         dup
         call fib
@@ -41,8 +42,18 @@ main:
         push STDOUT
         write
         push 1
-        sub
+        add 
         jmp loop
     end:
+        get_str 1
+        push STDOUT
+        write
+        push N
+        int_to_str
+        push STDOUT
+        write
+        get_str 0
+        push STDOUT
+        write
         push 11
         exit
