@@ -30,6 +30,7 @@ typedef enum {
     TYPE_SWAP_STR,
     TYPE_INSWAP,
     TYPE_INSWAP_STR,
+    TYPE_INDEX,
     TYPE_ADD,
     TYPE_SUB,
     TYPE_MUL,

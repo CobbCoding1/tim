@@ -476,6 +476,15 @@ void run_instructions(Machine *machine){
             case INST_INSWAP_STR:
                 index_swap_str(machine, machine->instructions[ip].value.as_int);
                 break;
+            case INST_INDEX:
+                int64_t index = pop(machine).word.as_int;
+                if(index < 0){
+                    PRINT_ERROR("error: index cannot be less than 0\n");
+                }
+                char *arr = (char*)pop(machine).word.as_pointer;
+                arr[index] = machine->instructions[ip].value.as_char;
+                push_ptr(machine, (Word*)arr);
+                break;
             case INST_ADD:
                 MATH_OP(as_int, +, INT_TYPE);
                 break;

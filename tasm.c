@@ -27,7 +27,7 @@ Inst *generate_instructions(ParseList *head, int *program_size, char str_stack[M
     Inst_Set insts[INST_COUNT + 1] = {    
         INST_NOP, INST_PUSH, INST_PUSH_PTR, INST_PUSH_STR, INST_GET_STR, INST_MOV_STR, INST_REF, INST_DEREF, 
         INST_POP, INST_POP_STR, INST_DUP, INST_DUP_STR, INST_INDUP, INST_INDUP_STR, 
-        INST_SWAP, INST_SWAP_STR, INST_INSWAP, INST_INSWAP_STR,
+        INST_SWAP, INST_SWAP_STR, INST_INSWAP, INST_INSWAP_STR, INST_INDEX,
         INST_ADD, INST_SUB, INST_MUL, INST_DIV, INST_MOD, INST_ADD_F, INST_SUB_F, 
         INST_MUL_F, INST_DIV_F, INST_MOD_F, INST_CMPE, 
         INST_CMPNE, INST_CMPG, INST_CMPL, INST_CMPGE, INST_CMPLE, INST_ITOF, INST_FTOI, INST_CALL, INST_RET, 
@@ -53,7 +53,7 @@ Inst *generate_instructions(ParseList *head, int *program_size, char str_stack[M
         }
 
 
-        if(head->value.type == TYPE_PUSH){
+        if(head->value.type == TYPE_PUSH || head->value.type == TYPE_INDEX){
             head = head->next;
             if(head->value.type == TYPE_INT){
                 instruction->value.as_int = atoi(head->value.text);

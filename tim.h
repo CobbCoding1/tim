@@ -34,6 +34,7 @@ typedef enum {
     INST_SWAP_STR,
     INST_INSWAP,
     INST_INSWAP_STR,
+    INST_INDEX,
     INST_ADD,
     INST_SUB,
     INST_MUL,
