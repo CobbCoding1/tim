@@ -98,6 +98,16 @@ typedef struct {
         }                                       \
     } while(0)
 
+#define MATH_OP(as_type, op, data_type) \
+    do{ \
+        b = pop(machine);   \
+        a = pop(machine);   \
+        push(machine, (Word)(a.word.as_type op b.word.as_type), data_type); \
+    } while(0)
+
+#define PRINT_ERROR(message) fprintf(stderr, message); exit(1)
+
+
 #define MAX_STRING_SIZE 256
 
 typedef struct {

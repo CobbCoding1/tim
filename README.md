@@ -2,8 +2,15 @@
 
 Implementation of a virtual machine in C.
 
-VM currently has 29 instructions as well as a couple native functions. List can be found in tim.h.
+VM currently has 45 instructions as well as a some native functions. List can be found in tim.h.
 There is also a working assembly which contains support for all instructions in the VM. 
+
+Quick Start:
+```bash
+./build.sh
+./tasm <assembly_file.tasm>
+./tire <bytecode_file.tim>
+```
 
 Example of hello world in assembly:
 ```asm

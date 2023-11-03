@@ -1,22 +1,4 @@
 #include "tim.h"
-#define CMP_AS_TYPE(type, op) \
-    do{         \
-        if(a.word.type op b.word.type){     \
-            push(machine, yes, INT_TYPE);       \
-        } else {                                \
-            push(machine, no, INT_TYPE);        \
-        }                                       \
-    } while(0)
-
-
-#define MATH_OP(as_type, op, data_type) \
-    do{ \
-        b = pop(machine);   \
-        a = pop(machine);   \
-        push(machine, (Word)(a.word.as_type op b.word.as_type), data_type); \
-    } while(0)
-
-#define PRINT_ERROR(message) fprintf(stderr, message); exit(1)
 
 char *reverse_string(char *str){
     int length = strlen(str);
@@ -133,7 +115,7 @@ void native_scanf(Machine *machine){
 void native_time(Machine *machine){
     time_t seconds;
     seconds = time(NULL);
-    push(machine, (Word)seconds, INT_TYPE);
+    push(machine, (Word)(int64_t)seconds, INT_TYPE);
 }
 
 void native_exit(Machine *machine){
@@ -188,7 +170,6 @@ void native_itoa(Machine *machine){
 
 void native_assert(Machine *machine){
     int64_t code = pop(machine).word.as_int;
-    printf("%ld\n", code);
     assert(code);
 }
 
