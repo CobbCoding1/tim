@@ -8,6 +8,16 @@
         }                                       \
     } while(0)
 
+
+#define MATH_OP(as_type, op, data_type) \
+    do{ \
+        b = pop(machine);   \
+        a = pop(machine);   \
+        push(machine, (Word)(a.word.as_type op b.word.as_type), data_type); \
+    } while(0)
+
+#define PRINT_ERROR(message) fprintf(stderr, message); exit(1)
+
 char *reverse_string(char *str){
     int length = strlen(str);
     int start = 0;
@@ -180,8 +190,7 @@ void native_assert(Machine *machine){
 
 void push(Machine *machine, Word value, DataType type){
     if(machine->stack_size >= MAX_STACK_SIZE){
-        fprintf(stderr, "ERROR: Stack Overflow\n");
-        exit(1);
+        PRINT_ERROR("error: stack overflow\n");
     }
     Data data;
     data.word = value;
@@ -191,24 +200,21 @@ void push(Machine *machine, Word value, DataType type){
 
 void push_ptr(Machine *machine, Word *value){
     if(machine->stack_size >= MAX_STACK_SIZE){
-        fprintf(stderr, "ERROR: Stack Overflow\n");
-        exit(1);
+        PRINT_ERROR("error: stack overflow\n");
     }
     machine->stack[machine->stack_size++].word.as_pointer = value;
 }
 
 void push_str(Machine *machine, char *value){
     if(machine->str_stack_size >= MAX_STACK_SIZE){
-        fprintf(stderr, "ERROR: String Stack Overflow\n");
-        exit(1);
+        PRINT_ERROR("error: string stack overflow\n");
     }
     strncpy(machine->str_stack[machine->str_stack_size++], value, MAX_STRING_SIZE - 1);
 }
 
 Data pop(Machine *machine){
     if(machine->stack_size <= 0){
-        fprintf(stderr, "ErROR: Stack Underflow\n");
-        exit(1);
+        PRINT_ERROR("error: stack underflow\n");
     }
     machine->stack_size--;
     return machine->stack[machine->stack_size];
@@ -218,8 +224,7 @@ char *pop_str(Machine *machine){
     int length = strlen(machine->str_stack[--machine->str_stack_size]);
     char *result = malloc(sizeof(char) * length); 
     if(machine->str_stack_size < 0){
-        fprintf(stderr, "ERROR: String Stack Underflow\n");
-        exit(1);
+        PRINT_ERROR("error: string stack underflow\n");
     }
     for(int i = 0; i < length; i++){
         result[i] = machine->str_stack[machine->str_stack_size][i];
@@ -229,8 +234,7 @@ char *pop_str(Machine *machine){
 
 void index_swap(Machine *machine, int64_t index){
     if(index > machine->stack_size || index < 0){
-        fprintf(stderr, "ERROR: Index out of range\n");
-        exit(1);
+        PRINT_ERROR("error: index out of range\n");
     }
     Data temp_value = machine->stack[index];
     machine->stack[index] = pop(machine); 
@@ -239,8 +243,7 @@ void index_swap(Machine *machine, int64_t index){
 
 void index_swap_str(Machine *machine, int64_t index){
     if(index > machine->str_stack_size || index < 0){
-        fprintf(stderr, "ERROR: Index out of range\n");
-        exit(1);
+        PRINT_ERROR("error: index out of range\n");
     }
     int length = strlen(machine->str_stack[index]);
     char *result = malloc(sizeof(char) * length); 
@@ -254,16 +257,14 @@ void index_swap_str(Machine *machine, int64_t index){
 
 void index_dup(Machine *machine, int64_t index){
     if(index > machine->stack_size || index < 0){
-        fprintf(stderr, "ERROR: Index out of range\n");
-        exit(1);
+        PRINT_ERROR("error: index out of range\n");
     }
     push(machine, machine->stack[index].word, machine->stack[index].type);
 }
 
 void index_dup_str(Machine *machine, int64_t index){
     if(index > machine->str_stack_size || index < 0){
-        fprintf(stderr, "ERROR: Index out of range\n");
-        exit(1);
+        PRINT_ERROR("error: index out of range\n");
     }
     push_str(machine, machine->str_stack[index]);
 }
@@ -274,8 +275,7 @@ char *get_str_from_stack(Machine *machine){
     char *current = (char*)&(machine->stack[machine->stack_size].word.as_pointer);
     while(*current != '\0'){
         if(buffer_index > machine->stack_size){
-            fprintf(stderr, "ERROR: Stack Underflow\n");
-            exit(1);
+            PRINT_ERROR("error: stack underflow\n");
         }
         buffer[buffer_index] = *current;   
         current = current - sizeof(Word);
@@ -320,8 +320,7 @@ int cmp_types(Machine *machine, Data a, Data b){
 void write_program_to_file(Machine *machine, char *file_path){
     FILE *file = fopen(file_path, "wb");
     if(file == NULL){
-        fprintf(stderr, "ERROR: Could not write to file %s\n", file_path);
-        exit(1);
+        PRINT_ERROR("error: could not write to file\n");
     }
     for(int i = 0; i < machine->str_stack_size; i++){
         fwrite(machine->str_stack[i], 1, strlen(machine->str_stack[i]) + 1, file);
@@ -361,8 +360,7 @@ Machine *read_program_from_file(Machine *machine, char *file_path){
 
 
     if(file == NULL){
-        fprintf(stderr, "ERROR: Could not read from file %s\n", file_path);
-        exit(1);
+        PRINT_ERROR("error: could not read from file\n");
     }
     Inst *instructions = malloc(sizeof(Inst) * MAX_STACK_SIZE);
 
@@ -405,7 +403,7 @@ void run_instructions(Machine *machine){
             case INST_GET_STR: {
                 int index = machine->instructions[ip].value.as_int;
                 if(index >= machine->str_stack_size || index < 0){
-                    fprintf(stderr, "ERROR: String Stack Out Of Bounds\n");
+                    PRINT_ERROR("error: string stack out of bounds\n");
                     exit(1);
                 }
                 push_ptr(machine, (void*)machine->str_stack[index]);
@@ -468,55 +466,45 @@ void run_instructions(Machine *machine){
                 index_swap_str(machine, machine->instructions[ip].value.as_int);
                 break;
             case INST_ADD:
-                b = pop(machine);
-                a = pop(machine);
-                push(machine, (Word)(a.word.as_int + b.word.as_int), INT_TYPE);
+                MATH_OP(as_int, +, INT_TYPE);
                 break;
             case INST_SUB:
-                b = pop(machine);
-                a = pop(machine);
-                push(machine, (Word)(a.word.as_int - b.word.as_int), INT_TYPE);
+                MATH_OP(as_int, -, INT_TYPE);
                 break;
             case INST_MUL:
-                b = pop(machine);
-                a = pop(machine);
-                push(machine, (Word)(a.word.as_int * b.word.as_int), INT_TYPE);
+                MATH_OP(as_int, *, INT_TYPE);
                 break;
             case INST_DIV:
-                b = pop(machine);
-                a = pop(machine);
-                if(b.word.as_int == 0){
-                    fprintf(stderr, "ERROR: Cannot divide by 0\n");
-                    exit(1);
+                if(machine->stack[machine->stack_size - 1].word.as_int == 0){
+                    PRINT_ERROR("error: cannot divide by 0\n");
                 }
-                push(machine, (Word)(a.word.as_int / b.word.as_int), INT_TYPE);
+                MATH_OP(as_int, /, INT_TYPE);
                 break;
             case INST_MOD:
-                b = pop(machine);
-                a = pop(machine);
-                push(machine, (Word)(a.word.as_int % b.word.as_int), INT_TYPE);
+                if(machine->stack[machine->stack_size - 1].word.as_int == 0){
+                    PRINT_ERROR("error: cannot divide by 0\n");
+                }
+                MATH_OP(as_int, %, INT_TYPE);
                 break;
             case INST_ADD_F:
-                b = pop(machine);
-                a = pop(machine);
-                push(machine, (Word)(a.word.as_float + b.word.as_float), FLOAT_TYPE);
+                MATH_OP(as_float, +, FLOAT_TYPE);
                 break;
             case INST_SUB_F:
-                b = pop(machine);
-                a = pop(machine);
-                push(machine, (Word)(a.word.as_float - b.word.as_float), FLOAT_TYPE);
+                MATH_OP(as_float, -, FLOAT_TYPE);
                 break;
             case INST_MUL_F:
-                b = pop(machine);
-                a = pop(machine);
-                push(machine, (Word)(a.word.as_float * b.word.as_float), FLOAT_TYPE);
+                MATH_OP(as_float, *, FLOAT_TYPE);
                 break;
             case INST_DIV_F:
-                b = pop(machine);
-                a = pop(machine);
-                push(machine, (Word)(a.word.as_float / b.word.as_float), FLOAT_TYPE);
+                if(machine->stack[machine->stack_size - 1].word.as_float == 0.0){
+                    PRINT_ERROR("error: cannot divide by 0\n");
+                }
+                MATH_OP(as_float, /, FLOAT_TYPE);
                 break;
             case INST_MOD_F:
+                if(machine->stack[machine->stack_size - 1].word.as_float == 0.0){
+                    PRINT_ERROR("error: cannot divide by 0\n");
+                }
                 b = pop(machine);
                 a = pop(machine);
                 push(machine, (Word)(fmod(a.word.as_float, b.word.as_float)), FLOAT_TYPE);
@@ -661,16 +649,14 @@ void run_instructions(Machine *machine){
             case INST_JMP:
                 ip = machine->instructions[ip].value.as_int - 1;
                 if(ip + 1 >= machine->program_size){
-                    fprintf(stderr, "ERROR: Cannot jump out of bounds\n");
-                    exit(1);
+                    PRINT_ERROR("error: cannot jmp out of bounds\n");
                 }
                 break;
             case INST_ZJMP:
                 if(pop(machine).word.as_int == 0){
                     ip = machine->instructions[ip].value.as_int - 1;
                     if(ip + 1 >= machine->program_size){
-                        fprintf(stderr, "ERROR: Cannot jump out of bounds\n");
-                        exit(1);
+                        PRINT_ERROR("error: cannot jmp out of bounds\n");
                     }
                 } else {
                     break;
@@ -680,8 +666,7 @@ void run_instructions(Machine *machine){
                 if(pop(machine).word.as_int != 0){
                     ip = machine->instructions[ip].value.as_int - 1;
                     if(ip + 1 >= machine->program_size){
-                        fprintf(stderr, "ERROR: Cannot jump out of bounds\n");
-                        exit(1);
+                        PRINT_ERROR("error: cannot jmp out of bounds\n");
                     }
                 } else {
                     break;

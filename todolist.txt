@@ -1,7 +1,1 @@
-[x] add ret keyword as well as call keyword and functionality. implement some sort of return stack, which stores the ip to next jmp to on the top of the stack. Then, the call will move to the subroutine, and ret will return to the ip on the top of the stack.
-
-[x] add access to string stack, specifically str_pop, str_dup (and indup), and str_swap (and inswap)
-
-[] add types in the vm and assembler
-
 [] test turing completeness
