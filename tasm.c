@@ -25,7 +25,7 @@ size_t length_of_list(ParseList *head){
 Inst *generate_instructions(ParseList *head, int *program_size, char str_stack[MAX_STACK_SIZE][MAX_STRING_SIZE]){
     Inst *program = malloc(sizeof(Inst) * length_of_list(head));
     Inst_Set insts[INST_COUNT + 1] = {    
-        INST_NOP, INST_PUSH, INST_PUSH_PTR, INST_PUSH_STR, INST_GET_STR, INST_REF, INST_DEREF, 
+        INST_NOP, INST_PUSH, INST_PUSH_PTR, INST_PUSH_STR, INST_GET_STR, INST_MOV_STR, INST_REF, INST_DEREF, 
         INST_POP, INST_POP_STR, INST_DUP, INST_DUP_STR, INST_INDUP, INST_INDUP_STR, 
         INST_SWAP, INST_SWAP_STR, INST_INSWAP, INST_INSWAP_STR,
         INST_ADD, INST_SUB, INST_MUL, INST_DIV, INST_MOD, INST_ADD_F, INST_SUB_F, 
@@ -63,7 +63,7 @@ Inst *generate_instructions(ParseList *head, int *program_size, char str_stack[M
                 instruction->data_type = FLOAT_TYPE;
             } else if(head->value.type == TYPE_CHAR){
                 instruction->value.as_char = head->value.text[0];
-                instruction->data_type = INT_TYPE;
+                instruction->data_type = CHAR_TYPE;
             } else if(head->value.type == TYPE_NULL){
                 instruction->type = INST_PUSH_PTR;
                 instruction->value.as_pointer = NULL;

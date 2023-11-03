@@ -21,6 +21,7 @@ typedef enum {
     INST_PUSH_PTR,
     INST_PUSH_STR,
     INST_GET_STR,
+    INST_MOV_STR,
     INST_REF,
     INST_DEREF,
     INST_POP,

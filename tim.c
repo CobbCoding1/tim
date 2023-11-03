@@ -409,6 +409,17 @@ void run_instructions(Machine *machine){
                 push_ptr(machine, (void*)machine->str_stack[index]);
                 break;
             }
+            case INST_MOV_STR:
+                a = pop(machine);
+                if(a.type == CHAR_TYPE){
+                    char *str = malloc(sizeof(char) * 2);
+                    str[0] = a.word.as_char;
+                    str[1] = '\0';
+                    push_str(machine, str);
+                } else {
+                    push_str(machine, (char*)a.word.as_pointer);
+                }
+                break;
             case INST_REF:
                 a = machine->stack[machine->stack_size - 1];
                 a.type = PTR_TYPE;
