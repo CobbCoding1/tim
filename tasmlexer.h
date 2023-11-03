@@ -43,6 +43,8 @@ typedef enum {
     TYPE_CMPL,
     TYPE_CMPGE,
     TYPE_CMPLE,
+    TYPE_ITOF,
+    TYPE_FTOI,
     TYPE_CALL,
     TYPE_RET,
     TYPE_JMP,

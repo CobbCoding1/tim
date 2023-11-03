@@ -1,4 +1,12 @@
 #include "tim.h"
+#define CMP_AS_TYPE(type, op) \
+    do{         \
+        if(a.word.type op b.word.type){     \
+            push(machine, yes, INT_TYPE);       \
+        } else {                                \
+            push(machine, no, INT_TYPE);        \
+        }                                       \
+    } while(0)
 
 char *reverse_string(char *str){
     int length = strlen(str);
@@ -289,6 +297,26 @@ void print_stack(Machine *machine){
     printf("------ END OF STACK\n");
 }
 
+int cmp_types(Machine *machine, Data a, Data b){
+    push(machine, b.word, b.type);
+    push(machine, a.word, a.type);
+    switch(a.type){
+        case INT_TYPE:
+            return 0;
+            break;
+        case FLOAT_TYPE:
+            return 1;
+            break;
+        case CHAR_TYPE:
+            return 2;
+            break;
+        case PTR_TYPE:
+            return 3;
+            break;
+    }
+    return -1;
+}
+
 void write_program_to_file(Machine *machine, char *file_path){
     FILE *file = fopen(file_path, "wb");
     if(file == NULL){
@@ -482,71 +510,135 @@ void run_instructions(Machine *machine){
                 a = pop(machine);
                 push(machine, (Word)(fmod(a.word.as_float, b.word.as_float)), FLOAT_TYPE);
                 break;
-            case INST_CMPE:
+            case INST_CMPE: {
                 a = pop(machine);
                 b = pop(machine);
-                push(machine, b.word, b.type);
-                push(machine, a.word, a.type);
-                if(a.word.as_int == b.word.as_int){
-                    push(machine, yes, INT_TYPE);
-                } else {
-                    push(machine, no, INT_TYPE);
+                int result = cmp_types(machine, a, b);
+                switch(result){
+                    case 0:
+                        CMP_AS_TYPE(as_int, ==);
+                        break;
+                    case 1:
+                        CMP_AS_TYPE(as_float, ==);
+                        break;
+                    case 2:
+                        CMP_AS_TYPE(as_char, ==);
+                        break;
+                    case 3:
+                        CMP_AS_TYPE(as_pointer, ==);
+                        break;
                 }
                 break;
-            case INST_CMPNE:
-                a = pop(machine);
-                b = pop(machine);
-                push(machine, b.word, b.type);
-                push(machine, a.word, a.type);
-                if(a.word.as_int != b.word.as_int){
-                    push(machine, yes, INT_TYPE);
-                } else {
-                    push(machine, no, INT_TYPE);
+            }
+            case INST_CMPNE: {
+                Data a = pop(machine);
+                Data b = pop(machine);
+                int result = cmp_types(machine, a, b);
+                switch(result){
+                    case 0:
+                        CMP_AS_TYPE(as_int, !=);
+                        break;
+                    case 1:
+                        CMP_AS_TYPE(as_float, !=);
+                        break;
+                    case 2:
+                        CMP_AS_TYPE(as_char, !=);
+                        break;
+                    case 3:
+                        CMP_AS_TYPE(as_pointer, !=);
+                        break;
                 }
                 break;
-            case INST_CMPG:
-                a = pop(machine);
-                b = pop(machine);
-                push(machine, b.word, b.type);
-                push(machine, a.word, a.type);
-                if(a.word.as_int > b.word.as_int){
-                    push(machine, yes, INT_TYPE);
-                } else {
-                    push(machine, no, INT_TYPE);
+            }
+            case INST_CMPG: {
+                Data a = pop(machine);
+                Data b = pop(machine);
+                int result = cmp_types(machine, a, b);
+                switch(result){
+                    case 0:
+                        CMP_AS_TYPE(as_int, >);
+                        break;
+                    case 1:
+                        CMP_AS_TYPE(as_float, >);
+                        break;
+                    case 2:
+                        CMP_AS_TYPE(as_char, >);
+                        break;
+                    case 3:
+                        CMP_AS_TYPE(as_pointer, >);
+                        break;
                 }
                 break;
-            case INST_CMPL:
-                a = pop(machine);
-                b = pop(machine);
-                push(machine, b.word, b.type);
-                push(machine, a.word, a.type);
-                if(a.word.as_int < b.word.as_int){
-                    push(machine, yes, INT_TYPE);
-                } else {
-                    push(machine, no, INT_TYPE);
+            }
+            case INST_CMPL: {
+                Data a = pop(machine);
+                Data b = pop(machine);
+                int result = cmp_types(machine, a, b);
+                switch(result){
+                    case 0:
+                        CMP_AS_TYPE(as_int, <);
+                        break;
+                    case 1:
+                        CMP_AS_TYPE(as_float, <);
+                        break;
+                    case 2:
+                        CMP_AS_TYPE(as_char, <);
+                        break;
+                    case 3:
+                        CMP_AS_TYPE(as_pointer, <);
+                        break;
                 }
                 break;
-            case INST_CMPGE:
-                a = pop(machine);
-                b = pop(machine);
-                push(machine, b.word, b.type);
-                push(machine, a.word, a.type);
-                if(a.word.as_int >= b.word.as_int){
-                    push(machine, yes, INT_TYPE);
-                } else {
-                    push(machine, no, INT_TYPE);
+            }
+            case INST_CMPGE: {
+                Data a = pop(machine);
+                Data b = pop(machine);
+                int result = cmp_types(machine, a, b);
+                switch(result){
+                    case 0:
+                        CMP_AS_TYPE(as_int, >=);
+                        break;
+                    case 1:
+                        CMP_AS_TYPE(as_float, >=);
+                        break;
+                    case 2:
+                        CMP_AS_TYPE(as_char, >=);
+                        break;
+                    case 3:
+                        CMP_AS_TYPE(as_pointer, >=);
+                        break;
                 }
                 break;
-            case INST_CMPLE:
-                a = pop(machine);
-                b = pop(machine);
-                push(machine, b.word, b.type);
-                push(machine, a.word, b.type);
-                if(a.word.as_int <= b.word.as_int){
-                    push(machine, yes, INT_TYPE);
-                } else {
-                    push(machine, no, INT_TYPE);
+            }
+            case INST_CMPLE: {
+                Data a = pop(machine);
+                Data b = pop(machine);
+                int result = cmp_types(machine, a, b);
+                switch(result){
+                    case 0:
+                        CMP_AS_TYPE(as_int, <=);
+                        break;
+                    case 1:
+                        CMP_AS_TYPE(as_float, <=);
+                        break;
+                    case 2:
+                        CMP_AS_TYPE(as_char, <=);
+                        break;
+                    case 3:
+                        CMP_AS_TYPE(as_pointer, <=);
+                        break;
                 }
+                break;
+            }
+            case INST_ITOF:
+                a = pop(machine);
+                a.word.as_float = (double)a.word.as_int;
+                push(machine, a.word, FLOAT_TYPE);
+                break;
+            case INST_FTOI:
+                a = pop(machine);
+                a.word.as_int = (int64_t)a.word.as_float;
+                push(machine, a.word, INT_TYPE);
                 break;
             case INST_CALL:
                 machine->return_stack[machine->return_stack_size++] = ip;

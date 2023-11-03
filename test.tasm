@@ -1,7 +1,0 @@
-push_str "test1\n"
-push_str "test2\n"
-push_str "test3\n"
-inswap_str 0
-get_str 2
-push 1
-native 1

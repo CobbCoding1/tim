@@ -47,6 +47,8 @@ typedef enum {
     INST_CMPL,
     INST_CMPGE,
     INST_CMPLE,
+    INST_ITOF,
+    INST_FTOI,
     INST_CALL,
     INST_RET,
     INST_JMP,
