@@ -21,6 +21,8 @@ typedef enum {
     INST_PUSH_PTR,
     INST_PUSH_STR,
     INST_GET_STR,
+    INST_REF,
+    INST_DEREF,
     INST_POP,
     INST_POP_STR,
     INST_DUP,
@@ -84,6 +86,15 @@ typedef struct {
     Word value;
     DataType data_type;
 } Inst;
+
+#define CMP_AS_TYPE(type, op) \
+    do{         \
+        if(a.word.type op b.word.type){     \
+            push(machine, yes, INT_TYPE);       \
+        } else {                                \
+            push(machine, no, INT_TYPE);        \
+        }                                       \
+    } while(0)
 
 #define MAX_STRING_SIZE 256
 

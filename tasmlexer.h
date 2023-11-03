@@ -17,6 +17,8 @@ typedef enum {
     TYPE_PUSH_PTR,
     TYPE_PUSH_STR,
     TYPE_GET_STR,
+    TYPE_REF,
+    TYPE_DEREF,
     TYPE_POP,
     TYPE_POP_STR,
     TYPE_DUP,
