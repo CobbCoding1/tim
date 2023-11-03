@@ -124,6 +124,12 @@ void native_free(Machine *machine){
     free(ptr.as_pointer);
 }
 
+void native_scanf(Machine *machine){
+    char *buffer = pop(machine).word.as_pointer;
+    scanf("%s", buffer);
+    push_ptr(machine, (Word*)buffer);
+}
+
 void native_time(Machine *machine){
     time_t seconds;
     seconds = time(NULL);
@@ -699,7 +705,7 @@ void run_instructions(Machine *machine){
             case INST_NATIVE: {
                 void (*native_ptrs[100])(Machine*) = {native_open, native_write, native_read, 
                                                    native_close, native_malloc, native_realloc, 
-                                                   native_free};
+                                                   native_free, native_scanf};
                 native_ptrs[10] = native_time;
                 native_ptrs[60] = native_exit;
                 native_ptrs[90] = native_strcmp;
