@@ -1,0 +1,5 @@
+entrypoint main
+@imp "printint.tash"
+main:
+    push 69420 
+    call printint

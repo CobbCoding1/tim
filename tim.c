@@ -417,8 +417,9 @@ void run_instructions(Machine *machine){
                 push_ptr(machine, &a.word);
                 break;
             case INST_DEREF: {
-                Word *ptr = machine->stack[machine->stack_size - 1].word.as_pointer;
-                push(machine, *ptr, PTR_TYPE);
+                Data ptr = machine->stack[machine->stack_size - 1];
+                Word *ref = ptr.word.as_pointer;
+                push(machine, *ref, PTR_TYPE);
                 break;
             }
             case INST_POP:
