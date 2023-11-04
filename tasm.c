@@ -74,7 +74,7 @@ Inst *generate_instructions(ParseList *head, int *program_size, char str_stack[M
         }
 
 
-        if(head->value.type == TYPE_PUSH || head->value.type == TYPE_INDEX){
+        if(head->value.type == TYPE_PUSH){
             head = head->next;
             if(head->value.type == TYPE_INT){
                 instruction->value.as_int = atoi(head->value.text);

@@ -1,0 +1,75 @@
+@imp "stddefs.tash"
+_strrev:
+push_str "hello"
+dup_str
+get_str 0 ;str
+dup ;str str
+strlen
+push 1
+sub
+mov r1 top
+add
+mov r0 top
+pop
+push -1 
+
+loop:
+push 1
+add ; 0
+dup ; 0 0 str2
+get_str 1
+swap
+push r0 ; str2 0 0 "o"
+deref ; 0 str 0 'o'
+swap
+pop
+index ; 0
+
+push r0
+push 1
+sub
+
+mov r0 top
+pop
+pop
+
+push r1
+cmpl
+swap
+pop
+zjmp loop
+get_str 1
+push r1
+push 1
+add
+push '\0'
+index
+push r0
+push 1
+add
+mov r0 top
+jmp end 
+
+
+
+end:
+get_str 1
+push 1
+write
+
+push '\n'
+ref
+push 1
+write
+
+get_str 0
+push 1
+write
+
+push '\n'
+ref
+push 1
+write
+
+halt
+

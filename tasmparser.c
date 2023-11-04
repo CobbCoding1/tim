@@ -99,7 +99,7 @@ void generate_list(ParseList *root, Lexer *lexer, struct hashmap_s *hashmap){
             append(root, lexer->token_stack[index]);
         }
 
-        if(expect_token(lexer, index, 2, TYPE_PUSH, TYPE_INDEX)){
+        if(expect_token(lexer, index, 1, TYPE_PUSH)){
             index++;
             current_token = lexer->token_stack[index];
             if(lexer->token_stack[index].type != TYPE_INT && lexer->token_stack[index].type != TYPE_NULL &&
