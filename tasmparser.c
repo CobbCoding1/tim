@@ -57,11 +57,20 @@ int expect_token(Lexer *lexer, int index, int count, ...){
     return result;
 }
 
+int check_if_register(TokenType type){
+    if(type != TYPE_R0 && type != TYPE_R1 &&
+       type != TYPE_R2 && type != TYPE_R3){
+        return 0;
+    }
+    return 1;
+}
+
 void generate_list(ParseList *root, Lexer *lexer, struct hashmap_s *hashmap){
     int line_num = 0;
     for(int index = 0; index < lexer->stack_size; index++){
         assert(lexer->token_stack[index].type != TYPE_NONE && "Should not be none\n");
         Token current_token = lexer->token_stack[index];
+
         if(expect_token(lexer, index, 6, TYPE_INT, TYPE_FLOAT, TYPE_CHAR, TYPE_LABEL, TYPE_STRING, TYPE_NULL)){
             print_syntax_error(&current_token, "unexpected token", "non-type");
         }
@@ -94,7 +103,9 @@ void generate_list(ParseList *root, Lexer *lexer, struct hashmap_s *hashmap){
             index++;
             current_token = lexer->token_stack[index];
             if(lexer->token_stack[index].type != TYPE_INT && lexer->token_stack[index].type != TYPE_NULL &&
-               lexer->token_stack[index].type != TYPE_CHAR && lexer->token_stack[index].type != TYPE_FLOAT){
+               lexer->token_stack[index].type != TYPE_CHAR && lexer->token_stack[index].type != TYPE_FLOAT && 
+               !check_if_register(lexer->token_stack[index].type)
+              ){
                 print_syntax_error(&current_token, "syntax", "type of int or type of float or type of char");
             }
             append(root, lexer->token_stack[index]);
@@ -114,6 +125,22 @@ void generate_list(ParseList *root, Lexer *lexer, struct hashmap_s *hashmap){
             current_token = lexer->token_stack[index];
             if(!expect_token(lexer, index, 1, TYPE_INT)){
                 print_syntax_error(&current_token, "syntax", "type of int");
+            }
+            append(root, lexer->token_stack[index]);
+        }
+
+        if(expect_token(lexer, index, 1, TYPE_MOV)){
+            index++;
+            current_token = lexer->token_stack[index];
+            if(!check_if_register(current_token.type)){
+                print_syntax_error(&current_token, "syntax", "a register");
+            }
+            append(root, lexer->token_stack[index]);
+            index++;
+            current_token = lexer->token_stack[index];
+            if(lexer->token_stack[index].type != TYPE_INT && lexer->token_stack[index].type != TYPE_NULL &&
+               lexer->token_stack[index].type != TYPE_CHAR && lexer->token_stack[index].type != TYPE_FLOAT){
+                print_syntax_error(&current_token, "syntax", "type of int or type of float or type of char");
             }
             append(root, lexer->token_stack[index]);
         }

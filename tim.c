@@ -300,6 +300,9 @@ int cmp_types(Machine *machine, Data a, Data b){
         case PTR_TYPE:
             return 3;
             break;
+        case REGISTER_TYPE:
+            return -1;
+            break;
     }
     return -1;
 }
@@ -379,7 +382,13 @@ void run_instructions(Machine *machine){
                 continue;
                 break;
             case INST_PUSH:
-                push(machine, machine->instructions[ip].value, machine->instructions[ip].data_type);
+                if(machine->instructions[ip].data_type == REGISTER_TYPE){
+                    push(machine, machine->instructions[ip].value, machine->instructions[ip].data_type);
+                    push(machine, machine->registers[machine->instructions[ip].register_index].data, 
+                         machine->registers[machine->instructions[ip].register_index].data_type);
+                } else {
+                    push(machine, machine->instructions[ip].value, machine->instructions[ip].data_type);
+                }
                 break;
             case INST_PUSH_PTR:
                 push_ptr(machine, machine->instructions[ip].value.as_pointer);
@@ -396,6 +405,10 @@ void run_instructions(Machine *machine){
                 push_ptr(machine, (void*)machine->str_stack[index]);
                 break;
             }
+            case INST_MOV:
+                machine->registers[machine->instructions[ip].register_index].data = machine->instructions[ip].value;
+                machine->registers[machine->instructions[ip].register_index].data_type = machine->instructions[ip].data_type;
+                break;
             case INST_MOV_STR:
                 a = pop(machine);
                 if(a.type == CHAR_TYPE){

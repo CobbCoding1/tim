@@ -22,10 +22,31 @@ size_t length_of_list(ParseList *head){
     return result;
 }
 
+size_t get_register_index(ParseList *head){
+    switch(head->value.type){
+        case TYPE_R0:
+            return 0;
+            break;
+        case TYPE_R1:
+            return 1;
+            break;
+        case TYPE_R2:
+            return 2;
+            break;
+        case TYPE_R3:
+            return 3;
+            break;
+        default:
+            assert(false && "register should be one of those 4\n");
+            break;
+    }
+    return -1;
+}
+
 Inst *generate_instructions(ParseList *head, int *program_size, char str_stack[MAX_STACK_SIZE][MAX_STRING_SIZE]){
     Inst *program = malloc(sizeof(Inst) * length_of_list(head));
     Inst_Set insts[INST_COUNT + 1] = {    
-        INST_NOP, INST_PUSH, INST_PUSH_PTR, INST_PUSH_STR, INST_GET_STR, INST_MOV_STR, INST_REF, INST_DEREF, 
+        INST_NOP, INST_PUSH, INST_PUSH_PTR, INST_PUSH_STR, INST_GET_STR, INST_MOV, INST_MOV_STR, INST_REF, INST_DEREF, 
         INST_POP, INST_POP_STR, INST_DUP, INST_DUP_STR, INST_INDUP, INST_INDUP_STR, 
         INST_SWAP, INST_SWAP_STR, INST_INSWAP, INST_INSWAP_STR, INST_INDEX,
         INST_ADD, INST_SUB, INST_MUL, INST_DIV, INST_MOD, INST_ADD_F, INST_SUB_F, 
@@ -54,6 +75,31 @@ Inst *generate_instructions(ParseList *head, int *program_size, char str_stack[M
 
 
         if(head->value.type == TYPE_PUSH || head->value.type == TYPE_INDEX){
+            head = head->next;
+            if(head->value.type == TYPE_INT){
+                instruction->value.as_int = atoi(head->value.text);
+                instruction->data_type = INT_TYPE;
+            } else if(head->value.type == TYPE_FLOAT){
+                instruction->value.as_float = atof(head->value.text);
+                instruction->data_type = FLOAT_TYPE;
+            } else if(head->value.type == TYPE_CHAR){
+                instruction->value.as_char = head->value.text[0];
+                instruction->data_type = CHAR_TYPE;
+            } else if(head->value.type == TYPE_NULL){
+                instruction->type = INST_PUSH_PTR;
+                instruction->value.as_pointer = NULL;
+                instruction->data_type = PTR_TYPE;
+            } else if(check_if_register(head->value.type)){
+                instruction->register_index = get_register_index(head);             
+                instruction->data_type = REGISTER_TYPE;
+            } else {
+                assert(false && "you should not be here\n");
+            }
+        }
+
+        if(head->value.type == TYPE_MOV){
+            head = head->next;
+            instruction->register_index = get_register_index(head);             
             head = head->next;
             if(head->value.type == TYPE_INT){
                 instruction->value.as_int = atoi(head->value.text);

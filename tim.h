@@ -21,6 +21,7 @@ typedef enum {
     INST_PUSH_PTR,
     INST_PUSH_STR,
     INST_GET_STR,
+    INST_MOV,
     INST_MOV_STR,
     INST_REF,
     INST_DEREF,
@@ -69,6 +70,7 @@ typedef enum {
     FLOAT_TYPE,
     CHAR_TYPE,
     PTR_TYPE,
+    REGISTER_TYPE,
 } DataType;
 
 typedef union {
@@ -87,6 +89,7 @@ typedef struct {
     Inst_Set type;
     Word value;
     DataType data_type;
+    size_t register_index;
 } Inst;
 
 #define CMP_AS_TYPE(type, op) \
@@ -108,7 +111,13 @@ typedef struct {
 #define PRINT_ERROR(message) fprintf(stderr, message); exit(1)
 
 
+#define AMOUNT_OF_REGISTERS 4
 #define MAX_STRING_SIZE 256
+
+typedef struct {
+    Word data;
+    DataType data_type;
+} Register;
 
 typedef struct {
     Data stack[MAX_STACK_SIZE];
@@ -118,6 +127,9 @@ typedef struct {
     size_t return_stack[MAX_STACK_SIZE];
     int return_stack_size;
     size_t program_size;
+
+    Register registers[AMOUNT_OF_REGISTERS];
+
     Inst *instructions;
 } Machine;
 

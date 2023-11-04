@@ -1,3 +1,8 @@
-[] test turing completeness
+[x] Add registers
+[] Make registers usable
 
 [] fix the windows assembler of TASM
+
+[] test turing completeness
+
+
