@@ -110,7 +110,10 @@ Inst *generate_instructions(ParseList *head, int *program_size, char str_stack[M
             } else if(head->value.type == TYPE_CHAR){
                 instruction->value.as_char = head->value.text[0];
                 instruction->data_type = CHAR_TYPE;
+            } else if(head->value.type == TYPE_TOP){
+                instruction->data_type = TOP_TYPE;
             } else if(head->value.type == TYPE_NULL){
+                // todo: fix this
                 instruction->type = INST_PUSH_PTR;
                 instruction->value.as_pointer = NULL;
                 instruction->data_type = PTR_TYPE;

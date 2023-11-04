@@ -71,6 +71,7 @@ typedef enum {
     CHAR_TYPE,
     PTR_TYPE,
     REGISTER_TYPE,
+    TOP_TYPE,
 } DataType;
 
 typedef union {

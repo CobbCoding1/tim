@@ -303,6 +303,9 @@ int cmp_types(Machine *machine, Data a, Data b){
         case REGISTER_TYPE:
             return -1;
             break;
+        case TOP_TYPE:
+            return -1;
+            break;
     }
     return -1;
 }
@@ -383,7 +386,6 @@ void run_instructions(Machine *machine){
                 break;
             case INST_PUSH:
                 if(machine->instructions[ip].data_type == REGISTER_TYPE){
-                    push(machine, machine->instructions[ip].value, machine->instructions[ip].data_type);
                     push(machine, machine->registers[machine->instructions[ip].register_index].data, 
                          machine->registers[machine->instructions[ip].register_index].data_type);
                 } else {
@@ -406,8 +408,13 @@ void run_instructions(Machine *machine){
                 break;
             }
             case INST_MOV:
-                machine->registers[machine->instructions[ip].register_index].data = machine->instructions[ip].value;
-                machine->registers[machine->instructions[ip].register_index].data_type = machine->instructions[ip].data_type;
+                if(machine->instructions[ip].data_type == TOP_TYPE){
+                    machine->registers[machine->instructions[ip].register_index].data = machine->stack[machine->stack_size - 1].word;
+                    machine->registers[machine->instructions[ip].register_index].data_type = machine->stack[machine->stack_size - 1].type;
+                } else {
+                    machine->registers[machine->instructions[ip].register_index].data = machine->instructions[ip].value;
+                    machine->registers[machine->instructions[ip].register_index].data_type = machine->instructions[ip].data_type;
+                }
                 break;
             case INST_MOV_STR:
                 a = pop(machine);

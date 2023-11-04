@@ -70,6 +70,7 @@ typedef enum {
     TYPE_ENTRYPOINT,
     TYPE_LABEL_DEF,
     TYPE_LABEL,
+    TYPE_TOP,
     TYPE_COUNT,
 } TokenType;
 
