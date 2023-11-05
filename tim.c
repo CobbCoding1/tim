@@ -19,6 +19,7 @@ char *reverse_string(char *str){
 int int_to_str(char *str, int *str_index, int64_t x){
     if(x < 0){
         str[*str_index] = '-';
+        *str_index += 1;
         x = -x;
     }
     if(x > 9){
@@ -28,6 +29,24 @@ int int_to_str(char *str, int *str_index, int64_t x){
     x = (x % 10) + '0';
     str[*str_index] = (char)(x);
     *str_index += 1;
+    return 0;
+}
+
+int float_to_str(char *str, int *str_index, double x, int afterpoint){
+    int ipart = (int64_t)x;
+    float fpart = x - (float)ipart;
+
+    int_to_str(str, str_index, ipart);
+    if(afterpoint != 0){
+        str[*str_index] = '.';
+        *str_index += 1;
+
+        fpart = fpart * pow(10, afterpoint);
+        if(fpart < 0){
+            fpart = -fpart;
+        }
+        int_to_str(str, str_index, (int64_t)fpart);
+    }
     return 0;
 }
 
@@ -112,6 +131,13 @@ void native_scanf(Machine *machine){
     push_ptr(machine, (Word*)buffer);
 }
 
+void native_pow(Machine *machine){
+    int64_t power = pop(machine).word.as_int;
+    int64_t num = pop(machine).word.as_int;
+    int64_t result = pow(power, num);
+    push(machine, (Word)result, INT_TYPE);
+}
+
 void native_time(Machine *machine){
     time_t seconds;
     seconds = time(NULL);
@@ -156,6 +182,16 @@ void native_strlen(Machine *machine){
     char *str = (char*)pop(machine).word.as_pointer;
     int64_t result = strlen(str);
     push(machine, (Word)result, INT_TYPE);
+}
+
+void native_ftoa(Machine *machine){
+    double x = pop(machine).word.as_float;
+    int str_index = 0;
+    char *str = malloc(sizeof(char) * 64);
+    float_to_str(str, &str_index, x, 8);
+    str = realloc(str, sizeof(char) * str_index);
+    str[str_index] = '\0';
+    push_ptr(machine, (Word*)str);
 }
 
 void native_itoa(Machine *machine){
@@ -670,6 +706,7 @@ void run_instructions(Machine *machine){
             case INST_FTOI:
                 a = pop(machine);
                 a.word.as_int = (int64_t)a.word.as_float;
+                printf("%ld\n", a.word.as_int);
                 push(machine, a.word, INT_TYPE);
                 break;
             case INST_CALL:
@@ -712,7 +749,7 @@ void run_instructions(Machine *machine){
             case INST_NATIVE: {
                 void (*native_ptrs[100])(Machine*) = {native_open, native_write, native_read, 
                                                    native_close, native_malloc, native_realloc, 
-                                                   native_free, native_scanf};
+                                                   native_free, native_scanf, native_pow};
                 native_ptrs[10] = native_time;
                 native_ptrs[60] = native_exit;
                 native_ptrs[90] = native_strcmp;
@@ -720,6 +757,7 @@ void run_instructions(Machine *machine){
                 native_ptrs[92] = native_memcpy;
                 native_ptrs[93] = native_strcat;
                 native_ptrs[94] = native_strlen;
+                native_ptrs[98] = native_ftoa;
                 native_ptrs[99] = native_itoa;
                 native_ptrs[100] = native_assert;
                 (*native_ptrs[machine->instructions[ip].value.as_int])(machine);

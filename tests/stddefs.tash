@@ -15,7 +15,8 @@
 @def malloc native 4
 @def realloc native 5
 @def free native 6
-@def read native 7
+@def scanf native 7
+@def pow native 8
 @def time native 10
 @def exit native 60
 @def strcmp native 90
@@ -23,6 +24,7 @@
 @def memcpy native 92
 @def strcat native 93
 @def strlen native 94
+@def float_to_str native 98
 @def int_to_str native 99
 @def assert native 100
 

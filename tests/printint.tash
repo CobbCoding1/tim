@@ -36,10 +36,10 @@ convert:
 printint:
     call convert
     pop
-    push '\n'
-    ref
-    push 1 
-    native 1
-    pop
+    ;push '\n'
+    ;ref
+    ;push 1 
+    ;native 1
+    ;pop
     ret
 
