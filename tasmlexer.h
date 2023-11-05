@@ -63,18 +63,13 @@ typedef enum {
     TYPE_CHAR,
     TYPE_STRING,
     TYPE_NULL,
-    TYPE_R0,
-    TYPE_R1,
-    TYPE_R2,
-    TYPE_R3,
+    TYPE_REGISTER,
     TYPE_ENTRYPOINT,
     TYPE_LABEL_DEF,
     TYPE_LABEL,
     TYPE_TOP,
     TYPE_COUNT,
 } TokenType;
-
-
 
 typedef struct {
     TokenType type;

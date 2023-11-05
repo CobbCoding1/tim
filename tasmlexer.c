@@ -49,7 +49,7 @@ char *token_type_text[TYPE_COUNT + 1] = {
     "dup_str","indup","indup_str",
     "swap","swap_str","inswap","inswap_str","index","add","sub", "mul","div", "mod","add_f","sub_f","mul_f","div_f",
     "mod_f","cmpe","cmpne","cmpg","cmpl","cmpge","cmple","itof","ftoi","call","ret","jmp","zjmp","nzjmp","print", 
-    "native","halt","int","float","char","string","NULL","r0","r1","r2","r3","entrypoint","label_def","label","top","count"
+    "native","halt","int","float","char","string","NULL","register","entrypoint","label_def","label","top","count"
 };
 
 char *pretty_token(Token token){
@@ -86,6 +86,13 @@ TokenType check_label_type(char *current, int *current_index){
     return TYPE_LABEL;
 }
 
+TokenType check_if_register_type(char *name){
+    if(name[0] == 'r' && isdigit(name[1])){
+        return TYPE_REGISTER;
+    }
+    return TYPE_NONE;
+}
+
 Token generate_keyword(char *current, int *current_index, int *line, int *character, Lexer lex){
     char *keyword_name = malloc(sizeof(char) * 16);
     int keyword_length = 0;
@@ -95,10 +102,15 @@ Token generate_keyword(char *current, int *current_index, int *line, int *charac
         keyword_length++;
     }
     keyword_name[keyword_length] = '\0';
-    TokenType type = check_builtin_keywords(keyword_name);
+    TokenType type = check_if_register_type(keyword_name);
+    if(type == TYPE_NONE){
+        type = check_builtin_keywords(keyword_name);
+    }
+
     if(type == TYPE_NONE){
         type = check_label_type(current, current_index);
     }
+
     Token token = init_token(type, keyword_name, *line, *character, lex.file_name);
     // Increment character by lenth of keyword, also subtract one because iteration occurs in lexer function as well
     *character += keyword_length - 1;

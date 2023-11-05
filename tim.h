@@ -112,7 +112,7 @@ typedef struct {
 #define PRINT_ERROR(message) fprintf(stderr, message); exit(1)
 
 
-#define AMOUNT_OF_REGISTERS 4
+#define AMOUNT_OF_REGISTERS 16 
 #define MAX_STRING_SIZE 256
 
 typedef struct {

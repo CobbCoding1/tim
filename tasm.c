@@ -22,25 +22,23 @@ size_t length_of_list(ParseList *head){
     return result;
 }
 
-size_t get_register_index(ParseList *head){
-    switch(head->value.type){
-        case TYPE_R0:
-            return 0;
-            break;
-        case TYPE_R1:
-            return 1;
-            break;
-        case TYPE_R2:
-            return 2;
-            break;
-        case TYPE_R3:
-            return 3;
-            break;
-        default:
-            assert(false && "register should be one of those 4\n");
-            break;
+char *remove_first_character(char *str){
+    int length = strlen(str);
+    char *result = malloc(sizeof(char) * length);
+    for(int i = 0; i < length - 1; i++){
+        result[i] = str[i + 1];
     }
-    return -1;
+    result[length - 1] = '\0';
+    return result;
+}
+
+size_t get_register_index(ParseList *head){
+    size_t result = (size_t)atoi(remove_first_character(head->value.text));
+    if(result >= AMOUNT_OF_REGISTERS){
+        fprintf(stderr, "error: register index is too great\n");
+        exit(1);
+    }
+    return result;
 }
 
 Inst *generate_instructions(ParseList *head, int *program_size, char str_stack[MAX_STACK_SIZE][MAX_STRING_SIZE]){

@@ -1,0 +1,5 @@
+push 69
+mov r13 top 
+push r13
+print
+

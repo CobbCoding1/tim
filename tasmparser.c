@@ -58,8 +58,7 @@ int expect_token(Lexer *lexer, int index, int count, ...){
 }
 
 int check_if_register(TokenType type){
-    if(type != TYPE_R0 && type != TYPE_R1 &&
-       type != TYPE_R2 && type != TYPE_R3){
+    if(type != TYPE_REGISTER){
         return 0;
     }
     return 1;
