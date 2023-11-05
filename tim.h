@@ -66,7 +66,7 @@ typedef enum {
 } Inst_Set;
 
 typedef enum {
-    INT_TYPE,
+    INT_TYPE = 0,
     FLOAT_TYPE,
     CHAR_TYPE,
     PTR_TYPE,

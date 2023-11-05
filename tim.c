@@ -261,8 +261,9 @@ void index_swap(Machine *machine, int64_t index){
         PRINT_ERROR("error: index out of range\n");
     }
     Data temp_value = machine->stack[index];
-    machine->stack[index] = pop(machine); 
-    push(machine, temp_value.word, temp_value.type);
+    machine->stack[index] = machine->stack[machine->stack_size - 1]; 
+    machine->stack[machine->stack_size - 1] = temp_value;
+    //push(machine, temp_value.word, temp_value.type);
 }
 
 void index_swap_str(Machine *machine, int64_t index){
@@ -325,9 +326,7 @@ void print_stack(Machine *machine){
     printf("------ END OF STACK\n");
 }
 
-int cmp_types(Machine *machine, Data a, Data b){
-    push(machine, b.word, b.type);
-    push(machine, a.word, a.type);
+int cmp_types(Data a){
     switch(a.type){
         case INT_TYPE:
             return 0;
@@ -486,8 +485,7 @@ void run_instructions(Machine *machine){
                 pop_str(machine);
                 break;
             case INST_DUP:
-                a = pop(machine);
-                push(machine, a.word, a.type);
+                a = machine->stack[machine->stack_size - 1];
                 push(machine, a.word, a.type);
                 break;
             case INST_DUP_STR: {
@@ -503,12 +501,11 @@ void run_instructions(Machine *machine){
             case INST_INDUP_STR:
                 index_dup_str(machine, machine->instructions[ip].value.as_int);
                 break;
-            case INST_SWAP:
-                a = pop(machine);
-                b = pop(machine);
-                push(machine, a.word, a.type);
-                push(machine, b.word, b.type);
-                break;
+            case INST_SWAP: {
+                Data temp = machine->stack[machine->stack_size - 1];
+                machine->stack[machine->stack_size - 1] = machine->stack[machine->stack_size - 2];
+                machine->stack[machine->stack_size - 2] = temp;
+            } break;
             case INST_SWAP_STR: {
                 char *str1 = pop_str(machine);
                 char *str2 = pop_str(machine);
@@ -579,9 +576,9 @@ void run_instructions(Machine *machine){
                 push(machine, (Word)(fmod(a.word.as_float, b.word.as_float)), FLOAT_TYPE);
                 break;
             case INST_CMPE: {
-                a = pop(machine);
-                b = pop(machine);
-                int result = cmp_types(machine, a, b);
+                a = machine->stack[machine->stack_size - 1];
+                b = machine->stack[machine->stack_size - 2];
+                int result = (int)a.type;
                 switch(result){
                     case 0:
                         CMP_AS_TYPE(as_int, ==);
@@ -599,9 +596,9 @@ void run_instructions(Machine *machine){
                 break;
             }
             case INST_CMPNE: {
-                Data a = pop(machine);
-                Data b = pop(machine);
-                int result = cmp_types(machine, a, b);
+                a = machine->stack[machine->stack_size - 1];
+                b = machine->stack[machine->stack_size - 2];
+                int result = (int)a.type;
                 switch(result){
                     case 0:
                         CMP_AS_TYPE(as_int, !=);
@@ -619,9 +616,9 @@ void run_instructions(Machine *machine){
                 break;
             }
             case INST_CMPG: {
-                Data a = pop(machine);
-                Data b = pop(machine);
-                int result = cmp_types(machine, a, b);
+                a = machine->stack[machine->stack_size - 1];
+                b = machine->stack[machine->stack_size - 2];
+                int result = (int)a.type;
                 switch(result){
                     case 0:
                         CMP_AS_TYPE(as_int, >);
@@ -639,9 +636,9 @@ void run_instructions(Machine *machine){
                 break;
             }
             case INST_CMPL: {
-                Data a = pop(machine);
-                Data b = pop(machine);
-                int result = cmp_types(machine, a, b);
+                a = machine->stack[machine->stack_size - 1];
+                b = machine->stack[machine->stack_size - 2];
+                int result = (int)a.type;
                 switch(result){
                     case 0:
                         CMP_AS_TYPE(as_int, <);
@@ -659,9 +656,9 @@ void run_instructions(Machine *machine){
                 break;
             }
             case INST_CMPGE: {
-                Data a = pop(machine);
-                Data b = pop(machine);
-                int result = cmp_types(machine, a, b);
+                a = machine->stack[machine->stack_size - 1];
+                b = machine->stack[machine->stack_size - 2];
+                int result = (int)a.type;
                 switch(result){
                     case 0:
                         CMP_AS_TYPE(as_int, >=);
@@ -679,9 +676,9 @@ void run_instructions(Machine *machine){
                 break;
             }
             case INST_CMPLE: {
-                Data a = pop(machine);
-                Data b = pop(machine);
-                int result = cmp_types(machine, a, b);
+                a = machine->stack[machine->stack_size - 1];
+                b = machine->stack[machine->stack_size - 2];
+                int result = (int)a.type;
                 switch(result){
                     case 0:
                         CMP_AS_TYPE(as_int, <=);
