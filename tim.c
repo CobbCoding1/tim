@@ -216,6 +216,7 @@ char *pop_str(Machine *machine){
     for(int i = 0; i < length; i++){
         result[i] = machine->str_stack[machine->str_stack_size][i];
     }
+    result[length] = '\0';
     return result;
 }
 
@@ -237,12 +238,16 @@ void index_swap_str(Machine *machine, int64_t index){
     for(int i = 0; i < length; i++){
         result[i] = machine->str_stack[index][i];
     }
+    result[length] = '\0';
     char *temp_value = pop_str(machine);
     strncpy(machine->str_stack[index], temp_value, MAX_STRING_SIZE - 1);
     push_str(machine, result);
 }
 
 void index_dup(Machine *machine, int64_t index){
+    if(machine->stack_size <= 0){
+        PRINT_ERROR("error: stack underflow\n");
+    }
     if(index > machine->stack_size || index < 0){
         PRINT_ERROR("error: index out of range\n");
     }
@@ -299,6 +304,12 @@ int cmp_types(Machine *machine, Data a, Data b){
             break;
         case PTR_TYPE:
             return 3;
+            break;
+        case REGISTER_TYPE:
+            return -1;
+            break;
+        case TOP_TYPE:
+            return -1;
             break;
     }
     return -1;
@@ -379,7 +390,12 @@ void run_instructions(Machine *machine){
                 continue;
                 break;
             case INST_PUSH:
-                push(machine, machine->instructions[ip].value, machine->instructions[ip].data_type);
+                if(machine->instructions[ip].data_type == REGISTER_TYPE){
+                    push(machine, machine->registers[machine->instructions[ip].register_index].data, 
+                         machine->registers[machine->instructions[ip].register_index].data_type);
+                } else {
+                    push(machine, machine->instructions[ip].value, machine->instructions[ip].data_type);
+                }
                 break;
             case INST_PUSH_PTR:
                 push_ptr(machine, machine->instructions[ip].value.as_pointer);
@@ -396,6 +412,15 @@ void run_instructions(Machine *machine){
                 push_ptr(machine, (void*)machine->str_stack[index]);
                 break;
             }
+            case INST_MOV:
+                if(machine->instructions[ip].data_type == TOP_TYPE){
+                    machine->registers[machine->instructions[ip].register_index].data = machine->stack[machine->stack_size - 1].word;
+                    machine->registers[machine->instructions[ip].register_index].data_type = machine->stack[machine->stack_size - 1].type;
+                } else {
+                    machine->registers[machine->instructions[ip].register_index].data = machine->instructions[ip].value;
+                    machine->registers[machine->instructions[ip].register_index].data_type = machine->instructions[ip].data_type;
+                }
+                break;
             case INST_MOV_STR:
                 a = pop(machine);
                 if(a.type == CHAR_TYPE){
@@ -464,12 +489,13 @@ void run_instructions(Machine *machine){
                 index_swap_str(machine, machine->instructions[ip].value.as_int);
                 break;
             case INST_INDEX:
+                Data value = pop(machine);
                 int64_t index = pop(machine).word.as_int;
                 if(index < 0){
                     PRINT_ERROR("error: index cannot be less than 0\n");
                 }
                 char *arr = (char*)pop(machine).word.as_pointer;
-                arr[index] = machine->instructions[ip].value.as_char;
+                arr[index] = value.word.as_char;
                 push_ptr(machine, (Word*)arr);
                 break;
             case INST_ADD:

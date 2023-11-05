@@ -45,11 +45,11 @@ Token pop_token(Lexer *lexer){
 }
 
 char *token_type_text[TYPE_COUNT + 1] = {
-    "type_none""nop","push","push_ptr","push_str","get_str","mov_str","ref","deref","pop","pop_str","dup",
+    "type_none""nop","push","push_ptr","push_str","get_str","mov","mov_str","ref","deref","pop","pop_str","dup",
     "dup_str","indup","indup_str",
     "swap","swap_str","inswap","inswap_str","index","add","sub", "mul","div", "mod","add_f","sub_f","mul_f","div_f",
     "mod_f","cmpe","cmpne","cmpg","cmpl","cmpge","cmple","itof","ftoi","call","ret","jmp","zjmp","nzjmp","print", 
-    "native","halt","int","float","char","string","NULL","entrypoint","label_def","label","count"
+    "native","halt","int","float","char","string","NULL","r0","r1","r2","r3","entrypoint","label_def","label","top","count"
 };
 
 char *pretty_token(Token token){
@@ -89,7 +89,7 @@ TokenType check_label_type(char *current, int *current_index){
 Token generate_keyword(char *current, int *current_index, int *line, int *character, Lexer lex){
     char *keyword_name = malloc(sizeof(char) * 16);
     int keyword_length = 0;
-    while(is_name(current[*current_index])){
+    while(is_name(current[*current_index]) || isdigit(current[*current_index])){
         keyword_name[keyword_length] = current[*current_index];
         *current_index += 1;
         keyword_length++;

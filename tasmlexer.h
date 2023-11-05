@@ -17,6 +17,7 @@ typedef enum {
     TYPE_PUSH_PTR,
     TYPE_PUSH_STR,
     TYPE_GET_STR,
+    TYPE_MOV,
     TYPE_MOV_STR,
     TYPE_REF,
     TYPE_DEREF,
@@ -62,9 +63,14 @@ typedef enum {
     TYPE_CHAR,
     TYPE_STRING,
     TYPE_NULL,
+    TYPE_R0,
+    TYPE_R1,
+    TYPE_R2,
+    TYPE_R3,
     TYPE_ENTRYPOINT,
     TYPE_LABEL_DEF,
     TYPE_LABEL,
+    TYPE_TOP,
     TYPE_COUNT,
 } TokenType;
 
