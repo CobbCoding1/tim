@@ -5,6 +5,8 @@
 
 [] fix the windows assembler of TASM
 
+[] remove pop from operations and instead get the top of the stack directly
+
 [] test turing completeness
 
 

@@ -196,6 +196,7 @@ void push_str(Machine *machine, char *value){
     if(machine->str_stack_size >= MAX_STACK_SIZE){
         PRINT_ERROR("error: string stack overflow\n");
     }
+    //printf("value: %s\n", value);
     strncpy(machine->str_stack[machine->str_stack_size++], value, MAX_STRING_SIZE - 1);
 }
 
@@ -209,6 +210,7 @@ Data pop(Machine *machine){
 
 char *pop_str(Machine *machine){
     int length = strlen(machine->str_stack[--machine->str_stack_size]);
+    //printf("on the stack: %s, %d\n", machine->str_stack[machine->str_stack_size], length);
     char *result = malloc(sizeof(char) * length); 
     if(machine->str_stack_size < 0){
         PRINT_ERROR("error: string stack underflow\n");
@@ -216,6 +218,8 @@ char *pop_str(Machine *machine){
     for(int i = 0; i < length; i++){
         result[i] = machine->str_stack[machine->str_stack_size][i];
     }
+    result[length] = '\0';
+    //printf("result: %s\n", result);
     return result;
 }
 
@@ -237,12 +241,16 @@ void index_swap_str(Machine *machine, int64_t index){
     for(int i = 0; i < length; i++){
         result[i] = machine->str_stack[index][i];
     }
+    result[length] = '\0';
     char *temp_value = pop_str(machine);
     strncpy(machine->str_stack[index], temp_value, MAX_STRING_SIZE - 1);
     push_str(machine, result);
 }
 
 void index_dup(Machine *machine, int64_t index){
+    if(machine->stack_size <= 0){
+        PRINT_ERROR("error: stack underflow\n");
+    }
     if(index > machine->stack_size || index < 0){
         PRINT_ERROR("error: index out of range\n");
     }

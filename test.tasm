@@ -1,0 +1,13 @@
+push_str "test"
+push_str "\n"
+
+swap_str
+dup_str
+inswap_str 0
+indup_str 2
+
+get_str 0 
+push 1
+native 1
+
+
