@@ -1,11 +1,19 @@
 #include "tim.h"
 
+int64_t my_trunc(double num){
+    return (int64_t)num;
+}
+
 int64_t my_pow(int64_t base, int64_t num2){
     int64_t result = 1;
     for(size_t i = 0; i < (size_t)num2; i++){
         result *= base; 
     }
     return result;
+}
+
+double my_fmod(double num1, double num2){
+    return num1 - my_trunc(num1 / num2) * num2;
 }
 
 char *reverse_string(char *str){
@@ -584,7 +592,7 @@ void run_instructions(Machine *machine){
                 }
                 b = pop(machine);
                 a = pop(machine);
-                push(machine, (Word)(fmod(a.word.as_float, b.word.as_float)), FLOAT_TYPE);
+                push(machine, (Word)(my_fmod(a.word.as_float, b.word.as_float)), FLOAT_TYPE);
                 break;
             case INST_CMPE: {
                 a = machine->stack[machine->stack_size - 1];

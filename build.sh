@@ -1,6 +1,6 @@
 set -xe
-gcc -lm tim.c tire.c -o tire -Wall -Wextra -ggdb 
-gcc -lm tasm.c  tasmlexer.c tasmparser.c tim.c -o tasm -Wall -Wextra 
+gcc tim.c tire.c -o tire -Wall -Wextra -ggdb 
+gcc tasm.c  tasmlexer.c tasmparser.c tim.c -o tasm -Wall -Wextra 
 
 
 while getopts "tw" flag; do
