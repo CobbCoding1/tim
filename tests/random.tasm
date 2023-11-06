@@ -1,0 +1,10 @@
+@imp "stddefs.tash"
+@imp "std.tash"
+
+main:
+    native 10
+    mov r0 top 
+    call random
+    call print_newline
+
+entrypoint main

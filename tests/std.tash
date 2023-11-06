@@ -28,6 +28,36 @@ power:
     _power_end:
     ret
 
+random:
+    mov r1 502312312 ;a
+    mov r2 121239838 ;b
+    mov r3 9998912389;m
+    push 8 ;n
+    _rand_loop:
+        push 0
+        cmpl
+        swap
+        pop
+    zjmp _rand_end
+    push r1 
+    push r0
+    mul
+    push r2
+    add
+    push r3
+    mod
+    mov r0 top
+    call printint
+    push 1
+    sub
+    jmp _rand_loop
+    _rand_end:
+    pop
+    push r0
+    ret
+
+
+
 convert:
     push 0
     cmpg
