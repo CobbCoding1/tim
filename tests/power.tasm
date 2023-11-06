@@ -1,0 +1,11 @@
+@imp "stddefs.tash"
+@imp "std.tash"
+
+main:
+    mov r0 2 
+    mov r1 20 
+    call power
+    call printint
+    call print_newline
+
+entrypoint main

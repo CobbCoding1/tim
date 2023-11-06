@@ -1,3 +1,33 @@
+print_newline:
+    push '\n'
+    ref
+    push 1
+    native 1
+    pop
+    ret
+
+power:
+    push r0
+    _power_loop:
+    push r1
+    push 1
+    cmpge
+    swap
+    pop
+    swap
+    pop
+    nzjmp _power_end
+    push r0
+    mul
+    push r1
+    push 1
+    sub
+    mov r1 top
+    pop
+    jmp _power_loop
+    _power_end:
+    ret
+
 convert:
     push 0
     cmpg
@@ -54,9 +84,9 @@ printfloat:
     push 1
     native 1
     push r0
-    push 8
-    push 10
-    native 8
+    mov r0 10
+    mov r1 8
+    call power
     itof
     mul_f
     ftoi

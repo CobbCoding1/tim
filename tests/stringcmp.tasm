@@ -11,7 +11,8 @@ main:
     mov r1 top
     pop
     call stringcmp
-    print
+    call printint
+    call print_newline
 
 entrypoint main
 

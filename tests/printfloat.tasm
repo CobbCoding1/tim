@@ -3,9 +3,6 @@
 main:
     push 69.420
     call printfloat
-    push '\n'
-    ref
-    push STDOUT 
-    write
+    call print_newline
 
 entrypoint main
