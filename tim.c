@@ -1,5 +1,13 @@
 #include "tim.h"
 
+int64_t my_pow(int64_t base, int64_t num2){
+    int64_t result = 1;
+    for(size_t i = 0; i < (size_t)num2; i++){
+        result *= base; 
+    }
+    return result;
+}
+
 char *reverse_string(char *str){
     int length = strlen(str);
     int start = 0;
@@ -41,7 +49,7 @@ int float_to_str(char *str, int *str_index, double x, int afterpoint){
         str[*str_index] = '.';
         *str_index += 1;
 
-        fpart = fpart * pow(10, afterpoint);
+        fpart = fpart * my_pow(10, afterpoint);
         if(fpart < 0){
             fpart = -fpart;
         }
@@ -134,7 +142,7 @@ void native_scanf(Machine *machine){
 void native_pow(Machine *machine){
     int64_t power = pop(machine).word.as_int;
     int64_t num = pop(machine).word.as_int;
-    int64_t result = pow(power, num);
+    int64_t result = my_pow(power, num);
     push(machine, (Word)result, INT_TYPE);
 }
 
