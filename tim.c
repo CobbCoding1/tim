@@ -361,6 +361,7 @@ void write_program_to_file(Machine *machine, char *file_path){
     }
     fwrite("DATA_END", 1, strlen("DATA_END") + 1, file);
 
+    fwrite(&machine->entrypoint, sizeof(size_t), sizeof(size_t), file);
     fwrite(machine->instructions, sizeof(machine->instructions[0]), machine->program_size, file);
 
     fclose(file);
@@ -368,6 +369,11 @@ void write_program_to_file(Machine *machine, char *file_path){
 
 Machine *read_program_from_file(Machine *machine, char *file_path){
     FILE *file = fopen(file_path, "rb");
+
+    if(file == NULL){
+        PRINT_ERROR("error: could not read from file\n");
+    }
+
 
     int i = 1;
     int index = 0;
@@ -392,15 +398,12 @@ Machine *read_program_from_file(Machine *machine, char *file_path){
         i++;
     }
 
-
-    if(file == NULL){
-        PRINT_ERROR("error: could not read from file\n");
-    }
     Inst *instructions = malloc(sizeof(Inst) * MAX_STACK_SIZE);
 
     fseek(file, 0, SEEK_END);
     length = ftell(file);
     fseek(file, index, SEEK_SET);
+    fread(&machine->entrypoint, sizeof(size_t), sizeof(size_t), file);
     length = fread(instructions, sizeof(instructions[0]), length, file);
 
     machine->program_size = length;
@@ -419,7 +422,7 @@ void run_instructions(Machine *machine){
     yes.as_int = 1;
     Word no;
     no.as_int = 0;
-    for(size_t ip = 0; ip < machine->program_size; ip++){
+    for(size_t ip = machine->entrypoint; ip < machine->program_size; ip++){
         //print_stack(machine);
         switch(machine->instructions[ip].type){
             case INST_NOP:
@@ -750,6 +753,7 @@ void run_instructions(Machine *machine){
                 native_ptrs[10] = native_time;
                 native_ptrs[60] = native_exit;
                 native_ptrs[90] = native_strcmp;
+                native_ptrs[90] = native_strcmp;
                 native_ptrs[91] = native_strcpy;
                 native_ptrs[92] = native_memcpy;
                 native_ptrs[93] = native_strcat;
@@ -758,8 +762,10 @@ void run_instructions(Machine *machine){
                 native_ptrs[99] = native_itoa;
                 native_ptrs[100] = native_assert;
                 (*native_ptrs[machine->instructions[ip].value.as_int])(machine);
+            } break;
+            case INST_ENTRYPOINT:
+                assert(false);
                 break;
-            }
             case INST_HALT:
                 ip = machine->program_size;
                 break;

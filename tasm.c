@@ -41,7 +41,7 @@ size_t get_register_index(ParseList *head){
     return result;
 }
 
-Inst *generate_instructions(ParseList *head, int *program_size, char str_stack[MAX_STACK_SIZE][MAX_STRING_SIZE]){
+Inst *generate_instructions(ParseList *head, int *program_size, char str_stack[MAX_STACK_SIZE][MAX_STRING_SIZE], size_t *entrypoint, bool *has_entrypoint){
     Inst *program = malloc(sizeof(Inst) * length_of_list(head));
     Inst_Set insts[INST_COUNT + 1] = {    
         INST_NOP, INST_PUSH, INST_PUSH_PTR, INST_PUSH_STR, INST_GET_STR, INST_MOV, INST_MOV_STR, INST_REF, INST_DEREF, 
@@ -50,7 +50,7 @@ Inst *generate_instructions(ParseList *head, int *program_size, char str_stack[M
         INST_ADD, INST_SUB, INST_MUL, INST_DIV, INST_MOD, INST_ADD_F, INST_SUB_F, 
         INST_MUL_F, INST_DIV_F, INST_MOD_F, INST_CMPE, 
         INST_CMPNE, INST_CMPG, INST_CMPL, INST_CMPGE, INST_CMPLE, INST_ITOF, INST_FTOI, INST_CALL, INST_RET, 
-        INST_JMP, INST_ZJMP, INST_NZJMP, INST_PRINT, INST_NATIVE, 
+        INST_JMP, INST_ZJMP, INST_NZJMP, INST_PRINT, INST_NATIVE, INST_ENTRYPOINT, 
         INST_HALT, INST_COUNT
     };
 
@@ -69,6 +69,18 @@ Inst *generate_instructions(ParseList *head, int *program_size, char str_stack[M
             head = head->next;
             instruction->value.as_int = atoi(head->value.text);
             instruction->data_type = INT_TYPE;
+        }
+
+        if(head->value.type == TYPE_ENTRYPOINT){
+            instruction->type = INST_NOP;
+            head = head->next;
+            if(!*has_entrypoint){
+                *entrypoint = (size_t)atoi(head->value.text);
+                *has_entrypoint = true;
+            } else {
+                fprintf(stderr, "error: cannot define entrypoint more than once\n");
+                exit(1);
+            }
         }
 
 
@@ -160,9 +172,13 @@ int main(int argc, char *argv[]){
     //print_list(&list);
     int program_size = 0;
     Machine machine;
-    Inst *program = generate_instructions(&list, &program_size, machine.str_stack);
+    size_t entrypoint = 0;
+    bool has_entrypoint = false;
+    Inst *program = generate_instructions(&list, &program_size, machine.str_stack, &entrypoint, &has_entrypoint);
     machine.instructions = program;
     machine.program_size = program_size;
+    machine.entrypoint = entrypoint;
+    machine.has_entrypoint = has_entrypoint;
     machine.str_stack_size = str_stack_size;
     write_program_to_file(&machine, output_file);
     return 0;

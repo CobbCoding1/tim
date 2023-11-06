@@ -82,14 +82,10 @@ void generate_list(ParseList *root, Lexer *lexer, struct hashmap_s *hashmap){
         if(expect_token(lexer, index, 1, TYPE_LABEL_DEF)){
             handle_token_def(lexer, current_token, index, line_num, hashmap);
         }
-        if(expect_token(lexer, index, 1, TYPE_ENTRYPOINT)){
-            lexer->token_stack[index].type = TYPE_JMP;
-            lexer->token_stack[index].text = "jmp";
-        }
 
         append(root, lexer->token_stack[index]);
 
-        if(expect_token(lexer, index, 8, TYPE_CALL, TYPE_INDUP, TYPE_INDUP_STR, TYPE_INSWAP, TYPE_INSWAP_STR, TYPE_JMP, TYPE_ZJMP, TYPE_NZJMP)){
+        if(expect_token(lexer, index, 9, TYPE_CALL, TYPE_INDUP, TYPE_INDUP_STR, TYPE_INSWAP, TYPE_INSWAP_STR, TYPE_JMP, TYPE_ZJMP, TYPE_NZJMP, TYPE_ENTRYPOINT)){
             index++;
             current_token = lexer->token_stack[index];
             if(lexer->token_stack[index].type != TYPE_INT && lexer->token_stack[index].type != TYPE_LABEL){

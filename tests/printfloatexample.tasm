@@ -1,6 +1,6 @@
-entrypoint main
 @imp "printfloat.tash"
 @imp "stddefs.tash"
+entrypoint main
 main:
     push 69.420 
     call printfloat

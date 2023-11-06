@@ -61,6 +61,7 @@ typedef enum {
     INST_NZJMP,
     INST_PRINT,
     INST_NATIVE,
+    INST_ENTRYPOINT,
     INST_HALT,
     INST_COUNT,
 } Inst_Set;
@@ -128,6 +129,9 @@ typedef struct {
     size_t return_stack[MAX_STACK_SIZE];
     int return_stack_size;
     size_t program_size;
+
+    size_t entrypoint;
+    bool has_entrypoint;
 
     Register registers[AMOUNT_OF_REGISTERS];
 

@@ -49,7 +49,7 @@ char *token_type_text[TYPE_COUNT + 1] = {
     "dup_str","indup","indup_str",
     "swap","swap_str","inswap","inswap_str","index","add","sub", "mul","div", "mod","add_f","sub_f","mul_f","div_f",
     "mod_f","cmpe","cmpne","cmpg","cmpl","cmpge","cmple","itof","ftoi","call","ret","jmp","zjmp","nzjmp","print", 
-    "native","halt","int","float","char","string","NULL","register","entrypoint","label_def","label","top","count"
+    "native","entrypoint","halt","int","float","char","string","NULL","register","label_def","label","top","count"
 };
 
 char *pretty_token(Token token){
