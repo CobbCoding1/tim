@@ -468,15 +468,14 @@ void run_instructions(Machine *machine){
                     push_str(machine, (char*)a.word.as_pointer);
                 }
                 break;
-            case INST_REF:
-                a = machine->stack[machine->stack_size - 1];
-                a.type = PTR_TYPE;
-                push_ptr(machine, &a.word);
-                break;
+            case INST_REF: {
+                Word *ptr = &machine->stack[machine->stack_size - 1].word;
+                push_ptr(machine, ptr);
+            } break;
             case INST_DEREF: {
                 Word *ptr = machine->stack[machine->stack_size - 1].word.as_pointer;
                 Data *ref = (Data*)ptr;
-                push(machine, ref->word, INT_TYPE);
+                push(machine, ref->word, ref->type);
                 break;
             }
             case INST_POP:
