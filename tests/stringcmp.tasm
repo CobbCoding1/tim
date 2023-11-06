@@ -1,0 +1,17 @@
+push_str "abc"
+push_str "abc"
+@imp "stddefs.tash"
+@imp "std.tash"
+
+main:
+    get_str 0
+    get_str 1
+    mov r0 top
+    pop
+    mov r1 top
+    pop
+    call stringcmp
+    print
+
+entrypoint main
+

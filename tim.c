@@ -722,7 +722,6 @@ void run_instructions(Machine *machine){
             case INST_FTOI:
                 a = pop(machine);
                 a.word.as_int = (int64_t)a.word.as_float;
-                printf("%ld\n", a.word.as_int);
                 push(machine, a.word, INT_TYPE);
                 break;
             case INST_CALL:
@@ -768,7 +767,6 @@ void run_instructions(Machine *machine){
                                                    native_free, native_scanf, native_pow};
                 native_ptrs[10] = native_time;
                 native_ptrs[60] = native_exit;
-                native_ptrs[90] = native_strcmp;
                 native_ptrs[90] = native_strcmp;
                 native_ptrs[91] = native_strcpy;
                 native_ptrs[92] = native_memcpy;

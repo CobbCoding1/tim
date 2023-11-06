@@ -1,33 +1,15 @@
 @imp "stddefs.tash"
-push_str "Put string here for length"
-jmp main
-stringlen:
-    push_str "\0"
-    push 0
-    swap
-    loop:
-        dup
-        get_str 1
-        strcmp
-        swap
-        push 1
-        add
-        swap
-        inswap 0
-        push 1
-        add
-        inswap 0
-        zjmp loop
-        inswap 0
-        push 1
-        sub
-        print
-        jmp end
-
+@imp "std.tash"
+push_str "Hello, world!\n"
 main:
+    push 5123
+    push 23
     get_str 0
-    jmp stringlen 
+    call stringlen 
+    call printint
+    push '\n'
+    ref
+    push STDOUT 
+    write
 
-end:
-push 0
-exit
+entrypoint main

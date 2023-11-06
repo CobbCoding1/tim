@@ -56,7 +56,7 @@ Inst *generate_instructions(ParseList *head, int *program_size, char str_stack[M
 
     while(head != NULL){
         assert(head->value.type != TYPE_NONE && "Value should not be none\n");
-        assert(head->value.type < (TokenType)INST_COUNT);
+        assert(head->value.type < (TokenType)INST_COUNT && "Incorrect value\n");
         Inst *instruction = malloc(sizeof(Inst));
         instruction->type = insts[head->value.type];
         if(

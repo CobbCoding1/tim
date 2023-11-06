@@ -1,10 +1,11 @@
-entrypoint main
-@imp "printint.tash"
+@imp "std.tash"
 @imp "stddefs.tash"
 main:
-    push 69420 
-    call printint
+    push 69.420
+    call printfloat
     push '\n'
     ref
     push STDOUT 
     write
+
+entrypoint main

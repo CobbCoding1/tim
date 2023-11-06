@@ -1,0 +1,11 @@
+@imp "std.tash"
+@imp "stddefs.tash"
+main:
+    push 69420 
+    call printint
+    push '\n'
+    ref
+    push STDOUT 
+    write
+
+entrypoint main
