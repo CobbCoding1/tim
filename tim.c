@@ -225,6 +225,7 @@ void push_ptr(Machine *machine, Word *value){
     if(machine->stack_size >= MAX_STACK_SIZE){
         PRINT_ERROR("error: stack overflow\n");
     }
+    machine->stack[machine->stack_size].type = PTR_TYPE;
     machine->stack[machine->stack_size++].word.as_pointer = value;
 }
 
@@ -474,8 +475,8 @@ void run_instructions(Machine *machine){
                 break;
             case INST_DEREF: {
                 Data ptr = machine->stack[machine->stack_size - 1];
-                Word *ref = ptr.word.as_pointer;
-                push(machine, *ref, PTR_TYPE);
+                Data ref = *(Data*)ptr.word.as_pointer;
+                push(machine, ref.word, INT_TYPE);
                 break;
             }
             case INST_POP:

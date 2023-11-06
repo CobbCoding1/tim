@@ -1,7 +1,0 @@
-push 5.0
-push 4.0
-push 3.0
-dup
-print
-print
-print
