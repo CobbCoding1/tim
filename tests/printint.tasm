@@ -1,5 +1,6 @@
 @imp "std.tash"
 @imp "stddefs.tash"
+
 main:
     push 69420 
     call printint

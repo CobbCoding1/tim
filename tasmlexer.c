@@ -323,7 +323,7 @@ Lexer lexer(char *file_name){
             }
             Token num = generate_num(current, &current_index, line, &character, lex);
             current_index--;
-            line = atoi(num.text);
+            line = atoi(num.text) - 1;
             character = 0;
         } 
         character++;
