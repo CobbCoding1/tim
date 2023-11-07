@@ -1,8 +1,10 @@
 @imp "stddefs.tash"
-push_str "test\n"
-get_str 0
-push STDOUT
-write
-push 69
-exit
+main:
+    push_str "test\n"
+    get_str 0
+    push STDOUT
+    write
+    push 69
+    exit
 
+entrypoint main

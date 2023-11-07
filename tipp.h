@@ -145,6 +145,12 @@ char *pass(char *buffer, int length, int depth, char *file_name){
         if(buffer[index] == '\n'){
             line++;
         }
+        if(buffer[index] == ';'){
+            while(buffer[index] != '\n' && buffer[index] != '\0'){
+                index++;
+            }
+            line++;
+        }
         if(buffer[index] == '@'){
             index++;
             eof_error(buffer, index, length);

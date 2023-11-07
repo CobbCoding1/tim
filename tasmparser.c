@@ -1,8 +1,7 @@
 #include "tasmparser.h"
 
 void append(ParseList *head, Token value){
-    ParseList *new = malloc(sizeof(ParseList));
-    new->value = value;
+    ParseList *new = malloc(sizeof(ParseList)); new->value = value;
     new->next = NULL;
 
     if(head == NULL){

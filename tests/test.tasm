@@ -1,4 +1,4 @@
-@imp "std.tash"
+;@imp "std.tash"
 
 main:
  push 5
