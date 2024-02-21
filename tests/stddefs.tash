@@ -9,8 +9,8 @@
 @def EXCL 128
 
 @def open native 0
-@def write native 1
-@def read native 2
+@def nwrite native 1
+@def nread native 2
 @def close native 3
 @def malloc native 4
 @def realloc native 5

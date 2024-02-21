@@ -261,11 +261,12 @@ Data pop(Machine *machine){
 }
 
 char *pop_str(Machine *machine){
-    int length = strlen(machine->str_stack[--machine->str_stack_size]);
-    char *result = malloc(sizeof(char) * length); 
-    if(machine->str_stack_size < 0){
+    if(machine->str_stack_size == 0){
         PRINT_ERROR("error: string stack underflow\n");
     }
+
+    int length = strlen(machine->str_stack[--machine->str_stack_size]);
+    char *result = malloc(sizeof(char) * length); 
     for(int i = 0; i < length; i++){
         result[i] = machine->str_stack[machine->str_stack_size][i];
     }
@@ -284,7 +285,7 @@ void index_swap(Machine *machine, int64_t index){
 }
 
 void index_swap_str(Machine *machine, int64_t index){
-    if(index > machine->str_stack_size || index < 0){
+    if(index > (int)machine->str_stack_size || index < 0){
         PRINT_ERROR("error: index out of range\n");
     }
     int length = strlen(machine->str_stack[index]);
@@ -309,7 +310,7 @@ void index_dup(Machine *machine, int64_t index){
 }
 
 void index_dup_str(Machine *machine, int64_t index){
-    if(index > machine->str_stack_size || index < 0){
+    if(index > (int)machine->str_stack_size || index < 0){
         PRINT_ERROR("error: index out of range\n");
     }
     push_str(machine, machine->str_stack[index]);
@@ -372,12 +373,14 @@ void write_program_to_file(Machine *machine, char *file_path){
     if(file == NULL){
         PRINT_ERROR("error: could not write to file\n");
     }
-    for(int i = 0; i < machine->str_stack_size; i++){
-        fwrite(machine->str_stack[i], 1, strlen(machine->str_stack[i]) + 1, file);
+    fwrite(&machine->str_stack_size, sizeof(size_t), 1, file);
+    for(int i = 0; i < (int)machine->str_stack_size; i++){
+        size_t str_s = strlen(machine->str_stack[i])+1;
+        fwrite(&str_s, sizeof(size_t), 1, file);        
+        fwrite(machine->str_stack[i], sizeof(char), str_s, file);
     }
-    fwrite("DATA_END", 1, strlen("DATA_END") + 1, file);
 
-    fwrite(&machine->entrypoint, sizeof(size_t), sizeof(size_t), file);
+    fwrite(&machine->entrypoint, sizeof(size_t), 1, file);
     fwrite(machine->instructions, sizeof(machine->instructions[0]), machine->program_size, file);
 
     fclose(file);
@@ -390,44 +393,31 @@ Machine *read_program_from_file(Machine *machine, char *file_path){
         PRINT_ERROR("error: could not read from file\n");
     }
 
-
-    int i = 1;
     int index = 0;
     int length;
-    
-    while (i < MAX_STACK_SIZE) {
-        char charRead;
-        int char_index = 0;
-
-        while ((charRead = fgetc(file)) != EOF && charRead != '\0') {
-            if (char_index < MAX_STRING_SIZE - 1) { // Avoid buffer overflow
-                machine->str_stack[i - 1][char_index] = charRead;
-                char_index++;
-            }
-        }
-        machine->str_stack[i - 1][char_index] = '\0';
-        if (charRead == EOF || strcmp(machine->str_stack[i - 1], "DATA_END") == 0) {
-            index += char_index + i; 
-            break;
-        }
-        index += char_index;
-        i++;
+    fread(&machine->str_stack_size, 1, sizeof(size_t), file);    
+    for(size_t i = 0; i < machine->str_stack_size; i++) {
+        size_t str_s = 0;
+        fread(&str_s, 1, sizeof(size_t), file);        
+        machine->str_stack[i] = malloc(sizeof(char)*str_s);
+        fread(machine->str_stack[i], sizeof(char), str_s, file);
     }
+    index = ftell(file);
 
     Inst *instructions = malloc(sizeof(Inst) * MAX_STACK_SIZE);
 
     fseek(file, 0, SEEK_END);
     length = ftell(file);
     fseek(file, index, SEEK_SET);
-    fread(&machine->entrypoint, sizeof(size_t), sizeof(size_t), file);
-    length = fread(instructions, sizeof(instructions[0]), length, file);
+    length = length - ftell(file);
+    fread(&machine->entrypoint, sizeof(size_t), 1, file);
+    length = fread(instructions, sizeof(*instructions), length, file);
 
     machine->program_size = length;
     machine->instructions = instructions;
 
     instructions = realloc(instructions, sizeof(Inst) * machine->program_size);
 
-    machine->str_stack_size = i - 1;
     fclose(file);
     return machine;
 }
@@ -439,7 +429,7 @@ void run_instructions(Machine *machine){
     Word no;
     no.as_int = 0;
     for(size_t ip = machine->entrypoint; ip < machine->program_size; ip++){
-        print_stack(machine);
+        //print_stack(machine);
         switch(machine->instructions[ip].type){
             case INST_NOP:
                 continue;
@@ -455,12 +445,21 @@ void run_instructions(Machine *machine){
             case INST_PUSH_PTR:
                 push_ptr(machine, machine->instructions[ip].value.as_pointer);
                 break;
-            case INST_PUSH_STR:
-                assert(false && "unreachable\n");
-                break;
+            case INST_PUSH_STR: {
+                size_t index = machine->instructions[ip].value.as_int;
+                char *str = machine->str_stack[index];
+                size_t str_s = strlen(str)+1;
+                for(size_t i = 0; i < (size_t)str_s; i++) {
+                    DA_APPEND(&machine->memory, str[i]);   
+                }
+                Word word;
+                word.as_pointer = machine->memory.data+machine->memory.count-str_s;
+                push(machine, word, PTR_TYPE);
+            } break;
             case INST_GET_STR: {
+                assert(false && "UNUSED");
                 int index = machine->instructions[ip].value.as_int;
-                if(index >= machine->str_stack_size || index < 0){
+                if(index >= (int)machine->str_stack_size || index < 0){
                     PRINT_ERROR("error: string stack out of bounds\n");
                     exit(1);
                 }
@@ -506,11 +505,10 @@ void run_instructions(Machine *machine){
                     PRINT_ERROR("error: size cannot be negative");
                 }
                 for(size_t i = 0; i < (size_t)a.word.as_int; i++) {
-                    printf("TEST\n---------------");                
-                    DA_APPEND(machine->memory, 0);   
+                    DA_APPEND(&machine->memory, (uint8_t)0);   
                 }
                 Word word;
-                word.as_int = machine->memory->count-a.word.as_int;
+                word.as_int = machine->memory.count-a.word.as_int;
                 push(machine, word, INT_TYPE);
             } break;
             case INST_WRITE: {
@@ -527,19 +525,19 @@ void run_instructions(Machine *machine){
                 switch(data.type) {
                     case CHAR_TYPE:
                         amount = 1;
-                        memcpy(machine->memory->data+ptr.word.as_int, &data.word.as_char, amount);
+                        memcpy(machine->memory.data+ptr.word.as_int, &data.word.as_char, amount);
                         break;
                     case INT_TYPE:
                         amount = 8;
-                        memcpy(machine->memory->data+ptr.word.as_int, &data.word.as_int, amount);
+                        memcpy(machine->memory.data+ptr.word.as_int, &data.word.as_int, amount);
                         break;
                     case FLOAT_TYPE:                    
                         amount = 8;                    
-                        memcpy(machine->memory->data+ptr.word.as_int, &data.word.as_float, amount);
+                        memcpy(machine->memory.data+ptr.word.as_int, &data.word.as_float, amount);
                         break;
                     case PTR_TYPE:
                         amount = 8;                    
-                        memcpy(machine->memory->data+ptr.word.as_int, &data.word.as_pointer, amount);
+                        memcpy(machine->memory.data+ptr.word.as_int, &data.word.as_pointer, amount);
                         break;
                     case REGISTER_TYPE:
                     case TOP_TYPE:
@@ -559,19 +557,19 @@ void run_instructions(Machine *machine){
                 switch(type.word.as_int) {
                     case 0: // TYPE INT
                         data.type = INT_TYPE;
-                        memcpy(&data.word.as_int, machine->memory->data+ptr.word.as_int, 8);
+                        memcpy(&data.word.as_int, machine->memory.data+ptr.word.as_int, 8);
                         break;    
                     case 1: // TYPE FLOAT
                         data.type = FLOAT_TYPE;                    
-                        memcpy(&data.word.as_float, machine->memory->data+ptr.word.as_int, 8);
+                        memcpy(&data.word.as_float, machine->memory.data+ptr.word.as_int, 8);
                         break;
                     case 2: // TYPE CHAR
                         data.type = CHAR_TYPE;                    
-                        memcpy(&data.word.as_char, machine->memory->data+ptr.word.as_int, 1);
+                        memcpy(&data.word.as_char, machine->memory.data+ptr.word.as_int, 1);
                         break;
                     case 3: // TYPE PTR
                         data.type = PTR_TYPE;                    
-                        memcpy(&data.word.as_pointer, machine->memory->data+ptr.word.as_int, 8);
+                        memcpy(&data.word.as_pointer, machine->memory.data+ptr.word.as_int, 8);
                         break;
                 }
                 push(machine, data.word, data.type);
@@ -595,9 +593,10 @@ void run_instructions(Machine *machine){
                 break;
             }
             case INST_INDUP:
-                index_dup(machine, machine->instructions[ip].value.as_int);
+                index_dup(machine, machine->stack_size-machine->instructions[ip].value.as_int-1);
                 break;
             case INST_INDUP_STR:
+                assert(false && "UNUSED");
                 index_dup_str(machine, machine->instructions[ip].value.as_int);
                 break;
             case INST_SWAP: {
@@ -615,9 +614,10 @@ void run_instructions(Machine *machine){
                 break;
             }
             case INST_INSWAP:
-                index_swap(machine, machine->instructions[ip].value.as_int);
+                index_swap(machine, machine->stack_size-machine->instructions[ip].value.as_int-1);
                 break;
             case INST_INSWAP_STR:
+                assert(false && "UNUSED");
                 index_swap_str(machine, machine->instructions[ip].value.as_int);
                 break;
             case INST_INDEX:

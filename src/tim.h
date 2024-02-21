@@ -154,13 +154,13 @@ typedef struct {
 typedef struct {
     Data stack[MAX_STACK_SIZE];
     int stack_size;
-    char str_stack[MAX_STACK_SIZE][MAX_STRING_SIZE];
-    int str_stack_size;
+    char *str_stack[MAX_STACK_SIZE];
+    size_t str_stack_size;
     size_t return_stack[MAX_STACK_SIZE];
     int return_stack_size;
     size_t program_size;
     
-    Memory *memory;
+    Memory memory;
 
     size_t entrypoint;
     bool has_entrypoint;

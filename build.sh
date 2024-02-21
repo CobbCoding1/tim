@@ -12,7 +12,7 @@ while getopts "tw" flag; do
         cd tests
         for file in *.tasm
         do
-            ../tasm $file
+            ../build/tasm $file
         done
    ;;
     w)
