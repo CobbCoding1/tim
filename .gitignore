@@ -3,3 +3,4 @@ tasm
 tire
 *.exe
 *.tim
+build/
