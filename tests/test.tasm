@@ -1,7 +1,0 @@
-;@imp "std.tash"
-
-main:
- push 5
- print
-
-entrypoint main

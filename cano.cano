@@ -1,0 +1,14 @@
+@imp "another.cano"
+
+func main()
+    write "Hello, world\n"
+    int x = 15
+    int y = 20
+    string str = inttostr x
+    write str
+    if language == "c" 
+        execute("c.cano")
+    elif language == "python"
+        execute("python.cano")
+    endif
+endfun

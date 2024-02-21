@@ -4,9 +4,8 @@
 main:
     push 69420 
     call printint
-    push '\n'
-    ref
+    push_str "\n"
     push STDOUT 
-    write
+    nwrite
 
 entrypoint main

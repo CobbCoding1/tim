@@ -1,11 +1,10 @@
 @imp "stddefs.tash"
-push_str "\n"
 push -35
 push -34
 add
 int_to_str
 push STDOUT
-write
-get_str 0
+nwrite
+push_str "\n"
 push STDOUT
-write
+nwrite

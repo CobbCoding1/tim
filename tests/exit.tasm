@@ -1,9 +1,8 @@
 @imp "stddefs.tash"
 main:
     push_str "test\n"
-    get_str 0
     push STDOUT
-    write
+    nwrite
     push 69
     exit
 
