@@ -439,7 +439,7 @@ void run_instructions(Machine *machine){
     Word no;
     no.as_int = 0;
     for(size_t ip = machine->entrypoint; ip < machine->program_size; ip++){
-        //print_stack(machine);
+        print_stack(machine);
         switch(machine->instructions[ip].type){
             case INST_NOP:
                 continue;
@@ -497,6 +497,86 @@ void run_instructions(Machine *machine){
                 push(machine, ref->word, ref->type);
                 break;
             }
+            case INST_MEMORY: {
+                a = pop(machine);
+                if(a.type != INT_TYPE) {
+                    PRINT_ERROR("error: expected int");
+                }
+                if(a.word.as_int < 0) {
+                    PRINT_ERROR("error: size cannot be negative");
+                }
+                for(size_t i = 0; i < (size_t)a.word.as_int; i++) {
+                    printf("TEST\n---------------");                
+                    DA_APPEND(machine->memory, 0);   
+                }
+                Word word;
+                word.as_int = machine->memory->count-a.word.as_int;
+                push(machine, word, INT_TYPE);
+            } break;
+            case INST_WRITE: {
+                Data index = pop(machine);
+                if(index.type != INT_TYPE) {
+                    PRINT_ERROR("error: expected int");
+                }
+                Data data = pop(machine);
+                Data ptr = pop(machine);
+                if(ptr.type != INT_TYPE) {
+                    PRINT_ERROR("error: expected int");                    
+                }
+                size_t amount = 0;
+                switch(data.type) {
+                    case CHAR_TYPE:
+                        amount = 1;
+                        memcpy(machine->memory->data+ptr.word.as_int, &data.word.as_char, amount);
+                        break;
+                    case INT_TYPE:
+                        amount = 8;
+                        memcpy(machine->memory->data+ptr.word.as_int, &data.word.as_int, amount);
+                        break;
+                    case FLOAT_TYPE:                    
+                        amount = 8;                    
+                        memcpy(machine->memory->data+ptr.word.as_int, &data.word.as_float, amount);
+                        break;
+                    case PTR_TYPE:
+                        amount = 8;                    
+                        memcpy(machine->memory->data+ptr.word.as_int, &data.word.as_pointer, amount);
+                        break;
+                    case REGISTER_TYPE:
+                    case TOP_TYPE:
+                        assert(0 && "UNreaCHEABLE");
+                }
+            } break;
+            case INST_READ: {
+                Data type = pop(machine);
+                if(type.type != INT_TYPE) {
+                    PRINT_ERROR("error: expected int");
+                }
+                Data ptr = pop(machine);
+                if(ptr.type != INT_TYPE) {
+                    PRINT_ERROR("error: expected pointer");
+                }
+                Data data = {0};
+                switch(type.word.as_int) {
+                    case 0: // TYPE INT
+                        data.type = INT_TYPE;
+                        memcpy(&data.word.as_int, machine->memory->data+ptr.word.as_int, 8);
+                        break;    
+                    case 1: // TYPE FLOAT
+                        data.type = FLOAT_TYPE;                    
+                        memcpy(&data.word.as_float, machine->memory->data+ptr.word.as_int, 8);
+                        break;
+                    case 2: // TYPE CHAR
+                        data.type = CHAR_TYPE;                    
+                        memcpy(&data.word.as_char, machine->memory->data+ptr.word.as_int, 1);
+                        break;
+                    case 3: // TYPE PTR
+                        data.type = PTR_TYPE;                    
+                        memcpy(&data.word.as_pointer, machine->memory->data+ptr.word.as_int, 8);
+                        break;
+                }
+                push(machine, data.word, data.type);
+                
+            } break;
             case INST_POP:
                 pop(machine);
                 break;

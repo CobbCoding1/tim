@@ -45,7 +45,7 @@ Inst *generate_instructions(ParseList *head, int *program_size, char str_stack[M
     Inst *program = malloc(sizeof(Inst) * length_of_list(head));
     Inst_Set insts[INST_COUNT + 1] = {    
         INST_NOP, INST_PUSH, INST_PUSH_PTR, INST_PUSH_STR, INST_GET_STR, INST_MOV, INST_MOV_STR, INST_REF, INST_DEREF, 
-        INST_POP, INST_POP_STR, INST_DUP, INST_DUP_STR, INST_INDUP, INST_INDUP_STR, 
+        INST_MEMORY, INST_WRITE, INST_READ, INST_POP, INST_POP_STR, INST_DUP, INST_DUP_STR, INST_INDUP, INST_INDUP_STR, 
         INST_SWAP, INST_SWAP_STR, INST_INSWAP, INST_INSWAP_STR, INST_INDEX,
         INST_ADD, INST_SUB, INST_MUL, INST_DIV, INST_MOD, INST_ADD_F, INST_SUB_F, 
         INST_MUL_F, INST_DIV_F, INST_MOD_F, INST_CMPE, 

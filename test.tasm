@@ -1,0 +1,7 @@
+push 8
+memory
+push 'c'
+push 0
+write
+push 3
+read

@@ -14,6 +14,7 @@
 #include <inttypes.h>
 
 #define MAX_STACK_SIZE 1024
+#define DATA_START_CAPACITY 16
 
 typedef enum {
     INST_NOP = 0,
@@ -25,6 +26,9 @@ typedef enum {
     INST_MOV_STR,
     INST_REF,
     INST_DEREF,
+    INST_MEMORY,
+    INST_WRITE,
+    INST_READ,
     INST_POP,
     INST_POP_STR,
     INST_DUP,
@@ -110,6 +114,26 @@ typedef struct {
         push(machine, (Word)(a.word.as_type op b.word.as_type), data_type); \
     } while(0)
 
+#define ASSERT(cond, ...) \
+    do { \
+        if (!(cond)) { \
+            fprintf(stderr, "%s:%d: ASSERTION FAILED: ", __FILE__, __LINE__); \
+            fprintf(stderr, __VA_ARGS__); \
+            fprintf(stderr, "\n"); \
+            exit(1); \
+        } \
+    } while (0)
+
+
+#define DA_APPEND(da, item) do {                                                       \
+    if ((da)->count >= (da)->capacity) {                                               \
+        (da)->capacity = (da)->capacity == 0 ? DATA_START_CAPACITY : (da)->capacity*2; \
+        (da)->data = realloc((da)->data, (da)->capacity*sizeof(*(da)->data));       \
+        ASSERT((da)->data != NULL, "outta ram");                               \
+    }                                                                                  \
+    (da)->data[(da)->count++] = (item);                                               \
+} while (0)
+
 #define PRINT_ERROR(message) fprintf(stderr, message); exit(1)
 
 
@@ -120,6 +144,12 @@ typedef struct {
     Word data;
     DataType data_type;
 } Register;
+    
+typedef struct {
+    int8_t *data;
+    size_t count;
+    size_t capacity;
+} Memory;
 
 typedef struct {
     Data stack[MAX_STACK_SIZE];
@@ -129,6 +159,8 @@ typedef struct {
     size_t return_stack[MAX_STACK_SIZE];
     int return_stack_size;
     size_t program_size;
+    
+    Memory *memory;
 
     size_t entrypoint;
     bool has_entrypoint;
