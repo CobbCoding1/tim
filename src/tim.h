@@ -58,6 +58,11 @@ typedef enum {
     INST_CMPLE,
     INST_ITOF,
     INST_FTOI,
+    INST_ITOC,
+    INST_TOI,
+    INST_TOF,
+    INST_TOC,
+    INST_TOVP,
     INST_CALL,
     INST_RET,
     INST_JMP,
@@ -78,7 +83,7 @@ typedef enum {
     REGISTER_TYPE,
     TOP_TYPE,
 } DataType;
-
+    
 typedef union {
     int64_t as_int;
     double as_float;

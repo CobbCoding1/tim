@@ -1,5 +1,7 @@
 #include "tim.h"
 
+char *str_types[] = {"int", "float", "char", "ptr", "reg", "top"};
+
 int64_t my_trunc(double num){
     return (int64_t)num;
 }
@@ -508,72 +510,46 @@ void run_instructions(Machine *machine){
                     DA_APPEND(&machine->memory, (uint8_t)0);   
                 }
                 Word word;
-                word.as_int = machine->memory.count-a.word.as_int;
-                push(machine, word, INT_TYPE);
+                word.as_pointer = &machine->memory.data[machine->memory.count-a.word.as_int];
+                push(machine, word, PTR_TYPE);
             } break;
             case INST_WRITE: {
-                Data index = pop(machine);
-                if(index.type != INT_TYPE) {
-                    PRINT_ERROR("error: expected int");
-                }
+                //Data index = pop(machine);
+                //if(index.type != INT_TYPE) {
+                    //PRINT_ERROR("error: expected int");
+                //}
+                Data size = pop(machine);                
                 Data data = pop(machine);
-                Data ptr = pop(machine);
-                if(ptr.type != INT_TYPE) {
+                if(size.type != INT_TYPE) {
                     PRINT_ERROR("error: expected int");                    
                 }
-                size_t amount = 0;
-                switch(data.type) {
-                    case CHAR_TYPE:
-                        amount = 1;
-                        memcpy(machine->memory.data+ptr.word.as_int, &data.word.as_char, amount);
-                        break;
-                    case INT_TYPE:
-                        amount = 8;
-                        memcpy(machine->memory.data+ptr.word.as_int, &data.word.as_int, amount);
-                        break;
-                    case FLOAT_TYPE:                    
-                        amount = 8;                    
-                        memcpy(machine->memory.data+ptr.word.as_int, &data.word.as_float, amount);
-                        break;
-                    case PTR_TYPE:
-                        amount = 8;                    
-                        memcpy(machine->memory.data+ptr.word.as_int, &data.word.as_pointer, amount);
-                        break;
-                    case REGISTER_TYPE:
-                    case TOP_TYPE:
-                        assert(0 && "UNreaCHEABLE");
+                if(size.word.as_int < 0) {
+                    PRINT_ERROR("error: size cannot be negative");                    
                 }
+                Data ptr_data = pop(machine);
+                if(ptr_data.type != PTR_TYPE) {
+                    PRINT_ERROR("error: expected ptr");                    
+                }
+                void *ptr = ptr_data.word.as_pointer;
+                memcpy(ptr, &data.word, size.word.as_int);                
             } break;
             case INST_READ: {
-                Data type = pop(machine);
-                if(type.type != INT_TYPE) {
+                Data size = pop(machine);
+                if(size.type != INT_TYPE) {
                     PRINT_ERROR("error: expected int");
                 }
-                Data ptr = pop(machine);
-                if(ptr.type != INT_TYPE) {
+                if(size.word.as_int < 0) {
+                    PRINT_ERROR("error: size cannot be negative");                    
+                }
+                Data ptr_data = pop(machine);
+                if(ptr_data.type != PTR_TYPE) {
                     PRINT_ERROR("error: expected pointer");
                 }
-                Data data = {0};
-                switch(type.word.as_int) {
-                    case 0: // TYPE INT
-                        data.type = INT_TYPE;
-                        memcpy(&data.word.as_int, machine->memory.data+ptr.word.as_int, 8);
-                        break;    
-                    case 1: // TYPE FLOAT
-                        data.type = FLOAT_TYPE;                    
-                        memcpy(&data.word.as_float, machine->memory.data+ptr.word.as_int, 8);
-                        break;
-                    case 2: // TYPE CHAR
-                        data.type = CHAR_TYPE;                    
-                        memcpy(&data.word.as_char, machine->memory.data+ptr.word.as_int, 1);
-                        break;
-                    case 3: // TYPE PTR
-                        data.type = PTR_TYPE;                    
-                        memcpy(&data.word.as_pointer, machine->memory.data+ptr.word.as_int, 8);
-                        break;
-                }
-                push(machine, data.word, data.type);
-                
+                void *ptr = ptr_data.word.as_pointer;
+                Data data = {0};                
+                data.type = INT_TYPE;
+                memcpy(&data.word, ptr, size.word.as_int);                
+                push(machine, data.word, data.type);                
             } break;
             case INST_POP:
                 pop(machine);
@@ -796,13 +772,30 @@ void run_instructions(Machine *machine){
             }
             case INST_ITOF:
                 a = pop(machine);
-                a.word.as_float = (double)a.word.as_int;
+                a.word.as_float = (double)a.word.as_int; 
                 push(machine, a.word, FLOAT_TYPE);
                 break;
             case INST_FTOI:
                 a = pop(machine);
                 a.word.as_int = (int64_t)a.word.as_float;
                 push(machine, a.word, INT_TYPE);
+                break;
+            case INST_ITOC:
+                a = pop(machine);
+                a.word.as_char = (char)a.word.as_int;
+                push(machine, a.word, CHAR_TYPE);
+                break;
+            case INST_TOI:
+                machine->stack[machine->stack_size-1].type = INT_TYPE;
+                break;
+            case INST_TOF:
+                machine->stack[machine->stack_size-1].type = FLOAT_TYPE;            
+                break;
+            case INST_TOC:
+                machine->stack[machine->stack_size-1].type = CHAR_TYPE;            
+                break;
+            case INST_TOVP:
+                machine->stack[machine->stack_size-1].type = PTR_TYPE;            
                 break;
             case INST_CALL:
                 machine->return_stack[machine->return_stack_size++] = ip;
@@ -839,7 +832,8 @@ void run_instructions(Machine *machine){
                 break;
             case INST_PRINT:
                 a = pop(machine);
-                printf("as float: %f, as int: %" PRId64 ", as char: %c, as pointer: %p\n", a.word.as_float, a.word.as_int, a.word.as_char, a.word.as_pointer);
+                printf("as float: %f, as int: %" PRId64 ", as char: %c, as pointer: %p, type: %s\n",
+                        a.word.as_float, a.word.as_int, a.word.as_char, a.word.as_pointer, str_types[a.type]);
                 break;
             case INST_NATIVE: {
                 void (*native_ptrs[100])(Machine*) = {native_open, native_write, native_read, 

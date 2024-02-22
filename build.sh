@@ -1,6 +1,8 @@
 SRC="src"
 OUT="build"
 
+mkdir build
+
 set -xe
 gcc $SRC/tim.c $SRC/tire.c -o $OUT/tire -Wall -Wextra -ggdb
 gcc $SRC/tasm.c $SRC/tasmlexer.c $SRC/tasmparser.c $SRC/tim.c -o $OUT/tasm -Wall -Wextra -ggdb
