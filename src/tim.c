@@ -255,33 +255,12 @@ void push_ptr(Machine *machine, Word *value){
     machine->stack[machine->stack_size++].word.as_pointer = value;
 }
 
-void push_str(Machine *machine, char *value){
-    if(machine->str_stack_size >= MAX_STACK_SIZE){
-        PRINT_ERROR("error: string stack overflow\n");
-    }
-    strncpy(machine->str_stack[machine->str_stack_size++], value, MAX_STRING_SIZE - 1);
-}
-
 Data pop(Machine *machine){
     if(machine->stack_size <= 0){
         PRINT_ERROR("error: stack underflow\n");
     }
     machine->stack_size--;
     return machine->stack[machine->stack_size];
-}
-
-char *pop_str(Machine *machine){
-    if(machine->str_stack_size == 0){
-        PRINT_ERROR("error: string stack underflow\n");
-    }
-
-    int length = strlen(machine->str_stack[--machine->str_stack_size]);
-    char *result = malloc(sizeof(char) * length); 
-    for(int i = 0; i < length; i++){
-        result[i] = machine->str_stack[machine->str_stack_size][i];
-    }
-    result[length] = '\0';
-    return result;
 }
 
 void index_swap(Machine *machine, int64_t index){
@@ -294,21 +273,6 @@ void index_swap(Machine *machine, int64_t index){
     //push(machine, temp_value.word, temp_value.type);
 }
 
-void index_swap_str(Machine *machine, int64_t index){
-    if(index > (int)machine->str_stack_size || index < 0){
-        PRINT_ERROR("error: index out of range\n");
-    }
-    int length = strlen(machine->str_stack[index]);
-    char *result = malloc(sizeof(char) * length); 
-    for(int i = 0; i < length; i++){
-        result[i] = machine->str_stack[index][i];
-    }
-    result[length] = '\0';
-    char *temp_value = pop_str(machine);
-    strncpy(machine->str_stack[index], temp_value, MAX_STRING_SIZE - 1);
-    push_str(machine, result);
-}
-
 void index_dup(Machine *machine, int64_t index){
     if(machine->stack_size <= 0){
         PRINT_ERROR("error: stack underflow\n");
@@ -318,14 +282,6 @@ void index_dup(Machine *machine, int64_t index){
     }
     push(machine, machine->stack[index].word, machine->stack[index].type);
 }
-
-void index_dup_str(Machine *machine, int64_t index){
-    if(index > (int)machine->str_stack_size || index < 0){
-        PRINT_ERROR("error: index out of range\n");
-    }
-    push_str(machine, machine->str_stack[index]);
-}
-
 char *get_str_from_stack(Machine *machine){
     char *buffer = malloc(sizeof(char) * 16);
     int buffer_index = 0;
@@ -378,9 +334,9 @@ void write_program_to_file(Machine *machine, char *file_path){
     }
     fwrite(&machine->str_stack_size, sizeof(size_t), 1, file);
     for(int i = 0; i < (int)machine->str_stack_size; i++){
-        size_t str_s = strlen(machine->str_stack[i])+1;
-        fwrite(&str_s, sizeof(size_t), 1, file);        
-        fwrite(machine->str_stack[i], sizeof(char), str_s, file);
+        String_View str = machine->str_stack[i];
+        fwrite(&str.len, sizeof(size_t), 1, file);        
+        fwrite(str.data, sizeof(char), str.len, file);
     }
 
     fwrite(&machine->entrypoint, sizeof(size_t), 1, file);
@@ -400,10 +356,10 @@ Machine *read_program_from_file(Machine *machine, char *file_path){
     int length;
     fread(&machine->str_stack_size, 1, sizeof(size_t), file);    
     for(size_t i = 0; i < machine->str_stack_size; i++) {
-        size_t str_s = 0;
-        fread(&str_s, 1, sizeof(size_t), file);        
-        machine->str_stack[i] = malloc(sizeof(char)*str_s);
-        fread(machine->str_stack[i], sizeof(char), str_s, file);
+        String_View *str = &machine->str_stack[i];
+        fread(&str->len, 1, sizeof(size_t), file);        
+        str->data = malloc(sizeof(char)*str->len);
+        fread(str->data, sizeof(char), str->len, file);
     }
     index = ftell(file);
 
@@ -450,13 +406,12 @@ void run_instructions(Machine *machine){
                 break;
             case INST_PUSH_STR: {
                 size_t index = machine->instructions[ip].value.as_int;
-                char *str = machine->str_stack[index];
-                size_t str_s = strlen(str)+1;
-                for(size_t i = 0; i < (size_t)str_s; i++) {
-                    DA_APPEND(&machine->memory, str[i]);   
+                String_View str = machine->str_stack[index];
+                for(size_t i = 0; i < str.len; i++) {
+                    DA_APPEND(&machine->memory, str.data[i]);   
                 }
                 Word word;
-                word.as_pointer = machine->memory.data+machine->memory.count-str_s;
+                word.as_pointer = machine->memory.data+machine->memory.count-str.len;
                 push(machine, word, PTR_TYPE);
             } break;
             case INST_GET_STR: {
@@ -472,15 +427,7 @@ void run_instructions(Machine *machine){
                 }
                 break;
             case INST_MOV_STR:
-                a = pop(machine);
-                if(a.type == CHAR_TYPE){
-                    char *str = malloc(sizeof(char) * 2);
-                    str[0] = a.word.as_char;
-                    str[1] = '\0';
-                    push_str(machine, str);
-                } else {
-                    push_str(machine, (char*)a.word.as_pointer);
-                }
+                assert(false && "UNSUED");
                 break;
             case INST_REF: {
                 Word *ptr = &machine->stack[machine->stack_size - 1].word;
@@ -555,17 +502,14 @@ void run_instructions(Machine *machine){
                 pop(machine);
                 break;
             case INST_POP_STR:
-                pop_str(machine);
+                assert(false && "UNUSED");
                 break;
             case INST_DUP:
                 a = machine->stack[machine->stack_size - 1];
                 push(machine, a.word, a.type);
                 break;
             case INST_DUP_STR: {
-                char *str1 = pop_str(machine);
-                push_str(machine, str1);
-                push_str(machine, str1);
-                free(str1);
+                assert(false && "UNSUED");
                 break;
             }
             case INST_INDUP:
@@ -580,12 +524,7 @@ void run_instructions(Machine *machine){
                 machine->stack[machine->stack_size - 2] = temp;
             } break;
             case INST_SWAP_STR: {
-                char *str1 = pop_str(machine);
-                char *str2 = pop_str(machine);
-                push_str(machine, str1);
-                push_str(machine, str2);
-                free(str1);
-                free(str2);
+                assert(false && "UNSUED");
                 break;
             }
             case INST_INSWAP:

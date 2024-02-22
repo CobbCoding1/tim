@@ -41,7 +41,7 @@ size_t get_register_index(ParseList *head){
     return result;
 }
 
-Inst *generate_instructions(ParseList *head, int *program_size, char *str_stack[MAX_STACK_SIZE], size_t *entrypoint, bool *has_entrypoint){
+Inst *generate_instructions(ParseList *head, int *program_size, String_View str_stack[MAX_STACK_SIZE], size_t *entrypoint, bool *has_entrypoint){
     Inst *program = malloc(sizeof(Inst) * length_of_list(head));
     Inst_Set insts[INST_COUNT + 1] = {    
         INST_NOP, INST_PUSH, INST_PUSH_PTR, INST_PUSH_STR, INST_GET_STR, INST_MOV, INST_MOV_STR, INST_REF, INST_DEREF, 
@@ -142,8 +142,9 @@ Inst *generate_instructions(ParseList *head, int *program_size, char *str_stack[
             instruction->value.as_int = str_stack_size;
             instruction->data_type = INT_TYPE;
             size_t str_s = strlen(head->value.text)+1;
-            str_stack[str_stack_size] = malloc(sizeof(char)*str_s);
-            strncpy(str_stack[str_stack_size++], head->value.text, str_s);
+            str_stack[str_stack_size].len = str_s;
+            str_stack[str_stack_size].data = malloc(sizeof(char)*str_s);
+            strncpy(str_stack[str_stack_size++].data, head->value.text, str_s);
         }
 
         push_program(program, program_size, *instruction);

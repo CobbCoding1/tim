@@ -156,11 +156,16 @@ typedef struct {
     size_t count;
     size_t capacity;
 } Memory;
+    
+typedef struct {
+    size_t len;
+    char *data;
+} String_View;
 
 typedef struct {
     Data stack[MAX_STACK_SIZE];
     int stack_size;
-    char *str_stack[MAX_STACK_SIZE];
+    String_View str_stack[MAX_STACK_SIZE];
     size_t str_stack_size;
     size_t return_stack[MAX_STACK_SIZE];
     int return_stack_size;
