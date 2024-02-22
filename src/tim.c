@@ -2,6 +2,14 @@
 
 char *str_types[] = {"int", "float", "char", "ptr", "reg", "top"};
 
+void pop_memory(Machine *machine, size_t size) {
+    if(size > machine->memory.count) {
+        PRINT_ERROR("error: index out of bounds");
+    }
+    memset(machine->memory.data + (machine->memory.count - size), 0, size);
+    machine->memory.count -= size;
+}
+
 int64_t my_trunc(double num){
     return (int64_t)num;
 }
@@ -350,24 +358,17 @@ int cmp_types(Data a){
     switch(a.type){
         case INT_TYPE:
             return 0;
-            break;
         case FLOAT_TYPE:
             return 1;
-            break;
         case CHAR_TYPE:
             return 2;
-            break;
         case PTR_TYPE:
             return 3;
-            break;
         case REGISTER_TYPE:
-            return -1;
-            break;
         case TOP_TYPE:
-            return -1;
-            break;
+        default:
+            return -1;        
     }
-    return -1;
 }
 
 void write_program_to_file(Machine *machine, char *file_path){
@@ -460,13 +461,6 @@ void run_instructions(Machine *machine){
             } break;
             case INST_GET_STR: {
                 assert(false && "UNUSED");
-                int index = machine->instructions[ip].value.as_int;
-                if(index >= (int)machine->str_stack_size || index < 0){
-                    PRINT_ERROR("error: string stack out of bounds\n");
-                    exit(1);
-                }
-                push_ptr(machine, (void*)machine->str_stack[index]);
-                break;
             }
             case INST_MOV:
                 if(machine->instructions[ip].data_type == TOP_TYPE){
@@ -498,7 +492,7 @@ void run_instructions(Machine *machine){
                 push(machine, ref->word, ref->type);
                 break;
             }
-            case INST_MEMORY: {
+            case INST_ALLOC: {
                 a = pop(machine);
                 if(a.type != INT_TYPE) {
                     PRINT_ERROR("error: expected int");
@@ -513,11 +507,17 @@ void run_instructions(Machine *machine){
                 word.as_pointer = &machine->memory.data[machine->memory.count-a.word.as_int];
                 push(machine, word, PTR_TYPE);
             } break;
+            case INST_DEALLOC: {
+                Data size = pop(machine);
+                if(size.type != INT_TYPE) {
+                    PRINT_ERROR("error: expected int");
+                }
+                if(size.word.as_int < 0) {
+                    PRINT_ERROR("error: size cannot be negative");
+                }
+                pop_memory(machine, size.word.as_int);
+            } break;
             case INST_WRITE: {
-                //Data index = pop(machine);
-                //if(index.type != INT_TYPE) {
-                    //PRINT_ERROR("error: expected int");
-                //}
                 Data size = pop(machine);                
                 Data data = pop(machine);
                 if(size.type != INT_TYPE) {
@@ -573,7 +573,6 @@ void run_instructions(Machine *machine){
                 break;
             case INST_INDUP_STR:
                 assert(false && "UNUSED");
-                index_dup_str(machine, machine->instructions[ip].value.as_int);
                 break;
             case INST_SWAP: {
                 Data temp = machine->stack[machine->stack_size - 1];
@@ -594,7 +593,6 @@ void run_instructions(Machine *machine){
                 break;
             case INST_INSWAP_STR:
                 assert(false && "UNUSED");
-                index_swap_str(machine, machine->instructions[ip].value.as_int);
                 break;
             case INST_INDEX:
                 Data value = pop(machine);
