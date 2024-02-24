@@ -1,3 +1,0 @@
-func main()
-    write "Hello, world\n"
-end
