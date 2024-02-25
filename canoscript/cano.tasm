@@ -1,13 +1,7 @@
-push_str "Hello, world "
+; write
+push_str "Hello, world\n"
 push 1
 native 1
-push_str "Goodbye, world"
-push 1
-native 1
-push_str " 123"
-push 1
-native 1
-push 50
-native 60
+; exit
 push 0
 native 60

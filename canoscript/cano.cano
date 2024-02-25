@@ -1,4 +1,1 @@
-write "Hello, world "
-write "Goodbye, world"
-write " 123"
-exit 50
+write "Hello, world\n"

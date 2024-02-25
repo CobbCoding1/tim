@@ -32,6 +32,13 @@
     (da)->data[(da)->count++] = (item);                                               \
 } while (0)
     
+#define PRINT_ERROR(loc, str, ...)                                                 \
+    do {                                                                           \
+        fprintf(stderr, "%zu:%zu: error:"str"\n", loc.row, loc.col, __VA_ARGS__);  \
+        exit(1);                                                                   \
+    } while(0)
+
+    
 typedef struct {
     char *data;
     size_t count;
@@ -111,6 +118,7 @@ typedef union {
 typedef struct {
     Node_Type type;
     Node_Value value;
+    Location loc;
 } Node;
     
 typedef struct {
@@ -122,6 +130,27 @@ typedef struct {
 void usage(char *file) {
     fprintf(stderr, "usage: %s <filename.cano>\n", file);
     exit(1);
+}
+    
+
+bool is_valid_escape(char c){
+    switch(c){
+        case 'n':
+        case 't':
+        case 'v':
+        case 'b':
+        case 'r':
+        case 'f':
+        case 'a':
+        case '\\':
+        case '?':
+        case '\'':
+        case '\"':
+        case '0':
+            return true;
+        default:
+            return false;
+    }
 }
 
 String_View read_file_to_view(char *filename) {
@@ -176,7 +205,9 @@ Token_Arr lex(String_View view) {
                 view = view_chop_left(view);    
             }
             token.type = get_token_type(word.data, word.count);
-            if(token.type == TT_NONE) exit(1);
+            if(token.type == TT_NONE) {
+                PRINT_ERROR(token.loc, "invalid token: %.*s", (int)word.count, word.data);            
+            };
             DA_APPEND(&tokens, token);     
             free(word.data);
         } else if(*view.data == '"') {
@@ -188,10 +219,19 @@ Token_Arr lex(String_View view) {
             Dynamic_Str word = {0};
             view = view_chop_left(view);
             while(view.len > 0 && *view.data != '"') {
+                if(view.len > 1 && *view.data == '\\') {
+                    DA_APPEND(&word, *view.data);                                        
+                    view = view_chop_left(view);
+                    if(!is_valid_escape(*view.data)) {
+                        PRINT_ERROR(token.loc, "unexpected escape character: %c", *view.data);
+                    }
+                }
                 DA_APPEND(&word, *view.data);
                 view = view_chop_left(view);
             }
-            if(view.len == 0 && *view.data != '"') exit(1);
+            if(view.len == 0 && *view.data != '"') {
+                PRINT_ERROR(token.loc, "expected closing %c quote", '"');                            
+            };
             token.type = TT_STRING;
             token.value.string = view_create(word.data, word.count);
             DA_APPEND(&tokens, token);
@@ -220,19 +260,43 @@ Token_Arr lex(String_View view) {
 }
     
 void token_consume(Token_Arr *tokens) {
-    if(tokens->count == 0) exit(1);
+    assert(tokens->count != 0);
     tokens->count--;
     tokens->data++;
 }
 
 void expect_token(Token_Arr *tokens, Token_Type type) {
     token_consume(tokens);
-    if(tokens->data[0].type != type) exit(1);
+    if(tokens->data[0].type != type) {
+        PRINT_ERROR(tokens->data[0].loc, "expected type: %s, but found type %s\n", 
+                    token_types[type], token_types[tokens->data[0].type]);
+    };
 }
 
 Node *create_node(Node_Type type) {
     Node *node = malloc(sizeof(Node));
     node->type = type;
+    return node;
+}
+
+Node parse_native_node(Token_Arr *tokens, Token_Type type, int native_value) {
+    Node node = {.type = TYPE_NATIVE, .loc = tokens->data[0].loc};            
+    expect_token(tokens, type);        
+    Native_Call call = {0};
+    Arg arg = {0};
+    switch(type) {
+        case TT_INT: {
+            arg = (Arg){.type=VAR_INT, .value.integer=tokens->data[0].value.integer};        
+        } break;
+        case TT_STRING: {
+            arg = (Arg){.type=VAR_STRING, .value.string=tokens->data[0].value.string};                
+        } break;
+        default:
+            PRINT_ERROR(tokens->data[0].loc, "unexpected type: %s\n", token_types[type]);
+    }
+    DA_APPEND(&call.args, arg);
+    call.type = native_value;
+    node.value.native = call;
     return node;
 }
     
@@ -241,23 +305,11 @@ Nodes parse(Token_Arr tokens) {
     while(tokens.count > 0) {
         switch(tokens.data[0].type) {
             case TT_WRITE: {
-                Node node = {.type = TYPE_NATIVE};            
-                expect_token(&tokens, TT_STRING);            
-                Native_Call call = {0};
-                Arg arg = (Arg){.type=VAR_STRING, .value.string=tokens.data[0].value.string};
-                DA_APPEND(&call.args, arg);
-                call.type = NATIVE_WRITE;
-                node.value.native = call;
+                Node node = parse_native_node(&tokens, TT_STRING, NATIVE_WRITE);            
                 DA_APPEND(&root, node);
             } break;
             case TT_EXIT: {
-                Node node = {.type = TYPE_NATIVE};            
-                expect_token(&tokens, TT_INT);            
-                Native_Call call = {0};
-                Arg arg = (Arg){.type=VAR_INT, .value.integer=tokens.data[0].value.integer};
-                DA_APPEND(&call.args, arg);
-                call.type = NATIVE_EXIT;
-                node.value.native = call;
+                Node node = parse_native_node(&tokens, TT_INT, NATIVE_EXIT);
                 DA_APPEND(&root, node);
             } break;
             case TT_STRING:
@@ -298,14 +350,20 @@ void generate(Nodes nodes, char *filename) {
                 switch(node->value.native.type) {
                     case NATIVE_WRITE:
                         ASSERT(node->value.native.args.count == 1, "too many arguments");
-                        if(node->value.native.args.data[0].type != VAR_STRING) exit(1);
+                        if(node->value.native.args.data[0].type != VAR_STRING) {
+                            PRINT_ERROR(node->loc, "expected type string, but found type %s", node_types[node->value.native.args.data[0].type]);
+                        };
+                        fprintf(file, "; write\n");
                         fprintf(file, "push_str \""View_Print"\"\n", View_Arg(node->value.native.args.data[0].value.string));
                         fprintf(file, "push %d\n", STDOUT);
                         fprintf(file, "native %d\n", node->value.native.type);
                         break;
                     case NATIVE_EXIT:
                         ASSERT(node->value.native.args.count == 1, "too many arguments");
-                        if(node->value.native.args.data[0].type != VAR_INT) exit(1);
+                        if(node->value.native.args.data[0].type != VAR_INT) {
+                            PRINT_ERROR(node->loc, "expected type int, but found type %s", node_types[node->value.native.args.data[0].type]);
+                        };
+                        fprintf(file, "; exit\n");                
                         fprintf(file, "push %d\n", node->value.native.args.data[0].value.integer);
                         fprintf(file, "native %d\n", node->value.native.type);
                         break;           
@@ -317,8 +375,9 @@ void generate(Nodes nodes, char *filename) {
                 break;
         }    
     }
+    fprintf(file, "; exit\n");                
     fprintf(file, "push 0\n");
-    fprintf(file, "native 60\n");    
+    fprintf(file, "native 60\n");
 }
 
 int main(int argc, char *argv[]) {
