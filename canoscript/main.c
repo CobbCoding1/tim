@@ -43,22 +43,29 @@ typedef struct {
 typedef enum {
     TT_NONE = 0,
     TT_WRITE,
+    TT_EXIT,
     TT_STRING,
+    TT_INT,
     TT_COUNT,
 } Token_Type;
     
-char *token_types[TT_COUNT] = {"none", "write", "string"};
+char *token_types[TT_COUNT] = {"none", "write", "exit", "string", "integer"};
     
 typedef struct {
     size_t row;
     size_t col;
     char *filename;
 } Location;
+    
+typedef union {
+    String_View string;
+    int integer;
+} Var_Value;
 
 typedef struct {
     Token_Type type;
     Location loc;
-    String_View value;
+    Var_Value value;
 } Token;
     
 typedef struct {
@@ -72,11 +79,6 @@ typedef enum {
     VAR_STRING,
     VAR_INT,
 } Var_Type;
-
-typedef union {
-    String_View string;
-    int integer;
-} Var_Value;
 
 typedef struct {
     Var_Type type;
@@ -106,12 +108,21 @@ typedef union {
     Native_Call native;
 } Node_Value;
 
-typedef struct Node {
-    struct Node *left;
-    struct Node *right;    
+typedef struct {
     Node_Type type;
     Node_Value value;
 } Node;
+    
+typedef struct {
+    Node *data;
+    size_t count;
+    size_t capacity;
+} Nodes;
+    
+void usage(char *file) {
+    fprintf(stderr, "usage: %s <filename.cano>\n", file);
+    exit(1);
+}
 
 String_View read_file_to_view(char *filename) {
     FILE *file = fopen(filename, "r");
@@ -134,37 +145,16 @@ bool isword(char c) {
 Token_Type get_token_type(char *str, size_t str_s) {
     if(strncmp(str, "write", str_s) == 0) {
         return TT_WRITE;
+    } else if(strncmp(str, "exit", str_s) == 0) {
+        return TT_EXIT;
     }
     return TT_NONE;
 }
     
 void print_token_arr(Token_Arr arr) {
     for(size_t i = 0; i < arr.count; i++) {
-        printf("%zu:%zu: %s, "View_Print"\n", arr.data[i].loc.row, arr.data[i].loc.col, token_types[arr.data[i].type], View_Arg(arr.data[i].value));
+        printf("%zu:%zu: %s, "View_Print"\n", arr.data[i].loc.row, arr.data[i].loc.col, token_types[arr.data[i].type], View_Arg(arr.data[i].value.string));
     }
-}
-    
-void print_tree(Node *node) {
-    if(node == NULL) return;
-    printf("%s: ", node_types[node->type]);
-    switch(node->type) {
-        case TYPE_NATIVE:
-            printf("%d ", node->value.native.type);
-            switch(node->value.native.args.data[0].type) {
-                case VAR_STRING:
-                    printf(View_Print"\n", View_Arg(node->value.native.args.data[0].value.string));            
-                    break;
-                case VAR_INT:
-                    printf("%d\n", node->value.native.args.data[0].value.integer);
-                    break;
-            }
-            break;
-        default:
-            printf("\n");
-            break;
-    }
-    print_tree(node->left);
-    print_tree(node->right);
 }
 
 Token_Arr lex(String_View view) {
@@ -203,7 +193,23 @@ Token_Arr lex(String_View view) {
             }
             if(view.len == 0 && *view.data != '"') exit(1);
             token.type = TT_STRING;
-            token.value = view_create(word.data, word.count);
+            token.value.string = view_create(word.data, word.count);
+            DA_APPEND(&tokens, token);
+        } else if(isdigit(*view.data)) {
+            Token token = {0};
+            token.loc = (Location){
+                .row = row,
+                .col = view.data-start+1,
+            };
+        
+            Dynamic_Str num = {0};
+            while(view.len > 0 && isdigit(*view.data)) {
+                DA_APPEND(&num, *view.data);
+                view = view_chop_left(view);
+            }
+            DA_APPEND(&num, '\0');
+            token.type = TT_INT;
+            token.value.integer = atoi(num.data);
             DA_APPEND(&tokens, token);
         } else if(*view.data == '\n') {
             row++;
@@ -226,75 +232,102 @@ void expect_token(Token_Arr *tokens, Token_Type type) {
 
 Node *create_node(Node_Type type) {
     Node *node = malloc(sizeof(Node));
-    node->left = NULL;
-    node->right = NULL;
     node->type = type;
     return node;
 }
     
-Node *parse(Token_Arr tokens) {
-    Node *root = create_node(TYPE_ROOT);
+Nodes parse(Token_Arr tokens) {
+    Nodes root = {0};
     while(tokens.count > 0) {
         switch(tokens.data[0].type) {
-            case TT_WRITE:
-                Node *node = create_node(TYPE_NATIVE);            
+            case TT_WRITE: {
+                Node node = {.type = TYPE_NATIVE};            
                 expect_token(&tokens, TT_STRING);            
                 Native_Call call = {0};
-                Arg arg = (Arg){.type=VAR_STRING, .value={tokens.data[0].value}};
+                Arg arg = (Arg){.type=VAR_STRING, .value.string=tokens.data[0].value.string};
                 DA_APPEND(&call.args, arg);
                 call.type = NATIVE_WRITE;
-                node->value.native = call;
-                root->left = node;
-                break;
+                node.value.native = call;
+                DA_APPEND(&root, node);
+            } break;
+            case TT_EXIT: {
+                Node node = {.type = TYPE_NATIVE};            
+                expect_token(&tokens, TT_INT);            
+                Native_Call call = {0};
+                Arg arg = (Arg){.type=VAR_INT, .value.integer=tokens.data[0].value.integer};
+                DA_APPEND(&call.args, arg);
+                call.type = NATIVE_EXIT;
+                node.value.native = call;
+                DA_APPEND(&root, node);
+            } break;
             case TT_STRING:
+            case TT_INT:            
             case TT_NONE:
             case TT_COUNT:
                 ASSERT(false, "unreachable");
         }
         token_consume(&tokens);
     }
-    root->right = create_node(TYPE_NATIVE);
-    Native_Call call = {0};
-    call.type = NATIVE_EXIT;
-    Arg arg = (Arg){.type=VAR_INT};
-    arg.value.integer = 0;
-    DA_APPEND(&call.args, arg);
-    root->right->value.native = call;
     return root;
 }
-    
-void generate(Node *node) {
-    if(node == NULL) return;
-    switch(node->type) {
-        case TYPE_NATIVE:
-            switch(node->value.native.type) {
-                case NATIVE_WRITE:
-                    ASSERT(node->value.native.args.count == 1, "too many arguments");
-                    if(node->value.native.args.data[0].type != VAR_STRING) exit(1);
-                    printf("push_str \""View_Print"\"\n", View_Arg(node->value.native.args.data[0].value.string));
-                    printf("push %d\n", STDOUT);
-                    printf("native %d\n", node->value.native.type);
-                    break;
-                case NATIVE_EXIT:
-                    ASSERT(node->value.native.args.count == 1, "too many arguments");
-                    if(node->value.native.args.data[0].type != VAR_INT) exit(1);
-                    printf("push %d\n", node->value.native.args.data[0].value.integer);
-                    printf("native %d\n", node->value.native.type);
-                    break;           
-                default:
-                    ASSERT(false, "unreachable");
-            }
-            break;
-        default:
-            break;
-    }    
-    generate(node->left);
-    generate(node->right);
+
+void strip_off_dot(char *str) {
+    while(*str != '\0' && *str != '.') {
+        str++;
+    }
+    *str = '\0';
 }
 
-int main() {
-    String_View view = read_file_to_view("cano.cano");
+char *append_tasm_ext(char *filename) {
+    size_t filename_s = strlen(filename);
+    char *output = malloc(sizeof(char)*filename_s);
+    strncpy(output, filename, filename_s);
+    strip_off_dot(output);
+    char *output_filename = malloc(sizeof(char)*strlen(output)+sizeof(".tasm"));
+    sprintf(output_filename, "%s.tasm", output);
+    return output_filename;
+}
+    
+void generate(Nodes nodes, char *filename) {
+    char *output = append_tasm_ext(filename);
+    FILE *file = fopen(output, "w");
+    for(size_t i = 0; i < nodes.count; i++) {
+        Node *node = &nodes.data[i];
+        switch(node->type) {
+            case TYPE_NATIVE:
+                switch(node->value.native.type) {
+                    case NATIVE_WRITE:
+                        ASSERT(node->value.native.args.count == 1, "too many arguments");
+                        if(node->value.native.args.data[0].type != VAR_STRING) exit(1);
+                        fprintf(file, "push_str \""View_Print"\"\n", View_Arg(node->value.native.args.data[0].value.string));
+                        fprintf(file, "push %d\n", STDOUT);
+                        fprintf(file, "native %d\n", node->value.native.type);
+                        break;
+                    case NATIVE_EXIT:
+                        ASSERT(node->value.native.args.count == 1, "too many arguments");
+                        if(node->value.native.args.data[0].type != VAR_INT) exit(1);
+                        fprintf(file, "push %d\n", node->value.native.args.data[0].value.integer);
+                        fprintf(file, "native %d\n", node->value.native.type);
+                        break;           
+                    default:
+                        ASSERT(false, "unreachable");
+                }
+                break;
+            default:
+                break;
+        }    
+    }
+    fprintf(file, "push 0\n");
+    fprintf(file, "native 60\n");    
+}
+
+int main(int argc, char *argv[]) {
+    if(argc != 2) {
+        usage(argv[0]);
+    }
+    char *filename = argv[1];
+    String_View view = read_file_to_view(filename);
     Token_Arr tokens = lex(view);
-    Node *root = parse(tokens);
-    generate(root);
+    Nodes root = parse(tokens);
+    generate(root, filename);
 }
