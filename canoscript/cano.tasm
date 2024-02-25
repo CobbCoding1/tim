@@ -1,3 +1,5 @@
 push_str "Hello, world"
 push 1
 native 1
+push 0
+native 60

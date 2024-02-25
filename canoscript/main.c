@@ -11,6 +11,8 @@
 #define NATIVE_WRITE 1
 #define NATIVE_EXIT 60
 
+#define STDOUT 1
+
 #define ASSERT(cond, ...) \
     do { \
         if (!(cond)) { \
@@ -260,10 +262,39 @@ Node *parse(Token_Arr tokens) {
     root->right->value.native = call;
     return root;
 }
+    
+void generate(Node *node) {
+    if(node == NULL) return;
+    switch(node->type) {
+        case TYPE_NATIVE:
+            switch(node->value.native.type) {
+                case NATIVE_WRITE:
+                    ASSERT(node->value.native.args.count == 1, "too many arguments");
+                    if(node->value.native.args.data[0].type != VAR_STRING) exit(1);
+                    printf("push_str \""View_Print"\"\n", View_Arg(node->value.native.args.data[0].value.string));
+                    printf("push %d\n", STDOUT);
+                    printf("native %d\n", node->value.native.type);
+                    break;
+                case NATIVE_EXIT:
+                    ASSERT(node->value.native.args.count == 1, "too many arguments");
+                    if(node->value.native.args.data[0].type != VAR_INT) exit(1);
+                    printf("push %d\n", node->value.native.args.data[0].value.integer);
+                    printf("native %d\n", node->value.native.type);
+                    break;           
+                default:
+                    ASSERT(false, "unreachable");
+            }
+            break;
+        default:
+            break;
+    }    
+    generate(node->left);
+    generate(node->right);
+}
 
 int main() {
     String_View view = read_file_to_view("cano.cano");
     Token_Arr tokens = lex(view);
     Node *root = parse(tokens);
-    print_tree(root);
+    generate(root);
 }
