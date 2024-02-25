@@ -1,2 +1,2 @@
 set -xe
-gcc main.c -o main -Wall -Wextra
+gcc main.c -o main -Wall -Wextra -ggdb2

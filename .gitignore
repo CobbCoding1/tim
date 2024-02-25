@@ -4,3 +4,4 @@ tire
 *.exe
 *.tim
 build/
+canoscript/main
