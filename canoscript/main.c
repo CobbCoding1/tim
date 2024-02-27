@@ -26,7 +26,7 @@
 #define DA_APPEND(da, item) do {                                                       \
     if ((da)->count >= (da)->capacity) {                                               \
         (da)->capacity = (da)->capacity == 0 ? DATA_START_CAPACITY : (da)->capacity*2; \
-        (da)->data = realloc((da)->data, (da)->capacity*sizeof(*(da)->data));       \
+        (da)->data = custom_realloc((da)->data, (da)->capacity*sizeof(*(da)->data));       \
         ASSERT((da)->data != NULL, "outta ram");                               \
     }                                                                                  \
     (da)->data[(da)->count++] = (item);                                               \
@@ -37,6 +37,12 @@
         fprintf(stderr, "%zu:%zu: error:"str"\n", loc.row, loc.col, __VA_ARGS__);  \
         exit(1);                                                                   \
     } while(0)
+    
+void *custom_realloc(void *ptr, size_t size) {
+    void *new_ptr = realloc(ptr, size);
+    ASSERT(new_ptr != NULL, "buy more ram");
+    return new_ptr;
+}
 
     
 typedef struct {
@@ -51,18 +57,23 @@ typedef enum {
     TT_NONE = 0,
     TT_WRITE,
     TT_EXIT,
+    TT_PLUS,
+    TT_MINUS,
+    TT_MULT,
+    TT_DIV,
     TT_STRING,
     TT_INT,
     TT_COUNT,
 } Token_Type;
     
-char *token_types[TT_COUNT] = {"none", "write", "exit", "string", "integer"};
+char *token_types[TT_COUNT] = {"none", "write", "exit", "+", "-", "*", "/", "string", "integer"};
     
 typedef struct {
     size_t row;
     size_t col;
     char *filename;
 } Location;
+
     
 typedef union {
     String_View string;
@@ -82,14 +93,66 @@ typedef struct {
 } Token_Arr;
     
 // Parsing
+
+typedef enum {
+    OP_PLUS,
+    OP_MINUS,
+    OP_MULT,
+    OP_DIV,
+} Operator_Type;
+
+typedef enum {
+    PREC_1,
+    PREC_2,
+    PREC_COUNT,
+} Precedence;
+
+typedef struct {
+    Operator_Type type;
+    Precedence precedence;
+} Operator;
+
+struct Expr;    
+
+typedef struct {
+    struct Expr *lhs;
+    struct Expr *rhs;
+    Operator op;
+} Bin_Expr;
+
+typedef enum {
+    EXPR_BIN,    
+    EXPR_INT,
+} Expr_Type;
+    
+typedef union {
+    Bin_Expr bin;
+    int integer;
+} Expr_Value;
+
+typedef struct Expr {
+    Expr_Value value;
+    Expr_Type type;   
+} Expr;
+
 typedef enum {
     VAR_STRING,
     VAR_INT,
 } Var_Type;
 
 typedef struct {
-    Var_Type type;
-    Var_Value value; 
+    String_View string;
+    Expr *expr;
+} Arg_Value;
+    
+typedef enum {
+    ARG_STRING,
+    ARG_EXPR,
+} Arg_Type;
+
+typedef struct {
+    Arg_Type type;
+    Arg_Value value; 
 } Arg;
     
 typedef struct {
@@ -102,10 +165,11 @@ typedef struct {
     Args args;
     int type;
 } Native_Call;
-
+    
 typedef enum {
     TYPE_ROOT = 0,
     TYPE_NATIVE,
+    TYPE_EXPR,
     TYPE_COUNT,
 } Node_Type;
     
@@ -113,6 +177,7 @@ char *node_types[TYPE_COUNT] = {"root", "native"};
 
 typedef union {
     Native_Call native;
+    Expr expr;
 } Node_Value;
 
 typedef struct {
@@ -160,7 +225,7 @@ String_View read_file_to_view(char *filename) {
     size_t len = ftell(file);
     fseek(file, 0, SEEK_SET);    
     
-    char *data = malloc(sizeof(char)*len);
+    char *data = custom_realloc(NULL, sizeof(char)*len);
     fread(data, sizeof(char), len, file);
     
     fclose(file);
@@ -178,6 +243,43 @@ Token_Type get_token_type(char *str, size_t str_s) {
         return TT_EXIT;
     }
     return TT_NONE;
+}
+    
+bool is_operator(char c) {
+    switch(c) {
+        case '+':
+        case '-':
+        case '*':
+        case '/':
+            return true;        
+        default:
+            return false;
+    }
+}
+    
+Token create_operator_token(size_t row, size_t col, char c) {
+    Token token = {0};
+    token.loc = (Location){
+        .row = row,
+        .col = col,
+    };
+    switch(c) {
+        case '+':
+            token.type = TT_PLUS;
+            break;
+        case '-':
+            token.type = TT_MINUS;
+            break;
+        case '*':
+            token.type = TT_MULT;
+            break;
+        case '/':
+            token.type = TT_DIV;
+            break;
+        default:
+            ASSERT(false, "unreachable");
+    }
+    return token;
 }
     
 void print_token_arr(Token_Arr arr) {
@@ -251,6 +353,9 @@ Token_Arr lex(String_View view) {
             token.type = TT_INT;
             token.value.integer = atoi(num.data);
             DA_APPEND(&tokens, token);
+        } else if(is_operator(*view.data)) {
+            Token token = create_operator_token(row, view.data-start+1, *view.data);
+            DA_APPEND(&tokens, token);
         } else if(*view.data == '\n') {
             row++;
         }
@@ -265,6 +370,13 @@ void token_consume(Token_Arr *tokens) {
     tokens->data++;
 }
 
+Token token_peek(Token_Arr *tokens, size_t peek_by) {
+    if(tokens->count < peek_by) {
+        PRINT_ERROR((Location){0}, "error: token count was %zu but expected %zu\n", tokens->count, peek_by);    
+    }
+    return tokens->data[peek_by];
+}
+
 void expect_token(Token_Arr *tokens, Token_Type type) {
     token_consume(tokens);
     if(tokens->data[0].type != type) {
@@ -274,11 +386,68 @@ void expect_token(Token_Arr *tokens, Token_Type type) {
 }
 
 Node *create_node(Node_Type type) {
-    Node *node = malloc(sizeof(Node));
+    Node *node = custom_realloc(NULL, sizeof(Node));
     node->type = type;
     return node;
 }
 
+Operator create_operator(Location loc, Token_Type type) {
+    Operator op = {0};
+    switch(type) {
+        case TT_PLUS:
+            op.type = OP_PLUS;
+            op.precedence = PREC_1;
+            break;        
+        case TT_MINUS:
+            op.type = OP_MINUS;
+            op.precedence = PREC_1;
+            break;        
+        case TT_MULT:
+            op.type = OP_MULT;
+            op.precedence = PREC_2;
+            break;        
+        case TT_DIV:
+            op.type = OP_DIV;
+            op.precedence = PREC_2;
+            break;
+        default:
+            PRINT_ERROR(loc, "expected operator but found: %s\n", token_types[type]);
+    }
+    return op;
+}
+
+bool token_is_op(Token token) {
+    switch(token.type) {
+        case TT_PLUS:
+        case TT_MINUS:
+        case TT_MULT:
+        case TT_DIV:
+            return true;    
+        default:
+            return false;
+    }
+}
+    
+Expr *parse_expr(Token_Arr *tokens) {
+    Expr *expr = custom_realloc(NULL, sizeof(Expr));
+    Token op_token = token_peek(tokens, 1);
+    if(!token_is_op(op_token)) {
+        expr->type = EXPR_INT;
+        expr->value.integer = tokens->data[0].value.integer;
+    } else {
+        expr->type = EXPR_BIN;
+        expr->value.bin.op = create_operator(tokens->data[1].loc, op_token.type);
+        expr->value.bin.lhs = custom_realloc(NULL, sizeof(Expr));
+        expr->value.bin.lhs->value.integer = tokens->data[0].value.integer;
+        token_consume(tokens);
+        token_consume(tokens);        
+        expr->value.bin.rhs = parse_expr(tokens);
+        //printf("lhs: %d, rhs: %d\n", expr->value.bin.lhs->value.integer, expr->value.bin.rhs->value.integer);     
+        expr->value.bin.lhs->type = EXPR_INT;
+    }
+    return expr;
+}
+        
 Node parse_native_node(Token_Arr *tokens, Token_Type type, int native_value) {
     Node node = {.type = TYPE_NATIVE, .loc = tokens->data[0].loc};            
     expect_token(tokens, type);        
@@ -286,10 +455,12 @@ Node parse_native_node(Token_Arr *tokens, Token_Type type, int native_value) {
     Arg arg = {0};
     switch(type) {
         case TT_INT: {
-            arg = (Arg){.type=VAR_INT, .value.integer=tokens->data[0].value.integer};        
+            Expr *expr = parse_expr(tokens);
+            arg = (Arg){.type=ARG_EXPR, .value.expr=expr};
+            //arg = (Arg){.type=VAR_INT, .value.integer=tokens->data[0].value.integer};        
         } break;
         case TT_STRING: {
-            arg = (Arg){.type=VAR_STRING, .value.string=tokens->data[0].value.string};                
+            arg = (Arg){.type=ARG_STRING, .value.string=tokens->data[0].value.string};                
         } break;
         default:
             PRINT_ERROR(tokens->data[0].loc, "unexpected type: %s\n", token_types[type]);
@@ -314,6 +485,10 @@ Nodes parse(Token_Arr tokens) {
             } break;
             case TT_STRING:
             case TT_INT:            
+            case TT_PLUS:
+            case TT_MINUS:
+            case TT_MULT:
+            case TT_DIV:
             case TT_NONE:
             case TT_COUNT:
                 ASSERT(false, "unreachable");
@@ -332,12 +507,39 @@ void strip_off_dot(char *str) {
 
 char *append_tasm_ext(char *filename) {
     size_t filename_s = strlen(filename);
-    char *output = malloc(sizeof(char)*filename_s);
+    char *output = custom_realloc(NULL, sizeof(char)*filename_s);
     strncpy(output, filename, filename_s);
     strip_off_dot(output);
-    char *output_filename = malloc(sizeof(char)*strlen(output)+sizeof(".tasm"));
+    char *output_filename = custom_realloc(NULL, sizeof(char)*strlen(output)+sizeof(".tasm"));
     sprintf(output_filename, "%s.tasm", output);
     return output_filename;
+}
+    
+char *op_types[] = {"add", "sub", "mul", "div"};
+
+void print_expr(Expr *expr) {
+    if(expr->type == EXPR_INT) {
+        printf("int: %d\n", expr->value.integer);
+    } else {
+        print_expr(expr->value.bin.lhs);
+        print_expr(expr->value.bin.rhs);        
+    }
+}
+
+void compile_expr(FILE *file, Expr *expr) {
+    //print_expr(expr);
+    switch(expr->type) {
+        case EXPR_BIN:
+            compile_expr(file, expr->value.bin.lhs);
+            compile_expr(file, expr->value.bin.rhs);
+            fprintf(file, "%s\n", op_types[expr->value.bin.op.type]);                    
+            break;
+        case EXPR_INT:
+            fprintf(file, "push %d\n", expr->value.integer);        
+            break;
+        default:
+            ASSERT(false, "UNREACHABLE");
+    }       
 }
     
 void generate(Nodes nodes, char *filename) {
@@ -350,7 +552,7 @@ void generate(Nodes nodes, char *filename) {
                 switch(node->value.native.type) {
                     case NATIVE_WRITE:
                         ASSERT(node->value.native.args.count == 1, "too many arguments");
-                        if(node->value.native.args.data[0].type != VAR_STRING) {
+                        if(node->value.native.args.data[0].type != ARG_STRING) {
                             PRINT_ERROR(node->loc, "expected type string, but found type %s", node_types[node->value.native.args.data[0].type]);
                         };
                         fprintf(file, "; write\n");
@@ -360,11 +562,12 @@ void generate(Nodes nodes, char *filename) {
                         break;
                     case NATIVE_EXIT:
                         ASSERT(node->value.native.args.count == 1, "too many arguments");
-                        if(node->value.native.args.data[0].type != VAR_INT) {
+                        if(node->value.native.args.data[0].type != ARG_EXPR) {
                             PRINT_ERROR(node->loc, "expected type int, but found type %s", node_types[node->value.native.args.data[0].type]);
                         };
                         fprintf(file, "; exit\n");                
-                        fprintf(file, "push %d\n", node->value.native.args.data[0].value.integer);
+                        compile_expr(file, node->value.native.args.data[0].value.expr);
+                        //fprintf(file, "push %d\n", node->value.native.args.data[0].value.integer);
                         fprintf(file, "native %d\n", node->value.native.type);
                         break;           
                     default:
