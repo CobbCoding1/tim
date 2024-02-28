@@ -365,10 +365,10 @@ Token_Arr lex(String_View view) {
     return tokens;
 }
     
-void token_consume(Token_Arr *tokens) {
+Token token_consume(Token_Arr *tokens) {
     assert(tokens->count != 0);
     tokens->count--;
-    tokens->data++;
+    return *tokens->data++;
 }
 
 Token token_peek(Token_Arr *tokens, size_t peek_by) {
@@ -449,9 +449,10 @@ void print_expr(Expr *expr) {
     }
 }
     
+// parse primary takes a primary, currently only supports integers
+// but in the future, could be identifiers, etc
 Expr *parse_primary(Token_Arr *tokens) {
-    Token token = tokens->data[0];        
-    token_consume(tokens);
+    Token token = token_consume(tokens);
     if(token.type != TT_INT) {
         PRINT_ERROR(token.loc, "expected %s but found %s", token_types[TT_INT], token_types[token.type]);
     }
@@ -465,6 +466,7 @@ Expr *parse_primary(Token_Arr *tokens) {
     
 Expr *parse_expr_1(Token_Arr *tokens, Expr *lhs, Precedence min_precedence) {
     Token lookahead = token_peek(tokens, 0);
+    // make sure it's an operator
     while(op_get_prec(lookahead.type) >= min_precedence) {
         Operator op = create_operator(lookahead.type);    
         if(tokens->count > 0) {
@@ -475,6 +477,8 @@ Expr *parse_expr_1(Token_Arr *tokens, Expr *lhs, Precedence min_precedence) {
                 rhs = parse_expr_1(tokens, rhs, op.precedence+1);
                 lookahead = token_peek(tokens, 0);
             }
+            // allocate new lhs node to ensure old lhs does not point
+            // at itself, getting stuck in a loop
             Expr *new_lhs = custom_realloc(NULL, sizeof(Expr));
             *new_lhs = (Expr) {
                 .type = EXPR_BIN,

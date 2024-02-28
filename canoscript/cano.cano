@@ -1,2 +1,2 @@
 write "Hello, world\n"
-exit 2 * 2 + 5 * 3 / 2
+exit 2
