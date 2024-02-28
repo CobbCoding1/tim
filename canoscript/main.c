@@ -37,13 +37,13 @@
         fprintf(stderr, "%zu:%zu: error:"str"\n", loc.row, loc.col, __VA_ARGS__);  \
         exit(1);                                                                   \
     } while(0)
-    
+
 void *custom_realloc(void *ptr, size_t size) {
     void *new_ptr = realloc(ptr, size);
     ASSERT(new_ptr != NULL, "buy more ram");
+    ptr = new_ptr;
     return new_ptr;
 }
-
     
 typedef struct {
     char *data;
@@ -102,6 +102,7 @@ typedef enum {
 } Operator_Type;
 
 typedef enum {
+    PREC_0 = 0,
     PREC_1,
     PREC_2,
     PREC_COUNT,
@@ -371,8 +372,8 @@ void token_consume(Token_Arr *tokens) {
 }
 
 Token token_peek(Token_Arr *tokens, size_t peek_by) {
-    if(tokens->count < peek_by) {
-        PRINT_ERROR((Location){0}, "error: token count was %zu but expected %zu\n", tokens->count, peek_by);    
+    if(tokens->count <= peek_by) {
+        return (Token){0};
     }
     return tokens->data[peek_by];
 }
@@ -390,28 +391,39 @@ Node *create_node(Node_Type type) {
     node->type = type;
     return node;
 }
+    
+Precedence op_get_prec(Token_Type type) {
+    switch(type) {
+        case TT_PLUS:
+        case TT_MINUS:
+            return PREC_1;
+        case TT_MULT:
+        case TT_DIV:
+            return PREC_2;
+            break;
+        default:
+            return PREC_0;
+    }
+}
 
-Operator create_operator(Location loc, Token_Type type) {
+Operator create_operator(Token_Type type) {
     Operator op = {0};
+    op.precedence = op_get_prec(type);
     switch(type) {
         case TT_PLUS:
             op.type = OP_PLUS;
-            op.precedence = PREC_1;
             break;        
         case TT_MINUS:
             op.type = OP_MINUS;
-            op.precedence = PREC_1;
             break;        
         case TT_MULT:
             op.type = OP_MULT;
-            op.precedence = PREC_2;
             break;        
         case TT_DIV:
             op.type = OP_DIV;
-            op.precedence = PREC_2;
             break;
         default:
-            PRINT_ERROR(loc, "expected operator but found: %s\n", token_types[type]);
+            return (Operator){0};
     }
     return op;
 }
@@ -427,27 +439,59 @@ bool token_is_op(Token token) {
             return false;
     }
 }
-    
-Expr *parse_expr(Token_Arr *tokens) {
-    Expr *expr = custom_realloc(NULL, sizeof(Expr));
-    Token op_token = token_peek(tokens, 1);
-    if(!token_is_op(op_token)) {
-        expr->type = EXPR_INT;
-        expr->value.integer = tokens->data[0].value.integer;
+
+void print_expr(Expr *expr) {
+    if(expr->type == EXPR_INT) {
+        printf("int: %d\n", expr->value.integer);
     } else {
-        expr->type = EXPR_BIN;
-        expr->value.bin.op = create_operator(tokens->data[1].loc, op_token.type);
-        expr->value.bin.lhs = custom_realloc(NULL, sizeof(Expr));
-        expr->value.bin.lhs->value.integer = tokens->data[0].value.integer;
-        token_consume(tokens);
-        token_consume(tokens);        
-        expr->value.bin.rhs = parse_expr(tokens);
-        //printf("lhs: %d, rhs: %d\n", expr->value.bin.lhs->value.integer, expr->value.bin.rhs->value.integer);     
-        expr->value.bin.lhs->type = EXPR_INT;
+        print_expr(expr->value.bin.lhs);
+        print_expr(expr->value.bin.rhs);        
     }
+}
+    
+Expr *parse_primary(Token_Arr *tokens) {
+    Token token = tokens->data[0];        
+    token_consume(tokens);
+    if(token.type != TT_INT) {
+        PRINT_ERROR(token.loc, "expected %s but found %s", token_types[TT_INT], token_types[token.type]);
+    }
+    Expr *expr = custom_realloc(NULL, sizeof(Expr));   
+    *expr = (Expr){
+        .type = EXPR_INT,
+        .value.integer = token.value.integer,
+    };
     return expr;
 }
-        
+    
+Expr *parse_expr_1(Token_Arr *tokens, Expr *lhs, Precedence min_precedence) {
+    Token lookahead = token_peek(tokens, 0);
+    while(op_get_prec(lookahead.type) >= min_precedence) {
+        Operator op = create_operator(lookahead.type);    
+        if(tokens->count > 0) {
+            token_consume(tokens);
+            Expr *rhs = parse_primary(tokens);
+            lookahead = token_peek(tokens, 0);
+            while(op_get_prec(lookahead.type) > op.precedence) {
+                rhs = parse_expr_1(tokens, rhs, op.precedence+1);
+                lookahead = token_peek(tokens, 0);
+            }
+            Expr *new_lhs = custom_realloc(NULL, sizeof(Expr));
+            *new_lhs = (Expr) {
+                .type = EXPR_BIN,
+                .value.bin.lhs = lhs,
+                .value.bin.rhs = rhs,
+                .value.bin.op = op,
+            };
+            lhs = new_lhs;
+        }
+    }
+    return lhs;
+}
+    
+Expr *parse_expr(Token_Arr *tokens) {
+    return parse_expr_1(tokens, parse_primary(tokens), 1);
+}
+
 Node parse_native_node(Token_Arr *tokens, Token_Type type, int native_value) {
     Node node = {.type = TYPE_NATIVE, .loc = tokens->data[0].loc};            
     expect_token(tokens, type);        
@@ -455,9 +499,7 @@ Node parse_native_node(Token_Arr *tokens, Token_Type type, int native_value) {
     Arg arg = {0};
     switch(type) {
         case TT_INT: {
-            Expr *expr = parse_expr(tokens);
-            arg = (Arg){.type=ARG_EXPR, .value.expr=expr};
-            //arg = (Arg){.type=VAR_INT, .value.integer=tokens->data[0].value.integer};        
+            arg = (Arg){.type=ARG_EXPR, .value.expr=parse_expr(tokens)};
         } break;
         case TT_STRING: {
             arg = (Arg){.type=ARG_STRING, .value.string=tokens->data[0].value.string};                
@@ -493,7 +535,7 @@ Nodes parse(Token_Arr tokens) {
             case TT_COUNT:
                 ASSERT(false, "unreachable");
         }
-        token_consume(&tokens);
+        if(tokens.count > 0) token_consume(&tokens);
     }
     return root;
 }
@@ -516,15 +558,6 @@ char *append_tasm_ext(char *filename) {
 }
     
 char *op_types[] = {"add", "sub", "mul", "div"};
-
-void print_expr(Expr *expr) {
-    if(expr->type == EXPR_INT) {
-        printf("int: %d\n", expr->value.integer);
-    } else {
-        print_expr(expr->value.bin.lhs);
-        print_expr(expr->value.bin.rhs);        
-    }
-}
 
 void compile_expr(FILE *file, Expr *expr) {
     //print_expr(expr);

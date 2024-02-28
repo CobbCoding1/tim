@@ -3,10 +3,14 @@ push_str "Hello, world\n"
 push 1
 native 1
 ; exit
-push 6
-push 3
-push 5
+push 2
+push 2
 mul
+push 5
+push 3
+mul
+push 2
+div
 add
 native 60
 ; exit
