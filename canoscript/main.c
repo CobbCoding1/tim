@@ -59,6 +59,7 @@ typedef enum {
     TT_IDENT,
     TT_COLON,
     TT_EQ,
+    TT_DOUBLE_EQ,
     TT_PLUS,
     TT_MINUS,
     TT_MULT,
@@ -66,11 +67,15 @@ typedef enum {
     TT_STRING,
     TT_INT,
     TT_TYPE,
+    TT_IF,
+    TT_THEN,
+    TT_END,
     TT_COUNT,
 } Token_Type;
     
 char *token_types[TT_COUNT] = {"none", "write", "exit", "ident", 
-                               ":", "=", "+", "-", "*", "/", "string", "integer", "type"};
+                               ":", "=", "==", "+", "-", "*", "/", 
+                               "string", "integer", "type", "if", "then", "end"};
     
 typedef struct {
     size_t row;
@@ -113,6 +118,7 @@ typedef enum {
     OP_MINUS,
     OP_MULT,
     OP_DIV,
+    OP_EQ,
 } Operator_Type;
 
 typedef enum {
@@ -190,10 +196,13 @@ typedef enum {
     TYPE_EXPR,
     TYPE_VAR_DEC,
     TYPE_VAR_REASSIGN,
+    TYPE_IF,
+    TYPE_THEN,
+    TYPE_END,
     TYPE_COUNT,
 } Node_Type;
     
-char *node_types[TYPE_COUNT] = {"root", "native", "expr", "var_dec", "var_reassign"};
+char *node_types[TYPE_COUNT] = {"root", "native", "expr", "var_dec", "var_reassign", "if", "then", "end"};
 
 typedef struct {
     String_View name;
@@ -211,7 +220,9 @@ typedef struct {
 typedef union {
     Native_Call native;
     Expr expr;
+    Expr *conditional;
     Variable var;
+    size_t label;
 } Node_Value;
 
 typedef struct {
@@ -235,7 +246,6 @@ void usage(char *file) {
     fprintf(stderr, "usage: %s <filename.cano>\n", file);
     exit(1);
 }
-    
 
 bool is_valid_escape(char c){
     switch(c){
@@ -280,6 +290,12 @@ Token_Type get_token_type(char *str, size_t str_s) {
         return TT_WRITE;
     } else if(strncmp(str, "exit", str_s) == 0) {
         return TT_EXIT;
+    } else if(strncmp(str, "if", str_s) == 0) {
+        return TT_IF;
+    } else if(strncmp(str, "then", str_s) == 0) {
+        return TT_THEN;
+    } else if(strncmp(str, "end", str_s) == 0) {
+        return TT_END;        
     }
     return TT_NONE;
 }
@@ -294,25 +310,28 @@ Token handle_data_type(Token token, String_View str) {
     return token;
 }
     
-bool is_operator(char c) {
-    switch(c) {
+bool is_operator(String_View view) {
+    switch(*view.data) {
         case '+':
         case '-':
         case '*':
         case '/':
             return true;        
+        case '=':
+            if(view.len > 1 && view.data[1] == '=') return true;        
+            return false;
         default:
             return false;
     }
 }
     
-Token create_operator_token(size_t row, size_t col, char c) {
+Token create_operator_token(size_t row, size_t col, String_View *view) {
     Token token = {0};
     token.loc = (Location){
         .row = row,
         .col = col,
     };
-    switch(c) {
+    switch(*view->data) {
         case '+':
             token.type = TT_PLUS;
             break;
@@ -324,6 +343,12 @@ Token create_operator_token(size_t row, size_t col, char c) {
             break;
         case '/':
             token.type = TT_DIV;
+            break;
+        case '=':
+            if(view->len > 1 && view->data[1] == '=') {
+                *view = view_chop_left(*view);
+                token.type = TT_DOUBLE_EQ;        
+            }
             break;
         default:
             ASSERT(false, "unreachable");
@@ -408,14 +433,14 @@ Token_Arr lex(String_View view) {
             token.type = TT_INT;
             token.value.integer = atoi(num.data);
             DA_APPEND(&tokens, token);                        
-        } else if(is_operator(*view.data)) {
-            Token token = create_operator_token(row, view.data-start, *view.data);
+        } else if(is_operator(view)) {
+            Token token = create_operator_token(row, view.data-start, &view);
             DA_APPEND(&tokens, token);                                        
         } else if(*view.data == ':') {
             Token token = {.loc = (Location) {.row=row, .col=view.data-start}, .type = TT_COLON};
             DA_APPEND(&tokens, token);                                                    
         } else if(*view.data == '=') {
-            Token token = {.loc = (Location) {.row=row, .col=view.data-start}, .type = TT_EQ};
+            Token token = {.loc = (Location) {.row=row, .col=view.data-start}, .type = TT_EQ};   
             DA_APPEND(&tokens, token);                                                    
         } else if(*view.data == '\n') {
             row++;
@@ -457,6 +482,7 @@ Precedence op_get_prec(Token_Type type) {
     switch(type) {
         case TT_PLUS:
         case TT_MINUS:
+        case TT_DOUBLE_EQ:
             return PREC_1;
         case TT_MULT:
         case TT_DIV:
@@ -482,6 +508,9 @@ Operator create_operator(Token_Type type) {
             break;        
         case TT_DIV:
             op.type = OP_DIV;
+            break;
+        case TT_DOUBLE_EQ:
+            op.type = OP_EQ;
             break;
         default:
             return (Operator){0};
@@ -534,6 +563,14 @@ void gen_inswap(FILE *file, size_t value) {
     fprintf(file, "inswap %zu\n", value);
 }
     
+void gen_zjmp(Program_State *state, FILE *file, size_t label) {
+    fprintf(file, "zjmp label%zu\n", label);
+    state->stack_s--;
+}
+    
+void gen_label(FILE *file, size_t label) {
+    fprintf(file, "label%zu:\n", label);
+}
     
 // parse primary takes a primary, currently only supports integers
 // but in the future, could be identifiers, etc
@@ -614,9 +651,17 @@ Node parse_native_node(Token_Arr *tokens, Token_Type type, int native_value) {
     node.value.native = call;
     return node;
 }
+
+typedef struct {
+    size_t *data;
+    size_t count;
+    size_t capacity;
+} Label_Stack;
     
 Nodes parse(Token_Arr tokens) {
     Nodes root = {0};
+    size_t cur_label = 0;
+    Label_Stack labels = {0};
     while(tokens.count > 0) {
         switch(tokens.data[0].type) {
             case TT_WRITE: {
@@ -627,7 +672,6 @@ Nodes parse(Token_Arr tokens) {
             case TT_EXIT: {
                 Node node = parse_native_node(&tokens, TT_INT, NATIVE_EXIT);
                 DA_APPEND(&root, node);
-                if(tokens.count > 0) token_consume(&tokens);                
             } break;
             case TT_IDENT: {
                 Node node = {0};
@@ -658,11 +702,31 @@ Nodes parse(Token_Arr tokens) {
                 }
                 DA_APPEND(&root, node);                
             } break;       
+            case TT_IF: {
+                Node node = {.type = TYPE_IF};
+                token_consume(&tokens);
+                node.value.conditional = parse_expr(&tokens);
+                DA_APPEND(&root, node);
+            } break;
+            case TT_THEN: {
+                Node node = {.type = TYPE_THEN};
+                token_consume(&tokens);                
+                node.value.label = cur_label;
+                DA_APPEND(&labels, cur_label++);
+                DA_APPEND(&root, node);                
+            } break;
+            case TT_END: {
+                Node node = {.type = TYPE_END};
+                token_consume(&tokens);                                
+                node.value.label = labels.data[--labels.count];
+                DA_APPEND(&root, node);                
+            } break;
             case TT_STRING:
             case TT_INT:            
             case TT_PLUS:
             case TT_COLON:
             case TT_EQ:
+            case TT_DOUBLE_EQ:
             case TT_TYPE:
             case TT_MINUS:
             case TT_MULT:
@@ -693,7 +757,7 @@ char *append_tasm_ext(char *filename) {
     return output_filename;
 }
     
-char *op_types[] = {"add", "sub", "mul", "div"};
+char *op_types[] = {"add", "sub", "mul", "div", "cmpe"};
 
 int get_variable_location(Program_State *state, String_View name) {
     for(size_t i = 0; i < state->vars.count; i++) {
@@ -780,6 +844,17 @@ void generate(Program_State *state, Nodes nodes, char *filename) {
                 gen_pop(state, file);
                 DA_APPEND(&state->vars, node->value.var);    
             } break;
+            case TYPE_IF: {
+                fprintf(file, "; if statement\n");                                                                                
+                fprintf(file, "; expr\n");                                                                            
+                compile_expr(state, file, node->value.conditional);
+            } break;
+            case TYPE_THEN: {
+                gen_zjmp(state, file, node->value.label);            
+            } break;
+            case TYPE_END: {
+                gen_label(file, node->value.label);
+            } break;
             default:
                 break;
         }    
@@ -797,6 +872,7 @@ int main(int argc, char *argv[]) {
     char *filename = argv[1];
     String_View view = read_file_to_view(filename);
     Token_Arr tokens = lex(view);
+    //print_token_arr(tokens);
     Nodes root = parse(tokens);
     Program_State state = {0};
     generate(&state, root, filename);

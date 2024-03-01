@@ -2,12 +2,39 @@
 push_str "Hello, world\n"
 push 1
 native 1
-push 15
-push 15
+; var declaration
+; expr
+push 13
+; if statement
+; expr
+indup 0
+push 13
 cmpe
-print
-print
-print
+zjmp label0
+; write
+push_str "Foo is 13\n"
+push 1
+native 1
+; if statement
+; expr
+push 13
+push 14
+cmpe
+zjmp label1
+; write
+push_str "13 is 13\n"
+push 1
+native 1
+label1:
+label0:
+; write
+push_str "Foo is not 13\n"
+push 1
+native 1
+; exit
+; expr
+push 12
+native 60
 ; exit
 push 0
 native 60
