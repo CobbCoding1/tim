@@ -5,19 +5,10 @@ native 1
 ; var declaration
 ; expr
 push 12
-push 5
-add
-push 7
-add
-; var declaration
-; expr
-indup 0
 ; var reassign
 ; expr
 push 15
-push 5
-add
-inswap 2
+inswap 1
 pop
 ; exit
 ; expr

@@ -346,7 +346,7 @@ Token_Arr lex(String_View view) {
             Token token = {0};
             token.loc = (Location){
                 .row = row,
-                .col = view.data-start+1,
+                .col = view.data-start,
             };
             Dynamic_Str word = {0};    
             DA_APPEND(&word, *view.data);                    
@@ -371,7 +371,7 @@ Token_Arr lex(String_View view) {
             Token token = {0};
             token.loc = (Location){
                 .row = row,
-                .col = view.data-start+1,
+                .col = view.data-start,
             };
             Dynamic_Str word = {0};
             view = view_chop_left(view);
@@ -396,7 +396,7 @@ Token_Arr lex(String_View view) {
             Token token = {0};
             token.loc = (Location){
                 .row = row,
-                .col = view.data-start+1,
+                .col = view.data-start,
             };
         
             Dynamic_Str num = {0};
@@ -409,16 +409,17 @@ Token_Arr lex(String_View view) {
             token.value.integer = atoi(num.data);
             DA_APPEND(&tokens, token);                        
         } else if(is_operator(*view.data)) {
-            Token token = create_operator_token(row, view.data-start+1, *view.data);
+            Token token = create_operator_token(row, view.data-start, *view.data);
             DA_APPEND(&tokens, token);                                        
         } else if(*view.data == ':') {
-            Token token = {.loc = (Location) {.row=row, .col=view.data-start+1}, .type = TT_COLON};
+            Token token = {.loc = (Location) {.row=row, .col=view.data-start}, .type = TT_COLON};
             DA_APPEND(&tokens, token);                                                    
         } else if(*view.data == '=') {
-            Token token = {.loc = (Location) {.row=row, .col=view.data-start+1}, .type = TT_EQ};
+            Token token = {.loc = (Location) {.row=row, .col=view.data-start}, .type = TT_EQ};
             DA_APPEND(&tokens, token);                                                    
         } else if(*view.data == '\n') {
             row++;
+            start = view.data;
         }
         view = view_chop_left(view);
     }
@@ -593,13 +594,16 @@ Node parse_native_node(Token_Arr *tokens, Token_Type type, int native_value) {
     Node node = {.type = TYPE_NATIVE, .loc = tokens->data[0].loc};            
     //expect_token(tokens, type);        
     token_consume(tokens);
+    Token token = tokens->data[0];
     Native_Call call = {0};
     Arg arg = {0};
     switch(type) {
         case TT_INT: {
+            if(token.type != TT_INT && token.type != TT_IDENT) PRINT_ERROR(token.loc, "expected int or ident but found %s\n", token_types[token.type]);
             arg = (Arg){.type=ARG_EXPR, .value.expr=parse_expr(tokens)};
         } break;
         case TT_STRING: {
+            if(token.type != TT_STRING) PRINT_ERROR(token.loc, "expected string but found %s\n", token_types[token.type]);        
             arg = (Arg){.type=ARG_STRING, .value.string=tokens->data[0].value.string};                
         } break;
         default:

@@ -1,5 +1,4 @@
 write "Hello, world\n"
-foo: int = 12 + 5 + 7
-x: int = foo
-foo = 15 + 5
-exit x
+foo: int = 12
+foo = 15
+exit foo
