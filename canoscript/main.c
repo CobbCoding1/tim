@@ -34,7 +34,7 @@
     
 #define PRINT_ERROR(loc, str, ...)                                                 \
     do {                                                                           \
-        fprintf(stderr, "%zu:%zu: error:"str"\n", loc.row, loc.col, __VA_ARGS__);  \
+        fprintf(stderr, "%zu:%zu: error: "str"\n", loc.row, loc.col, __VA_ARGS__);  \
         exit(1);                                                                   \
     } while(0)
 
@@ -51,22 +51,26 @@ typedef struct {
     size_t capacity;
 } Dynamic_Str;
 
-
 // Lexing
 typedef enum {
     TT_NONE = 0,
     TT_WRITE,
     TT_EXIT,
+    TT_IDENT,
+    TT_COLON,
+    TT_EQ,
     TT_PLUS,
     TT_MINUS,
     TT_MULT,
     TT_DIV,
     TT_STRING,
     TT_INT,
+    TT_TYPE,
     TT_COUNT,
 } Token_Type;
     
-char *token_types[TT_COUNT] = {"none", "write", "exit", "+", "-", "*", "/", "string", "integer"};
+char *token_types[TT_COUNT] = {"none", "write", "exit", "ident", 
+                               ":", "=", "+", "-", "*", "/", "string", "integer", "type"};
     
 typedef struct {
     size_t row;
@@ -74,16 +78,26 @@ typedef struct {
     char *filename;
 } Location;
 
-    
+typedef enum {
+    TYPE_INT,
+    DATA_COUNT,
+} Type_Type;
+
+String_View data_types[DATA_COUNT] = {
+    {.data="int", .len=3},
+};    
+
 typedef union {
     String_View string;
+    String_View ident;
     int integer;
-} Var_Value;
+    Type_Type type;
+} Token_Value;
 
 typedef struct {
+    Token_Value value; 
     Token_Type type;
     Location loc;
-    Var_Value value;
 } Token;
     
 typedef struct {
@@ -124,11 +138,13 @@ typedef struct {
 typedef enum {
     EXPR_BIN,    
     EXPR_INT,
+    EXPR_VAR,
 } Expr_Type;
     
 typedef union {
     Bin_Expr bin;
     int integer;
+    String_View variable;
 } Expr_Value;
 
 typedef struct Expr {
@@ -171,14 +187,29 @@ typedef enum {
     TYPE_ROOT = 0,
     TYPE_NATIVE,
     TYPE_EXPR,
+    TYPE_VAR_DEC,
     TYPE_COUNT,
 } Node_Type;
     
-char *node_types[TYPE_COUNT] = {"root", "native"};
+char *node_types[TYPE_COUNT] = {"root", "native", "expr", "var"};
+
+typedef struct {
+    String_View name;
+    Type_Type type;
+    Expr *value;
+    size_t stack_pos;
+} Variable;
+    
+typedef struct {
+    Variable *data;
+    size_t count;
+    size_t capacity;
+} Variables;
 
 typedef union {
     Native_Call native;
     Expr expr;
+    Variable var;
 } Node_Value;
 
 typedef struct {
@@ -192,6 +223,11 @@ typedef struct {
     size_t count;
     size_t capacity;
 } Nodes;
+    
+typedef struct {
+    Variables vars;
+    size_t stack_s;
+} Program_State;
     
 void usage(char *file) {
     fprintf(stderr, "usage: %s <filename.cano>\n", file);
@@ -244,6 +280,16 @@ Token_Type get_token_type(char *str, size_t str_s) {
         return TT_EXIT;
     }
     return TT_NONE;
+}
+
+Token handle_data_type(Token token, String_View str) {
+    for(size_t i = 0; i < DATA_COUNT; i++) {
+        if(view_cmp(str, data_types[i])) {
+            token.type = TT_TYPE;
+            token.value.type = (Type_Type)i;
+        }
+    }
+    return token;
 }
     
 bool is_operator(char c) {
@@ -307,9 +353,15 @@ Token_Arr lex(String_View view) {
                 DA_APPEND(&word, *view.data);            
                 view = view_chop_left(view);    
             }
+            view.data--;
+            view.len++;
             token.type = get_token_type(word.data, word.count);
+            token = handle_data_type(token, view_create(word.data, word.count));
             if(token.type == TT_NONE) {
-                PRINT_ERROR(token.loc, "invalid token: %.*s", (int)word.count, word.data);            
+                token.type = TT_IDENT;
+                char *ident = custom_realloc(NULL, sizeof(char)*word.count);
+                strncpy(ident, word.data, word.count);
+                token.value.ident = view_create(ident, word.count);
             };
             DA_APPEND(&tokens, token);     
             free(word.data);
@@ -337,7 +389,7 @@ Token_Arr lex(String_View view) {
             };
             token.type = TT_STRING;
             token.value.string = view_create(word.data, word.count);
-            DA_APPEND(&tokens, token);
+            DA_APPEND(&tokens, token);                                    
         } else if(isdigit(*view.data)) {
             Token token = {0};
             token.loc = (Location){
@@ -353,10 +405,16 @@ Token_Arr lex(String_View view) {
             DA_APPEND(&num, '\0');
             token.type = TT_INT;
             token.value.integer = atoi(num.data);
-            DA_APPEND(&tokens, token);
+            DA_APPEND(&tokens, token);                        
         } else if(is_operator(*view.data)) {
             Token token = create_operator_token(row, view.data-start+1, *view.data);
-            DA_APPEND(&tokens, token);
+            DA_APPEND(&tokens, token);                                        
+        } else if(*view.data == ':') {
+            Token token = {.loc = (Location) {.row=row, .col=view.data-start+1}, .type = TT_COLON};
+            DA_APPEND(&tokens, token);                                                    
+        } else if(*view.data == '=') {
+            Token token = {.loc = (Location) {.row=row, .col=view.data-start+1}, .type = TT_EQ};
+            DA_APPEND(&tokens, token);                                                    
         } else if(*view.data == '\n') {
             row++;
         }
@@ -449,20 +507,43 @@ void print_expr(Expr *expr) {
     }
 }
     
+void gen_push(Program_State *state, FILE *file, int value) {
+    fprintf(file, "push %d\n", value);
+    state->stack_s++;   
+}
+
+void gen_push_str(Program_State *state, FILE *file, String_View value) {
+    fprintf(file, "push_str \""View_Print"\"\n", View_Arg(value));
+    state->stack_s++;
+}
+    
+void gen_indup(Program_State *state, FILE *file, size_t value) {
+    fprintf(file, "indup %zu\n", value);
+    state->stack_s++;
+}
+    
 // parse primary takes a primary, currently only supports integers
 // but in the future, could be identifiers, etc
 Expr *parse_primary(Token_Arr *tokens) {
     Token token = token_consume(tokens);
-    if(token.type != TT_INT) {
+    if(token.type != TT_INT && token.type != TT_IDENT) {
         PRINT_ERROR(token.loc, "expected %s but found %s", token_types[TT_INT], token_types[token.type]);
     }
     Expr *expr = custom_realloc(NULL, sizeof(Expr));   
-    *expr = (Expr){
-        .type = EXPR_INT,
-        .value.integer = token.value.integer,
-    };
+    if(token.type == TT_INT) {
+        *expr = (Expr){
+            .type = EXPR_INT,
+            .value.integer = token.value.integer,
+        };
+    } else {
+        *expr = (Expr){
+            .type = EXPR_VAR,
+            .value.variable = token.value.ident,
+        };
+    }
     return expr;
 }
+
     
 Expr *parse_expr_1(Token_Arr *tokens, Expr *lhs, Precedence min_precedence) {
     Token lookahead = token_peek(tokens, 0);
@@ -498,7 +579,8 @@ Expr *parse_expr(Token_Arr *tokens) {
 
 Node parse_native_node(Token_Arr *tokens, Token_Type type, int native_value) {
     Node node = {.type = TYPE_NATIVE, .loc = tokens->data[0].loc};            
-    expect_token(tokens, type);        
+    //expect_token(tokens, type);        
+    token_consume(tokens);
     Native_Call call = {0};
     Arg arg = {0};
     switch(type) {
@@ -524,22 +606,43 @@ Nodes parse(Token_Arr tokens) {
             case TT_WRITE: {
                 Node node = parse_native_node(&tokens, TT_STRING, NATIVE_WRITE);            
                 DA_APPEND(&root, node);
+                token_consume(&tokens);
             } break;
             case TT_EXIT: {
                 Node node = parse_native_node(&tokens, TT_INT, NATIVE_EXIT);
                 DA_APPEND(&root, node);
+                if(tokens.count > 0) token_consume(&tokens);                
             } break;
+            case TT_IDENT: {
+                Node node = {.type = TYPE_VAR_DEC};
+                node.value.var.name = tokens.data[0].value.ident;
+                expect_token(&tokens, TT_COLON);
+                
+                expect_token(&tokens, TT_TYPE);                
+                
+                node.value.var.type = tokens.data[0].value.type;
+                    
+                expect_token(&tokens, TT_EQ);                
+                token_consume(&tokens);
+                
+                node.value.var.value = parse_expr(&tokens);
+                //token_consume(&tokens);
+                DA_APPEND(&root, node);                
+            } break;       
             case TT_STRING:
             case TT_INT:            
             case TT_PLUS:
+            case TT_COLON:
+            case TT_EQ:
+            case TT_TYPE:
             case TT_MINUS:
             case TT_MULT:
             case TT_DIV:
             case TT_NONE:
             case TT_COUNT:
+                printf("type: %s %d\n", token_types[tokens.data[0].type], tokens.data[0].value.integer);
                 ASSERT(false, "unreachable");
         }
-        if(tokens.count > 0) token_consume(&tokens);
     }
     return root;
 }
@@ -563,23 +666,39 @@ char *append_tasm_ext(char *filename) {
     
 char *op_types[] = {"add", "sub", "mul", "div"};
 
-void compile_expr(FILE *file, Expr *expr) {
-    //print_expr(expr);
+int get_variable_location(Program_State *state, String_View name) {
+    for(size_t i = 0; i < state->vars.count; i++) {
+        if(view_cmp(state->vars.data[i].name, name)) {
+            return state->vars.data[i].stack_pos;
+        }
+    }
+    return -1;
+}
+
+void compile_expr(Program_State *state, FILE *file, Expr *expr) {
     switch(expr->type) {
         case EXPR_BIN:
-            compile_expr(file, expr->value.bin.lhs);
-            compile_expr(file, expr->value.bin.rhs);
+            compile_expr(state, file, expr->value.bin.lhs);
+            compile_expr(state, file, expr->value.bin.rhs);
             fprintf(file, "%s\n", op_types[expr->value.bin.op.type]);                    
+            state->stack_s--;
             break;
         case EXPR_INT:
-            fprintf(file, "push %d\n", expr->value.integer);        
+            gen_push(state, file, expr->value.integer);        
             break;
+        case EXPR_VAR: {
+            int index = get_variable_location(state, expr->value.variable);
+            if(index == -1) {
+                PRINT_ERROR((Location){0}, "variable "View_Print" referenced before assignment", View_Arg(expr->value.variable));
+            }
+            gen_indup(state, file, state->stack_s-index); 
+        } break;
         default:
             ASSERT(false, "UNREACHABLE");
     }       
 }
-    
-void generate(Nodes nodes, char *filename) {
+
+void generate(Program_State *state, Nodes nodes, char *filename) {
     char *output = append_tasm_ext(filename);
     FILE *file = fopen(output, "w");
     for(size_t i = 0; i < nodes.count; i++) {
@@ -593,9 +712,10 @@ void generate(Nodes nodes, char *filename) {
                             PRINT_ERROR(node->loc, "expected type string, but found type %s", node_types[node->value.native.args.data[0].type]);
                         };
                         fprintf(file, "; write\n");
-                        fprintf(file, "push_str \""View_Print"\"\n", View_Arg(node->value.native.args.data[0].value.string));
-                        fprintf(file, "push %d\n", STDOUT);
+                        gen_push_str(state, file, node->value.native.args.data[0].value.string);
+                        gen_push(state, file, STDOUT);
                         fprintf(file, "native %d\n", node->value.native.type);
+                        state->stack_s -= 2;
                         break;
                     case NATIVE_EXIT:
                         ASSERT(node->value.native.args.count == 1, "too many arguments");
@@ -603,21 +723,29 @@ void generate(Nodes nodes, char *filename) {
                             PRINT_ERROR(node->loc, "expected type int, but found type %s", node_types[node->value.native.args.data[0].type]);
                         };
                         fprintf(file, "; exit\n");                
-                        compile_expr(file, node->value.native.args.data[0].value.expr);
-                        //fprintf(file, "push %d\n", node->value.native.args.data[0].value.integer);
+                        fprintf(file, "; expr\n");                                
+                        compile_expr(state, file, node->value.native.args.data[0].value.expr);
                         fprintf(file, "native %d\n", node->value.native.type);
+                        state->stack_s--;
                         break;           
                     default:
                         ASSERT(false, "unreachable");
                 }
                 break;
+            case TYPE_VAR_DEC: {
+                fprintf(file, "; expr\n");                                            
+                compile_expr(state, file, node->value.var.value);
+                node->value.var.stack_pos = state->stack_s; 
+                DA_APPEND(&state->vars, node->value.var);    
+            } break;
             default:
                 break;
         }    
     }
     fprintf(file, "; exit\n");                
-    fprintf(file, "push 0\n");
+    gen_push(state, file, 0);
     fprintf(file, "native 60\n");
+    state->stack_s--;
 }
 
 int main(int argc, char *argv[]) {
@@ -628,5 +756,6 @@ int main(int argc, char *argv[]) {
     String_View view = read_file_to_view(filename);
     Token_Arr tokens = lex(view);
     Nodes root = parse(tokens);
-    generate(root, filename);
+    Program_State state = {0};
+    generate(&state, root, filename);
 }

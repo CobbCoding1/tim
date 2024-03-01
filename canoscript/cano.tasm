@@ -2,8 +2,27 @@
 push_str "Hello, world\n"
 push 1
 native 1
+; write
+push_str "ASKDJASLKJDLSAK\n"
+push 1
+native 1
+; expr
+push 12
+push 5
+add
+push 7
+add
+; expr
+push 15
+; expr
+push 27
 ; exit
+; expr
+push 15
+indup 3
 push 2
+mul
+add
 native 60
 ; exit
 push 0
