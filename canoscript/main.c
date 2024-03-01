@@ -183,15 +183,17 @@ typedef struct {
     int type;
 } Native_Call;
     
+// TODO: rename TYPE_* to NODE_*
 typedef enum {
     TYPE_ROOT = 0,
     TYPE_NATIVE,
     TYPE_EXPR,
     TYPE_VAR_DEC,
+    TYPE_VAR_REASSIGN,
     TYPE_COUNT,
 } Node_Type;
     
-char *node_types[TYPE_COUNT] = {"root", "native", "expr", "var"};
+char *node_types[TYPE_COUNT] = {"root", "native", "expr", "var_dec", "var_reassign"};
 
 typedef struct {
     String_View name;
@@ -511,6 +513,11 @@ void gen_push(Program_State *state, FILE *file, int value) {
     fprintf(file, "push %d\n", value);
     state->stack_s++;   
 }
+    
+void gen_pop(Program_State *state, FILE *file) {
+    fprintf(file, "pop\n");
+    state->stack_s--;   
+}
 
 void gen_push_str(Program_State *state, FILE *file, String_View value) {
     fprintf(file, "push_str \""View_Print"\"\n", View_Arg(value));
@@ -521,6 +528,11 @@ void gen_indup(Program_State *state, FILE *file, size_t value) {
     fprintf(file, "indup %zu\n", value);
     state->stack_s++;
 }
+    
+void gen_inswap(FILE *file, size_t value) {
+    fprintf(file, "inswap %zu\n", value);
+}
+    
     
 // parse primary takes a primary, currently only supports integers
 // but in the future, could be identifiers, etc
@@ -614,19 +626,32 @@ Nodes parse(Token_Arr tokens) {
                 if(tokens.count > 0) token_consume(&tokens);                
             } break;
             case TT_IDENT: {
-                Node node = {.type = TYPE_VAR_DEC};
-                node.value.var.name = tokens.data[0].value.ident;
-                expect_token(&tokens, TT_COLON);
-                
-                expect_token(&tokens, TT_TYPE);                
-                
-                node.value.var.type = tokens.data[0].value.type;
+                Node node = {0};
+                Token token = token_peek(&tokens, 1);
+                if(token.type == TT_COLON) {
+                    node.type = TYPE_VAR_DEC;
+                    node.value.var.name = tokens.data[0].value.ident;
+                    expect_token(&tokens, TT_COLON);
                     
-                expect_token(&tokens, TT_EQ);                
-                token_consume(&tokens);
-                
-                node.value.var.value = parse_expr(&tokens);
-                //token_consume(&tokens);
+                    expect_token(&tokens, TT_TYPE);                
+                    
+                    node.value.var.type = tokens.data[0].value.type;
+                        
+                    expect_token(&tokens, TT_EQ);                
+                    token_consume(&tokens);
+                    
+                    node.value.var.value = parse_expr(&tokens);
+                } else if(token.type == TT_EQ) {
+                    node.type = TYPE_VAR_REASSIGN;
+                    node.value.var.name = tokens.data[0].value.ident;
+                        
+                    token_consume(&tokens);
+                    token_consume(&tokens);                    
+                    
+                    node.value.var.value = parse_expr(&tokens);
+                } else {
+                    PRINT_ERROR(token.loc, "unexpected token %s\n", token_types[token.type]);
+                }
                 DA_APPEND(&root, node);                
             } break;       
             case TT_STRING:
@@ -733,9 +758,22 @@ void generate(Program_State *state, Nodes nodes, char *filename) {
                 }
                 break;
             case TYPE_VAR_DEC: {
+                fprintf(file, "; var declaration\n");                                                        
                 fprintf(file, "; expr\n");                                            
                 compile_expr(state, file, node->value.var.value);
                 node->value.var.stack_pos = state->stack_s; 
+                DA_APPEND(&state->vars, node->value.var);    
+            } break;
+            case TYPE_VAR_REASSIGN: {
+                fprintf(file, "; var reassign\n");                                            
+                fprintf(file, "; expr\n");                                                                
+                compile_expr(state, file, node->value.var.value);
+                int index = get_variable_location(state, node->value.var.name);
+                if(index == -1) {
+                    PRINT_ERROR((Location){0}, "variable "View_Print" referenced before assignment", View_Arg(node->value.var.name));
+                }
+                gen_inswap(file, state->stack_s-index);    
+                gen_pop(state, file);
                 DA_APPEND(&state->vars, node->value.var);    
             } break;
             default:

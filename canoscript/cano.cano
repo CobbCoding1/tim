@@ -1,6 +1,5 @@
 write "Hello, world\n"
-write "ASKDJASLKJDLSAK\n"
 foo: int = 12 + 5 + 7
-another: int = foo
-var: int = 27
-exit another
+x: int = foo
+foo = 15 + 5
+exit x
