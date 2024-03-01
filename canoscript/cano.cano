@@ -1,6 +1,6 @@
 write "Hello, world\n"
 write "ASKDJASLKJDLSAK\n"
 foo: int = 12 + 5 + 7
-another: int = 15
+another: int = foo
 var: int = 27
-exit 15 + foo * 2
+exit another

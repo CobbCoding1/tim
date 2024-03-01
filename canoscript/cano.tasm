@@ -13,16 +13,12 @@ add
 push 7
 add
 ; expr
-push 15
+indup 0
 ; expr
 push 27
 ; exit
 ; expr
-push 15
-indup 3
-push 2
-mul
-add
+indup 1
 native 60
 ; exit
 push 0
