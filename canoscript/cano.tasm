@@ -2,18 +2,12 @@
 push_str "Hello, world\n"
 push 1
 native 1
-; var declaration
-; expr
-push 12
-; var reassign
-; expr
 push 15
-inswap 1
-pop
-; exit
-; expr
-indup 0
-native 60
+push 15
+cmpe
+print
+print
+print
 ; exit
 push 0
 native 60

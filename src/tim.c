@@ -590,6 +590,7 @@ void run_instructions(Machine *machine){
             case INST_CMPE: {
                 a = machine->stack[machine->stack_size - 1];
                 b = machine->stack[machine->stack_size - 2];
+                machine->stack_size -= 2;
                 int result = (int)a.type;
                 switch(result){
                     case 0:
@@ -610,6 +611,7 @@ void run_instructions(Machine *machine){
             case INST_CMPNE: {
                 a = machine->stack[machine->stack_size - 1];
                 b = machine->stack[machine->stack_size - 2];
+                machine->stack_size -= 2;
                 int result = (int)a.type;
                 switch(result){
                     case 0:
@@ -630,6 +632,7 @@ void run_instructions(Machine *machine){
             case INST_CMPG: {
                 a = machine->stack[machine->stack_size - 1];
                 b = machine->stack[machine->stack_size - 2];
+                machine->stack_size -= 2;
                 int result = (int)a.type;
                 switch(result){
                     case 0:
@@ -650,6 +653,7 @@ void run_instructions(Machine *machine){
             case INST_CMPL: {
                 a = machine->stack[machine->stack_size - 1];
                 b = machine->stack[machine->stack_size - 2];
+                machine->stack_size -= 2;
                 int result = (int)a.type;
                 switch(result){
                     case 0:
@@ -670,6 +674,7 @@ void run_instructions(Machine *machine){
             case INST_CMPGE: {
                 a = machine->stack[machine->stack_size - 1];
                 b = machine->stack[machine->stack_size - 2];
+                machine->stack_size -= 2;
                 int result = (int)a.type;
                 switch(result){
                     case 0:
@@ -690,6 +695,7 @@ void run_instructions(Machine *machine){
             case INST_CMPLE: {
                 a = machine->stack[machine->stack_size - 1];
                 b = machine->stack[machine->stack_size - 2];
+                machine->stack_size -= 2;
                 int result = (int)a.type;
                 switch(result){
                     case 0:
