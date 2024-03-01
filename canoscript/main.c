@@ -60,6 +60,11 @@ typedef enum {
     TT_COLON,
     TT_EQ,
     TT_DOUBLE_EQ,
+    TT_NOT_EQ,
+    TT_GREATER_EQ,
+    TT_LESS_EQ,
+    TT_GREATER,
+    TT_LESS,
     TT_PLUS,
     TT_MINUS,
     TT_MULT,
@@ -74,7 +79,7 @@ typedef enum {
 } Token_Type;
     
 char *token_types[TT_COUNT] = {"none", "write", "exit", "ident", 
-                               ":", "=", "==", "+", "-", "*", "/", 
+                               ":", "=", "==", "!=", ">=", "<=", ">", "<", "+", "-", "*", "/", 
                                "string", "integer", "type", "if", "then", "end"};
     
 typedef struct {
@@ -119,6 +124,11 @@ typedef enum {
     OP_MULT,
     OP_DIV,
     OP_EQ,
+    OP_NOT_EQ,
+    OP_GREATER_EQ,
+    OP_LESS_EQ,
+    OP_GREATER,
+    OP_LESS,
 } Operator_Type;
 
 typedef enum {
@@ -127,7 +137,7 @@ typedef enum {
     PREC_2,
     PREC_COUNT,
 } Precedence;
-
+   
 typedef struct {
     Operator_Type type;
     Precedence precedence;
@@ -316,8 +326,13 @@ bool is_operator(String_View view) {
         case '-':
         case '*':
         case '/':
+        case '>':
+        case '<':
             return true;        
         case '=':
+            if(view.len > 1 && view.data[1] == '=') return true;        
+            return false;
+        case '!':
             if(view.len > 1 && view.data[1] == '=') return true;        
             return false;
         default:
@@ -348,6 +363,30 @@ Token create_operator_token(size_t row, size_t col, String_View *view) {
             if(view->len > 1 && view->data[1] == '=') {
                 *view = view_chop_left(*view);
                 token.type = TT_DOUBLE_EQ;        
+            }
+            break;
+        case '!':
+            if(view->len > 1 && view->data[1] == '=') {
+                *view = view_chop_left(*view);
+                token.type = TT_NOT_EQ;        
+            }
+            break;
+        case '>':
+            if(view->len > 1 && view->data[1] == '=') {
+                *view = view_chop_left(*view);
+                token.type = TT_GREATER_EQ;        
+            } else {
+                *view = view_chop_left(*view);
+                token.type = TT_GREATER;        
+            }
+            break;
+        case '<':
+            if(view->len > 1 && view->data[1] == '=') {
+                *view = view_chop_left(*view);
+                token.type = TT_LESS_EQ;        
+            } else {
+                *view = view_chop_left(*view);
+                token.type = TT_LESS;
             }
             break;
         default:
@@ -483,6 +522,11 @@ Precedence op_get_prec(Token_Type type) {
         case TT_PLUS:
         case TT_MINUS:
         case TT_DOUBLE_EQ:
+        case TT_NOT_EQ:
+        case TT_GREATER_EQ:
+        case TT_LESS_EQ:
+        case TT_GREATER:
+        case TT_LESS:
             return PREC_1;
         case TT_MULT:
         case TT_DIV:
@@ -511,6 +555,21 @@ Operator create_operator(Token_Type type) {
             break;
         case TT_DOUBLE_EQ:
             op.type = OP_EQ;
+            break;
+        case TT_NOT_EQ:
+            op.type = OP_NOT_EQ;
+            break;
+        case TT_GREATER_EQ:
+            op.type = OP_GREATER_EQ;
+            break;
+        case TT_LESS_EQ:
+            op.type = OP_LESS_EQ;
+            break;
+        case TT_GREATER:
+            op.type = OP_GREATER;
+            break;
+        case TT_LESS:
+            op.type = OP_LESS;
             break;
         default:
             return (Operator){0};
@@ -727,6 +786,11 @@ Nodes parse(Token_Arr tokens) {
             case TT_COLON:
             case TT_EQ:
             case TT_DOUBLE_EQ:
+            case TT_NOT_EQ:
+            case TT_GREATER_EQ:
+            case TT_LESS_EQ:
+            case TT_GREATER:
+            case TT_LESS:
             case TT_TYPE:
             case TT_MINUS:
             case TT_MULT:
@@ -757,7 +821,7 @@ char *append_tasm_ext(char *filename) {
     return output_filename;
 }
     
-char *op_types[] = {"add", "sub", "mul", "div", "cmpe"};
+char *op_types[] = {"add", "sub", "mul", "div", "cmpe", "cmpne", "cmpge", "cmple", "cmpg", "cmpl"};
 
 int get_variable_location(Program_State *state, String_View name) {
     for(size_t i = 0; i < state->vars.count; i++) {

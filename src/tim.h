@@ -106,7 +106,7 @@ typedef struct {
 
 #define CMP_AS_TYPE(type, op) \
     do{         \
-        if(a.word.type op b.word.type){     \
+        if(b.word.type op a.word.type){     \
             push(machine, yes, INT_TYPE);       \
         } else {                                \
             push(machine, no, INT_TYPE);        \

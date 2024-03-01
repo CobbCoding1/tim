@@ -1,6 +1,6 @@
 write "Hello, world\n"
-foo: int = 13
-if foo == 13 then
+foo: int = 12
+if foo > 12 then
     exit 15
 end
 exit 12
