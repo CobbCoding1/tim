@@ -3,7 +3,7 @@
 push 12
 ; var declaration
 ; expr
-push 3
+push 1
 ; if statement
 ; expr
 indup 0
@@ -12,34 +12,62 @@ cmpe
 ; then
 zjmp label0
 ; write
-push_str "is 1\n"
+push_str "x is 1\n"
 push 1
 native 1
 ; else statement
 jmp label1
 label0:
-; if statement
+; write
+push_str "x is not 1\n"
+push 1
+native 1
+; end
+label1:
+; while loop
 ; expr
+while0:
 indup 0
-push 2
-cmpe
+push 10
+cmple
 ; then
 zjmp label2
 ; write
-push_str "is 2\n"
+push_str "iteration...\n"
 push 1
 native 1
-; else statement
-jmp label3
+; var reassign
+; expr
+indup 0
+push 1
+add
+inswap 1
+pop
+; end
+jmp while0
 label2:
+; while loop
+; expr
+while1:
+indup 0
+push 0
+cmpg
+; then
+zjmp label3
 ; write
-push_str "is not 2 or 1\n"
+push_str "iteration 2...\n"
 push 1
 native 1
+; var reassign
+; expr
+indup 0
+push 1
+sub
+inswap 1
+pop
 ; end
+jmp while1
 label3:
-; end
-label1:
 ; exit
 ; expr
 indup 0

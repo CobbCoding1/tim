@@ -1010,7 +1010,7 @@ void generate(Program_State *state, Nodes nodes, char *filename) {
                 }
                 scope_end(state, file);                    
                 if(state->block_stack.data[--state->block_stack.count] == BLOCK_WHILE) {
-                    gen_while_jmp(file, node->value.label);
+                    gen_while_jmp(file, state->while_labels.data[--state->while_labels.count]);
                 }
                 gen_label(file, node->value.label);
             } break;
