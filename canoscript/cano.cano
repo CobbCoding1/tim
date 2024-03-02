@@ -1,7 +1,11 @@
 foo: int = 12
-x: int = 1
-while x < 10 then
-    write "iteration...\n"
-    x = x + 1 
+x: int = 3
+if x == 1 then
+    write "is 1\n"
+else if x == 2 then
+        write "is 2\n"
+else
+    write "is not 2 or 1\n"
+end
 end
 exit x 

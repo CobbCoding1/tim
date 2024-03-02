@@ -73,6 +73,7 @@ typedef enum {
     TT_INT,
     TT_TYPE,
     TT_IF,
+    TT_ELSE,
     TT_WHILE,
     TT_THEN,
     TT_END,
@@ -81,7 +82,7 @@ typedef enum {
     
 char *token_types[TT_COUNT] = {"none", "write", "exit", "ident", 
                                ":", "=", "==", "!=", ">=", "<=", ">", "<", "+", "-", "*", "/", 
-                               "string", "integer", "type", "if", "while", "then", "end"};
+                               "string", "integer", "type", "if", "else", "while", "then", "end"};
     
 typedef struct {
     size_t row;
@@ -208,13 +209,15 @@ typedef enum {
     TYPE_VAR_DEC,
     TYPE_VAR_REASSIGN,
     TYPE_IF,
+    TYPE_ELSE,
     TYPE_WHILE,
     TYPE_THEN,
     TYPE_END,
     TYPE_COUNT,
 } Node_Type;
     
-char *node_types[TYPE_COUNT] = {"root", "native", "expr", "var_dec", "var_reassign", "if", "then", "end"};
+char *node_types[TYPE_COUNT] = {"root", "native", "expr", "var_dec", "var_reassign",
+                                "if", "else", "while", "then", "end"};
 
 typedef struct {
     String_View name;
@@ -228,6 +231,11 @@ typedef struct {
     size_t count;
     size_t capacity;
 } Variables;
+    
+typedef struct {
+    size_t label1;
+    size_t label2;
+} Else_Label;
 
 typedef union {
     Native_Call native;
@@ -235,6 +243,7 @@ typedef union {
     Expr *conditional;
     Variable var;
     size_t label;
+    Else_Label el;
 } Node_Value;
 
 typedef struct {
@@ -257,6 +266,7 @@ typedef struct {
 
 typedef enum {
     BLOCK_IF,
+    BLOCK_ELSE,
     BLOCK_WHILE,
 } Block_Type;
     
@@ -325,6 +335,8 @@ Token_Type get_token_type(char *str, size_t str_s) {
         return TT_EXIT;
     } else if(strncmp(str, "if", str_s) == 0) {
         return TT_IF;
+    } else if(strncmp(str, "else", str_s) == 0) {
+        return TT_ELSE;  
     } else if (strncmp(str, "while", str_s) == 0) {
         return TT_WHILE;  
     } else if(strncmp(str, "then", str_s) == 0) {
@@ -798,6 +810,14 @@ Nodes parse(Token_Arr tokens) {
                 node.value.conditional = parse_expr(&tokens);
                 DA_APPEND(&root, node);
             } break;
+            case TT_ELSE: {
+                Node node = {.type = TYPE_ELSE};
+                token_consume(&tokens);
+                node.value.el.label1 = labels.data[--labels.count];                
+                node.value.el.label2 = cur_label;
+                DA_APPEND(&labels, cur_label++);
+                DA_APPEND(&root, node);                
+            } break;
             case TT_WHILE: {
                 Node node = {.type = TYPE_WHILE};
                 token_consume(&tokens);
@@ -960,8 +980,18 @@ void generate(Program_State *state, Nodes nodes, char *filename) {
                 DA_APPEND(&state->block_stack, BLOCK_IF);
                 compile_expr(state, file, node->value.conditional);
             } break;
+            case TYPE_ELSE: {
+                fprintf(file, "; else statement\n");                                                                                
+                if(state->block_stack.data[--state->block_stack.count] == BLOCK_IF) {
+                    gen_jmp(file, node->value.el.label2);
+                } else {
+                    PRINT_ERROR((Location){0}, "expected if but found %d\n", state->block_stack.data[state->block_stack.count]);
+                }
+                DA_APPEND(&state->block_stack, BLOCK_ELSE);                
+                gen_label(file, node->value.el.label1);
+            } break;
             case TYPE_WHILE: {
-                fprintf(file, "; if statement\n");                                                                                
+                fprintf(file, "; while loop\n");                                                                                
                 fprintf(file, "; expr\n");                                                                            
                 DA_APPEND(&state->block_stack, BLOCK_WHILE);
                 DA_APPEND(&state->while_labels, state->while_label);
@@ -969,18 +999,20 @@ void generate(Program_State *state, Nodes nodes, char *filename) {
                 compile_expr(state, file, node->value.conditional);
             } break;
             case TYPE_THEN: {
+                fprintf(file, "; then\n");                                                                                
                 gen_zjmp(state, file, node->value.label);            
                 DA_APPEND(&state->scope_stack, state->stack_s);
             } break;
             case TYPE_END: {
+                fprintf(file, "; end\n");                                                                                            
                 if(state->block_stack.count == 0) {
                     PRINT_ERROR((Location){0}, "error: block stack: %zu\n", state->block_stack.count);
                 }
+                scope_end(state, file);                    
                 if(state->block_stack.data[--state->block_stack.count] == BLOCK_WHILE) {
                     gen_while_jmp(file, node->value.label);
                 }
                 gen_label(file, node->value.label);
-                scope_end(state, file);
             } break;
             default:
                 break;
@@ -999,7 +1031,6 @@ int main(int argc, char *argv[]) {
     char *filename = argv[1];
     String_View view = read_file_to_view(filename);
     Token_Arr tokens = lex(view);
-    //print_token_arr(tokens);
     Nodes root = parse(tokens);
     Program_State state = {0};
     generate(&state, root, filename);

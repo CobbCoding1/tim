@@ -3,27 +3,43 @@
 push 12
 ; var declaration
 ; expr
-push 1
+push 3
 ; if statement
 ; expr
-while0:
 indup 0
-push 10
-cmpl
+push 1
+cmpe
+; then
 zjmp label0
 ; write
-push_str "iteration...\n"
+push_str "is 1\n"
 push 1
 native 1
-; var reassign
+; else statement
+jmp label1
+label0:
+; if statement
 ; expr
 indup 0
+push 2
+cmpe
+; then
+zjmp label2
+; write
+push_str "is 2\n"
 push 1
-add
-inswap 1
-pop
-jmp while0
-label0:
+native 1
+; else statement
+jmp label3
+label2:
+; write
+push_str "is not 2 or 1\n"
+push 1
+native 1
+; end
+label3:
+; end
+label1:
 ; exit
 ; expr
 indup 0
