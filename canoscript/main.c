@@ -73,6 +73,7 @@ typedef enum {
     TT_INT,
     TT_TYPE,
     TT_IF,
+    TT_WHILE,
     TT_THEN,
     TT_END,
     TT_COUNT,
@@ -80,7 +81,7 @@ typedef enum {
     
 char *token_types[TT_COUNT] = {"none", "write", "exit", "ident", 
                                ":", "=", "==", "!=", ">=", "<=", ">", "<", "+", "-", "*", "/", 
-                               "string", "integer", "type", "if", "then", "end"};
+                               "string", "integer", "type", "if", "while", "then", "end"};
     
 typedef struct {
     size_t row;
@@ -207,6 +208,7 @@ typedef enum {
     TYPE_VAR_DEC,
     TYPE_VAR_REASSIGN,
     TYPE_IF,
+    TYPE_WHILE,
     TYPE_THEN,
     TYPE_END,
     TYPE_COUNT,
@@ -253,10 +255,24 @@ typedef struct {
     size_t capacity;
 } Size_Stack;
 
+typedef enum {
+    BLOCK_IF,
+    BLOCK_WHILE,
+} Block_Type;
+    
+typedef struct {
+    Block_Type *data;
+    size_t count;
+    size_t capacity;    
+} Block_Stack;
+
 typedef struct {
     Variables vars;
     size_t stack_s;
     Size_Stack scope_stack;
+    size_t while_label;
+    Size_Stack while_labels;
+    Block_Stack block_stack;    
 } Program_State;
     
 void usage(char *file) {
@@ -309,6 +325,8 @@ Token_Type get_token_type(char *str, size_t str_s) {
         return TT_EXIT;
     } else if(strncmp(str, "if", str_s) == 0) {
         return TT_IF;
+    } else if (strncmp(str, "while", str_s) == 0) {
+        return TT_WHILE;  
     } else if(strncmp(str, "then", str_s) == 0) {
         return TT_THEN;
     } else if(strncmp(str, "end", str_s) == 0) {
@@ -634,8 +652,20 @@ void gen_zjmp(Program_State *state, FILE *file, size_t label) {
     state->stack_s--;
 }
     
+void gen_jmp(FILE *file, size_t label) {
+    fprintf(file, "jmp label%zu\n", label);
+}
+    
+void gen_while_jmp(FILE *file, size_t label) {
+    fprintf(file, "jmp while%zu\n", label);
+}
+    
 void gen_label(FILE *file, size_t label) {
     fprintf(file, "label%zu:\n", label);
+}
+    
+void gen_while_label(FILE *file, size_t label) {
+     fprintf(file, "while%zu:\n", label);   
 }
     
 // parse primary takes a primary, currently only supports integers
@@ -764,6 +794,12 @@ Nodes parse(Token_Arr tokens) {
             } break;       
             case TT_IF: {
                 Node node = {.type = TYPE_IF};
+                token_consume(&tokens);
+                node.value.conditional = parse_expr(&tokens);
+                DA_APPEND(&root, node);
+            } break;
+            case TT_WHILE: {
+                Node node = {.type = TYPE_WHILE};
                 token_consume(&tokens);
                 node.value.conditional = parse_expr(&tokens);
                 DA_APPEND(&root, node);
@@ -921,6 +957,15 @@ void generate(Program_State *state, Nodes nodes, char *filename) {
             case TYPE_IF: {
                 fprintf(file, "; if statement\n");                                                                                
                 fprintf(file, "; expr\n");                                                                            
+                DA_APPEND(&state->block_stack, BLOCK_IF);
+                compile_expr(state, file, node->value.conditional);
+            } break;
+            case TYPE_WHILE: {
+                fprintf(file, "; if statement\n");                                                                                
+                fprintf(file, "; expr\n");                                                                            
+                DA_APPEND(&state->block_stack, BLOCK_WHILE);
+                DA_APPEND(&state->while_labels, state->while_label);
+                gen_while_label(file, state->while_label++);
                 compile_expr(state, file, node->value.conditional);
             } break;
             case TYPE_THEN: {
@@ -928,6 +973,12 @@ void generate(Program_State *state, Nodes nodes, char *filename) {
                 DA_APPEND(&state->scope_stack, state->stack_s);
             } break;
             case TYPE_END: {
+                if(state->block_stack.count == 0) {
+                    PRINT_ERROR((Location){0}, "error: block stack: %zu\n", state->block_stack.count);
+                }
+                if(state->block_stack.data[--state->block_stack.count] == BLOCK_WHILE) {
+                    gen_while_jmp(file, node->value.label);
+                }
                 gen_label(file, node->value.label);
                 scope_end(state, file);
             } break;

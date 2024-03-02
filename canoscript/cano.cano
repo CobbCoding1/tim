@@ -1,7 +1,7 @@
-write "Hello, world\n"
 foo: int = 12
 x: int = 1
-if x < 10 then
-    bar: int = 15
+while x < 10 then
+    write "iteration...\n"
+    x = x + 1 
 end
-exit bar 
+exit x 

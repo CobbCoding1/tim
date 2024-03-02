@@ -1,7 +1,3 @@
-; write
-push_str "Hello, world\n"
-push 1
-native 1
 ; var declaration
 ; expr
 push 12
@@ -10,14 +6,28 @@ push 12
 push 1
 ; if statement
 ; expr
+while0:
 indup 0
 push 10
 cmpl
 zjmp label0
-; var declaration
+; write
+push_str "iteration...\n"
+push 1
+native 1
+; var reassign
 ; expr
-push 15
-label0:
+indup 0
+push 1
+add
+inswap 1
 pop
+jmp while0
+label0:
 ; exit
 ; expr
+indup 0
+native 60
+; exit
+push 0
+native 60
