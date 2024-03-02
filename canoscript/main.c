@@ -889,11 +889,11 @@ int get_variable_location(Program_State *state, String_View name) {
     return -1;
 }
 
-void compile_expr(Program_State *state, FILE *file, Expr *expr) {
+void gen_expr(Program_State *state, FILE *file, Expr *expr) {
     switch(expr->type) {
         case EXPR_BIN:
-            compile_expr(state, file, expr->value.bin.lhs);
-            compile_expr(state, file, expr->value.bin.rhs);
+            gen_expr(state, file, expr->value.bin.lhs);
+            gen_expr(state, file, expr->value.bin.rhs);
             fprintf(file, "%s\n", op_types[expr->value.bin.op.type]);                    
             state->stack_s--;
             break;
@@ -947,7 +947,7 @@ void generate(Program_State *state, Nodes nodes, char *filename) {
                         };
                         fprintf(file, "; exit\n");                
                         fprintf(file, "; expr\n");                                
-                        compile_expr(state, file, node->value.native.args.data[0].value.expr);
+                        gen_expr(state, file, node->value.native.args.data[0].value.expr);
                         fprintf(file, "native %d\n", node->value.native.type);
                         state->stack_s--;
                         break;           
@@ -958,14 +958,14 @@ void generate(Program_State *state, Nodes nodes, char *filename) {
             case TYPE_VAR_DEC: {
                 fprintf(file, "; var declaration\n");                                                        
                 fprintf(file, "; expr\n");                                            
-                compile_expr(state, file, node->value.var.value);
+                gen_expr(state, file, node->value.var.value);
                 node->value.var.stack_pos = state->stack_s; 
                 DA_APPEND(&state->vars, node->value.var);    
             } break;
             case TYPE_VAR_REASSIGN: {
                 fprintf(file, "; var reassign\n");                                            
                 fprintf(file, "; expr\n");                                                                
-                compile_expr(state, file, node->value.var.value);
+                gen_expr(state, file, node->value.var.value);
                 int index = get_variable_location(state, node->value.var.name);
                 if(index == -1) {
                     PRINT_ERROR((Location){0}, "variable "View_Print" referenced before assignment", View_Arg(node->value.var.name));
@@ -978,7 +978,7 @@ void generate(Program_State *state, Nodes nodes, char *filename) {
                 fprintf(file, "; if statement\n");                                                                                
                 fprintf(file, "; expr\n");                                                                            
                 DA_APPEND(&state->block_stack, BLOCK_IF);
-                compile_expr(state, file, node->value.conditional);
+                gen_expr(state, file, node->value.conditional);
             } break;
             case TYPE_ELSE: {
                 fprintf(file, "; else statement\n");                                                                                
@@ -996,7 +996,7 @@ void generate(Program_State *state, Nodes nodes, char *filename) {
                 DA_APPEND(&state->block_stack, BLOCK_WHILE);
                 DA_APPEND(&state->while_labels, state->while_label);
                 gen_while_label(file, state->while_label++);
-                compile_expr(state, file, node->value.conditional);
+                gen_expr(state, file, node->value.conditional);
             } break;
             case TYPE_THEN: {
                 fprintf(file, "; then\n");                                                                                
@@ -1004,7 +1004,7 @@ void generate(Program_State *state, Nodes nodes, char *filename) {
                 DA_APPEND(&state->scope_stack, state->stack_s);
             } break;
             case TYPE_END: {
-                fprintf(file, "; end\n");                                                                                            
+                fprintf(file, "; end\n");                                                                                                        
                 if(state->block_stack.count == 0) {
                     PRINT_ERROR((Location){0}, "error: block stack: %zu\n", state->block_stack.count);
                 }
