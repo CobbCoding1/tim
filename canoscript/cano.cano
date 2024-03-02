@@ -1,6 +1,7 @@
 write "Hello, world\n"
 foo: int = 12
-if foo > 12 then
-    exit 15
+x: int = 1
+if x < 10 then
+    bar: int = 15
 end
-exit 12
+exit bar 

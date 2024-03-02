@@ -5,21 +5,19 @@ native 1
 ; var declaration
 ; expr
 push 12
+; var declaration
+; expr
+push 1
 ; if statement
 ; expr
 indup 0
-push 12
-cmpg
+push 10
+cmpl
 zjmp label0
-; exit
+; var declaration
 ; expr
 push 15
-native 60
 label0:
+pop
 ; exit
 ; expr
-push 12
-native 60
-; exit
-push 0
-native 60

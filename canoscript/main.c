@@ -248,8 +248,15 @@ typedef struct {
 } Nodes;
     
 typedef struct {
+    size_t *data;
+    size_t count;
+    size_t capacity;
+} Size_Stack;
+
+typedef struct {
     Variables vars;
     size_t stack_s;
+    Size_Stack scope_stack;
 } Program_State;
     
 void usage(char *file) {
@@ -710,17 +717,11 @@ Node parse_native_node(Token_Arr *tokens, Token_Type type, int native_value) {
     node.value.native = call;
     return node;
 }
-
-typedef struct {
-    size_t *data;
-    size_t count;
-    size_t capacity;
-} Label_Stack;
     
 Nodes parse(Token_Arr tokens) {
     Nodes root = {0};
     size_t cur_label = 0;
-    Label_Stack labels = {0};
+    Size_Stack labels = {0};
     while(tokens.count > 0) {
         switch(tokens.data[0].type) {
             case TT_WRITE: {
@@ -855,6 +856,15 @@ void compile_expr(Program_State *state, FILE *file, Expr *expr) {
     }       
 }
 
+void scope_end(Program_State *state, FILE *file) {
+    while(state->stack_s > state->scope_stack.data[--state->scope_stack.count]) {
+        gen_pop(state, file);
+    }
+    while(state->vars.data[state->vars.count - 1].stack_pos > state->stack_s) {
+        state->vars.count--;
+    }
+}
+
 void generate(Program_State *state, Nodes nodes, char *filename) {
     char *output = append_tasm_ext(filename);
     FILE *file = fopen(output, "w");
@@ -915,9 +925,11 @@ void generate(Program_State *state, Nodes nodes, char *filename) {
             } break;
             case TYPE_THEN: {
                 gen_zjmp(state, file, node->value.label);            
+                DA_APPEND(&state->scope_stack, state->stack_s);
             } break;
             case TYPE_END: {
                 gen_label(file, node->value.label);
+                scope_end(state, file);
             } break;
             default:
                 break;
