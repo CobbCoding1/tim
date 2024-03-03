@@ -150,6 +150,7 @@ typedef struct {
 } Operator;
 
 struct Expr;    
+struct Node;
 
 typedef struct {
     struct Expr *lhs;
@@ -205,6 +206,29 @@ typedef struct {
     int type;
 } Native_Call;
     
+typedef struct {
+    Expr **data;
+    size_t count;
+    size_t capacity;
+} Exprs;
+
+typedef struct {
+    String_View name;
+    Exprs args;    
+} Func_Call;
+    
+typedef struct {
+    struct Node *data;
+    size_t count;
+    size_t capacity;
+} Func_Dec_Args;
+
+typedef struct {
+    String_View name;
+    Func_Dec_Args args;
+    Type_Type type;
+} Func_Dec;
+    
 // TODO: rename TYPE_* to NODE_*
 typedef enum {
     TYPE_ROOT = 0,
@@ -216,12 +240,15 @@ typedef enum {
     TYPE_ELSE,
     TYPE_WHILE,
     TYPE_THEN,
+    TYPE_FUNC_DEC,
+    TYPE_FUNC_CALL,
+    TYPE_RET,
     TYPE_END,
     TYPE_COUNT,
 } Node_Type;
     
 char *node_types[TYPE_COUNT] = {"root", "native", "expr", "var_dec", "var_reassign",
-                                "if", "else", "while", "then", "end"};
+                                "if", "else", "while", "then", "func_dec", "func_call", "return", "end"};
 
 typedef struct {
     String_View name;
@@ -240,17 +267,24 @@ typedef struct {
     size_t label1;
     size_t label2;
 } Else_Label;
+    
+typedef struct {
+    size_t num;
+    String_View function;
+} Label;
 
 typedef union {
     Native_Call native;
-    Expr expr;
+    Expr *expr;
     Expr *conditional;
     Variable var;
-    size_t label;
+    Label label;
     Else_Label el;
+    Func_Dec func_dec;
+    Func_Call func_call;
 } Node_Value;
 
-typedef struct {
+typedef struct Node {
     Node_Type type;
     Node_Value value;
     Location loc;
@@ -272,6 +306,7 @@ typedef enum {
     BLOCK_IF,
     BLOCK_ELSE,
     BLOCK_WHILE,
+    BLOCK_FUNC,
 } Block_Type;
     
 typedef struct {
@@ -346,7 +381,7 @@ Token_Type get_token_type(char *str, size_t str_s) {
     } else if(strncmp(str, "then", str_s) == 0) {
         return TT_THEN;
     } else if(strncmp(str, "return", str_s) == 0) {
-        return TT_THEN;
+        return TT_RET;
     } else if(strncmp(str, "end", str_s) == 0) {
         return TT_END;        
     }
@@ -511,6 +546,9 @@ Token_Arr lex(String_View view) {
                 DA_APPEND(&num, *view.data);
                 view = view_chop_left(view);
             }
+            view.data--;
+            view.len++;
+                
             DA_APPEND(&num, '\0');
             token.type = TT_INT;
             token.value.integer = atoi(num.data);
@@ -544,7 +582,7 @@ Token_Arr lex(String_View view) {
 }
     
 Token token_consume(Token_Arr *tokens) {
-    assert(tokens->count != 0);
+    ASSERT(tokens->count != 0, "out of tokens");
     tokens->count--;
     return *tokens->data++;
 }
@@ -776,10 +814,32 @@ Node parse_native_node(Token_Arr *tokens, Token_Type type, int native_value) {
     return node;
 }
     
+Node parse_var_dec(Token_Arr *tokens) {
+    Node node = {0};
+    node.type = TYPE_VAR_DEC;
+    node.value.var.name = tokens->data[0].value.ident;
+    expect_token(tokens, TT_COLON);
+    expect_token(tokens, TT_TYPE);                
+    node.value.var.type = tokens->data[0].value.type;
+    return node;
+}
+    
+typedef struct {
+    String_View value;
+    Block_Type type;
+} Block;
+
+typedef struct {
+    Block *data;
+    size_t count;
+    size_t capacity;
+} Blocks;
+    
 Nodes parse(Token_Arr tokens) {
     Nodes root = {0};
     size_t cur_label = 0;
     Size_Stack labels = {0};
+    Blocks block_stack = {0};
     while(tokens.count > 0) {
         switch(tokens.data[0].type) {
             case TT_WRITE: {
@@ -795,14 +855,7 @@ Nodes parse(Token_Arr tokens) {
                 Node node = {0};
                 Token token = token_peek(&tokens, 1);
                 if(token.type == TT_COLON) {
-                    node.type = TYPE_VAR_DEC;
-                    node.value.var.name = tokens.data[0].value.ident;
-                    expect_token(&tokens, TT_COLON);
-                    
-                    expect_token(&tokens, TT_TYPE);                
-                    
-                    node.value.var.type = tokens.data[0].value.type;
-                        
+                    node = parse_var_dec(&tokens);
                     expect_token(&tokens, TT_EQ);                
                     token_consume(&tokens);
                     
@@ -815,13 +868,52 @@ Nodes parse(Token_Arr tokens) {
                     token_consume(&tokens);                    
                     
                     node.value.var.value = parse_expr(&tokens);
+                } else if(token.type == TT_O_PAREN) {
+                    size_t i = 1;
+                    while(i < tokens.count+1 && token_peek(&tokens, i).type != TT_C_PAREN) i++;
+                    if(i == tokens.count) {
+                        PRINT_ERROR(tokens.data[0].loc, "expected %s\n", token_types[TT_C_PAREN]);
+                    }
+                    Token token = token_peek(&tokens, i+1);
+                    if(token.type == TT_COLON) {
+                        // function dec
+                        node.type = TYPE_FUNC_DEC;
+                        node.value.func_dec.name = tokens.data[0].value.ident;                                        
+                        Block block = {.type = BLOCK_FUNC, .value = node.value.func_dec.name};
+                        DA_APPEND(&block_stack, block);                        
+                        token_consume(&tokens);                        
+                        while(tokens.count > 0 && token_consume(&tokens).type != TT_C_PAREN) {
+                            Node arg = parse_var_dec(&tokens);
+                            DA_APPEND(&node.value.func_dec.args, arg);
+                            token_consume(&tokens);
+                        }
+                        token_consume(&tokens);                                                                        
+                        node.value.func_dec.type = tokens.data[0].value.type;
+                        token_consume(&tokens);                                                                        
+                    } else {
+                        // function call
+                        node.type = TYPE_FUNC_CALL;
+                        node.value.func_call.name = tokens.data[0].value.ident;                                        
+                        token_consume(&tokens);                                                
+                        while(tokens.count > 0 && token_consume(&tokens).type != TT_C_PAREN) {
+                            Expr *arg = parse_expr(&tokens);
+                            DA_APPEND(&node.value.func_call.args, arg);
+                        }
+                    }
                 } else {
                     PRINT_ERROR(token.loc, "unexpected token %s\n", token_types[token.type]);
                 }
                 DA_APPEND(&root, node);                
             } break;       
+            case TT_RET: {
+                Node node = {.type = TYPE_RET};
+                token_consume(&tokens);
+                node.value.expr = parse_expr(&tokens);
+                DA_APPEND(&root, node);                
+            } break;
             case TT_IF: {
                 Node node = {.type = TYPE_IF};
+                DA_APPEND(&block_stack, (Block){.type=BLOCK_IF});                
                 token_consume(&tokens);
                 node.value.conditional = parse_expr(&tokens);
                 DA_APPEND(&root, node);
@@ -829,6 +921,7 @@ Nodes parse(Token_Arr tokens) {
             case TT_ELSE: {
                 Node node = {.type = TYPE_ELSE};
                 token_consume(&tokens);
+                DA_APPEND(&block_stack, (Block){.type=BLOCK_ELSE});                                                
                 node.value.el.label1 = labels.data[--labels.count];                
                 node.value.el.label2 = cur_label;
                 DA_APPEND(&labels, cur_label++);
@@ -837,20 +930,25 @@ Nodes parse(Token_Arr tokens) {
             case TT_WHILE: {
                 Node node = {.type = TYPE_WHILE};
                 token_consume(&tokens);
+                DA_APPEND(&block_stack, (Block){.type=BLOCK_WHILE});                                
                 node.value.conditional = parse_expr(&tokens);
                 DA_APPEND(&root, node);
             } break;
             case TT_THEN: {
                 Node node = {.type = TYPE_THEN};
                 token_consume(&tokens);                
-                node.value.label = cur_label;
+                node.value.label.num = cur_label;
                 DA_APPEND(&labels, cur_label++);
                 DA_APPEND(&root, node);                
             } break;
             case TT_END: {
                 Node node = {.type = TYPE_END};
                 token_consume(&tokens);                                
-                node.value.label = labels.data[--labels.count];
+                if(block_stack.data[--block_stack.count].type == BLOCK_FUNC) {
+                    node.value.label.function = block_stack.data[block_stack.count].value;    
+                } else {
+                    node.value.label.num = labels.data[--labels.count];   
+                }
                 DA_APPEND(&root, node);                
             } break;
             case TT_STRING:
@@ -860,6 +958,9 @@ Nodes parse(Token_Arr tokens) {
             case TT_EQ:
             case TT_DOUBLE_EQ:
             case TT_NOT_EQ:
+            case TT_O_PAREN:
+            case TT_C_PAREN:
+            case TT_COMMA:
             case TT_GREATER_EQ:
             case TT_LESS_EQ:
             case TT_GREATER:
@@ -1016,7 +1117,7 @@ void generate(Program_State *state, Nodes nodes, char *filename) {
             } break;
             case TYPE_THEN: {
                 fprintf(file, "; then\n");                                                                                
-                gen_zjmp(state, file, node->value.label);            
+                gen_zjmp(state, file, node->value.label.num);            
                 DA_APPEND(&state->scope_stack, state->stack_s);
             } break;
             case TYPE_END: {
@@ -1029,7 +1130,7 @@ void generate(Program_State *state, Nodes nodes, char *filename) {
                     fprintf(file, "; end while\n");                                                                                                                
                     gen_while_jmp(file, state->while_labels.data[--state->while_labels.count]);
                 }
-                gen_label(file, node->value.label);
+                gen_label(file, node->value.label.num);
             } break;
             default:
                 break;
@@ -1048,6 +1149,7 @@ int main(int argc, char *argv[]) {
     char *filename = argv[1];
     String_View view = read_file_to_view(filename);
     Token_Arr tokens = lex(view);
+    print_token_arr(tokens);
     Nodes root = parse(tokens);
     Program_State state = {0};
     generate(&state, root, filename);
