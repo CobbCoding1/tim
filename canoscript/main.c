@@ -58,6 +58,9 @@ typedef enum {
     TT_EXIT,
     TT_IDENT,
     TT_COLON,
+    TT_O_PAREN,
+    TT_C_PAREN,
+    TT_COMMA,
     TT_EQ,
     TT_DOUBLE_EQ,
     TT_NOT_EQ,
@@ -76,13 +79,14 @@ typedef enum {
     TT_ELSE,
     TT_WHILE,
     TT_THEN,
+    TT_RET,
     TT_END,
     TT_COUNT,
 } Token_Type;
     
 char *token_types[TT_COUNT] = {"none", "write", "exit", "ident", 
-                               ":", "=", "==", "!=", ">=", "<=", ">", "<", "+", "-", "*", "/", 
-                               "string", "integer", "type", "if", "else", "while", "then", "end"};
+                               ":", "(", ")", ",", "=", "==", "!=", ">=", "<=", ">", "<", "+", "-", "*", "/", 
+                               "string", "integer", "type", "if", "else", "while", "then", "return", "end"};
     
 typedef struct {
     size_t row;
@@ -341,6 +345,8 @@ Token_Type get_token_type(char *str, size_t str_s) {
         return TT_WHILE;  
     } else if(strncmp(str, "then", str_s) == 0) {
         return TT_THEN;
+    } else if(strncmp(str, "return", str_s) == 0) {
+        return TT_THEN;
     } else if(strncmp(str, "end", str_s) == 0) {
         return TT_END;        
     }
@@ -518,6 +524,16 @@ Token_Arr lex(String_View view) {
         } else if(*view.data == '=') {
             Token token = {.loc = (Location) {.row=row, .col=view.data-start}, .type = TT_EQ};   
             DA_APPEND(&tokens, token);                                                    
+        } else if(*view.data == '(') {
+            Token token = {.loc = (Location) {.row=row, .col=view.data-start}, .type = TT_O_PAREN};   
+            DA_APPEND(&tokens, token);                                                    
+        } else if(*view.data == ')') {
+            Token token = {.loc = (Location) {.row=row, .col=view.data-start}, .type = TT_C_PAREN};   
+            DA_APPEND(&tokens, token);                                                    
+        } else if(*view.data == ',') {
+            Token token = {.loc = (Location) {.row=row, .col=view.data-start}, .type = TT_COMMA};   
+            DA_APPEND(&tokens, token);                                                    
+                    
         } else if(*view.data == '\n') {
             row++;
             start = view.data;

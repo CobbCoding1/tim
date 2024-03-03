@@ -1,5 +1,11 @@
 foo: int = 12
 x: int = 0
-string: str = "123"
+
+foo(x: int, y: int): int
+    y = y + 1
+    return y
+end
+
+foo(15, 10)
 
 exit x 
