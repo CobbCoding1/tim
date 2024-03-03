@@ -1,11 +1,10 @@
-foo: int = 12
-x: int = 0
+x: int = 5
 
 foo(x: int, y: int): int
     y = y + 1
     return y
 end
 
-foo(15, 10)
+foo(15, 15)
 
-exit x 
+exit x

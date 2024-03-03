@@ -1,8 +1,30 @@
 ; var declaration
+entrypoint main
 ; expr
-push 12
-; var declaration
-; expr
-push 0
+foo:
 ; var reassign
 ; expr
+indup 1
+push 1
+add
+inswap 2
+pop
+indup 1
+inswap 2
+; end
+pop
+; end func
+ret
+label0:
+main:
+push 5
+push 15
+push 15
+call foo
+; exit
+; expr
+indup 4
+native 60
+; exit
+push 0
+native 60

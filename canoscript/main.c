@@ -221,12 +221,13 @@ typedef struct {
     struct Node *data;
     size_t count;
     size_t capacity;
-} Func_Dec_Args;
+} Nodes;
 
 typedef struct {
     String_View name;
-    Func_Dec_Args args;
+    Nodes args;
     Type_Type type;
+    Nodes body;
 } Func_Dec;
     
 // TODO: rename TYPE_* to NODE_*
@@ -256,6 +257,18 @@ typedef struct {
     Expr *value;
     size_t stack_pos;
 } Variable;
+    
+typedef struct {
+    String_View name;
+    Nodes args;
+    Type_Type type;
+} Function;
+
+typedef struct {
+    Function *data;
+    size_t count;
+    size_t capacity;
+} Functions;
     
 typedef struct {
     Variable *data;
@@ -291,12 +304,6 @@ typedef struct Node {
 } Node;
     
 typedef struct {
-    Node *data;
-    size_t count;
-    size_t capacity;
-} Nodes;
-    
-typedef struct {
     size_t *data;
     size_t count;
     size_t capacity;
@@ -317,6 +324,7 @@ typedef struct {
 
 typedef struct {
     Variables vars;
+    Functions functions;
     size_t stack_s;
     Size_Stack scope_stack;
     size_t while_label;
@@ -730,6 +738,14 @@ void gen_label(FILE *file, size_t label) {
     fprintf(file, "label%zu:\n", label);
 }
     
+void gen_func_label(FILE *file, String_View label) {
+    fprintf(file, View_Print":\n", View_Arg(label));
+}
+    
+void gen_func_call(FILE *file, String_View label) {
+    fprintf(file, "call "View_Print"\n", View_Arg(label));
+}
+    
 void gen_while_label(FILE *file, size_t label) {
      fprintf(file, "while%zu:\n", label);   
 }
@@ -835,11 +851,11 @@ typedef struct {
     size_t capacity;
 } Blocks;
     
-Nodes parse(Token_Arr tokens) {
+Nodes parse(Token_Arr tokens, size_t *iterations, Blocks *block_stack) {
     Nodes root = {0};
     size_t cur_label = 0;
     Size_Stack labels = {0};
-    Blocks block_stack = {0};
+    size_t start = tokens.count;
     while(tokens.count > 0) {
         switch(tokens.data[0].type) {
             case TT_WRITE: {
@@ -880,7 +896,7 @@ Nodes parse(Token_Arr tokens) {
                         node.type = TYPE_FUNC_DEC;
                         node.value.func_dec.name = tokens.data[0].value.ident;                                        
                         Block block = {.type = BLOCK_FUNC, .value = node.value.func_dec.name};
-                        DA_APPEND(&block_stack, block);                        
+                        DA_APPEND(block_stack, block);                        
                         token_consume(&tokens);                        
                         while(tokens.count > 0 && token_consume(&tokens).type != TT_C_PAREN) {
                             Node arg = parse_var_dec(&tokens);
@@ -890,6 +906,11 @@ Nodes parse(Token_Arr tokens) {
                         token_consume(&tokens);                                                                        
                         node.value.func_dec.type = tokens.data[0].value.type;
                         token_consume(&tokens);                                                                        
+                        size_t iters = 0;
+                        node.value.func_dec.body = parse(tokens, &iters, block_stack);
+                        for(size_t i = 0; i < iters; i++) {
+                            token_consume(&tokens);
+                        }
                     } else {
                         // function call
                         node.type = TYPE_FUNC_CALL;
@@ -913,7 +934,7 @@ Nodes parse(Token_Arr tokens) {
             } break;
             case TT_IF: {
                 Node node = {.type = TYPE_IF};
-                DA_APPEND(&block_stack, (Block){.type=BLOCK_IF});                
+                DA_APPEND(block_stack, (Block){.type=BLOCK_IF});                
                 token_consume(&tokens);
                 node.value.conditional = parse_expr(&tokens);
                 DA_APPEND(&root, node);
@@ -921,7 +942,7 @@ Nodes parse(Token_Arr tokens) {
             case TT_ELSE: {
                 Node node = {.type = TYPE_ELSE};
                 token_consume(&tokens);
-                DA_APPEND(&block_stack, (Block){.type=BLOCK_ELSE});                                                
+                DA_APPEND(block_stack, (Block){.type=BLOCK_ELSE});                                                
                 node.value.el.label1 = labels.data[--labels.count];                
                 node.value.el.label2 = cur_label;
                 DA_APPEND(&labels, cur_label++);
@@ -930,7 +951,7 @@ Nodes parse(Token_Arr tokens) {
             case TT_WHILE: {
                 Node node = {.type = TYPE_WHILE};
                 token_consume(&tokens);
-                DA_APPEND(&block_stack, (Block){.type=BLOCK_WHILE});                                
+                DA_APPEND(block_stack, (Block){.type=BLOCK_WHILE});                                
                 node.value.conditional = parse_expr(&tokens);
                 DA_APPEND(&root, node);
             } break;
@@ -944,9 +965,14 @@ Nodes parse(Token_Arr tokens) {
             case TT_END: {
                 Node node = {.type = TYPE_END};
                 token_consume(&tokens);                                
-                if(block_stack.data[--block_stack.count].type == BLOCK_FUNC) {
-                    node.value.label.function = block_stack.data[block_stack.count].value;    
+                if(block_stack->data[--block_stack->count].type == BLOCK_FUNC) {
+                    node.value.label.function = block_stack->data[block_stack->count].value;    
+                    DA_APPEND(&root, node);                                    
+                    ASSERT(iterations, "iterations was NULL");
+                    *iterations = start-tokens.count;                    
+                    return root;
                 } else {
+                    if(labels.count == 0) PRINT_ERROR(node.loc, "labels count was: %zu", labels.count);
                     node.value.label.num = labels.data[--labels.count];   
                 }
                 DA_APPEND(&root, node);                
@@ -997,6 +1023,15 @@ char *append_tasm_ext(char *filename) {
     
 char *op_types[] = {"add", "sub", "mul", "div", "cmpe", "cmpne", "cmpge", "cmple", "cmpg", "cmpl"};
 
+Function *get_func(Program_State *state, String_View name) {
+    for(size_t i = 0; i < state->functions.count; i++) {
+        if(view_cmp(state->functions.data[i].name, name)) {
+            return &state->functions.data[i];
+        }
+    }
+    return false;
+}
+
 int get_variable_location(Program_State *state, String_View name) {
     for(size_t i = 0; i < state->vars.count; i++) {
         if(view_cmp(state->vars.data[i].name, name)) {
@@ -1037,7 +1072,7 @@ void scope_end(Program_State *state, FILE *file) {
         state->vars.count--;
     }
 }
-
+    
 void generate(Program_State *state, Nodes nodes, char *filename) {
     char *output = append_tasm_ext(filename);
     FILE *file = fopen(output, "w");
@@ -1091,6 +1126,41 @@ void generate(Program_State *state, Nodes nodes, char *filename) {
                 gen_pop(state, file);
                 DA_APPEND(&state->vars, node->value.var);    
             } break;
+            case TYPE_FUNC_DEC: {
+                Function function = {0};
+                function.type = node->value.func_dec.type;
+                function.args = node->value.func_dec.args;
+                function.name = node->value.func_dec.name;
+                DA_APPEND(&state->functions, function);
+                DA_APPEND(&state->block_stack, BLOCK_FUNC);                
+                DA_APPEND(&state->scope_stack, state->stack_s);                
+                for(size_t i = 0; i < function.args.count; i++) {
+                    Variable var = {0};
+                    var.stack_pos = state->stack_s++;
+                    var.name = function.args.data[i].value.var.name;
+                    DA_APPEND(&state->vars, var);    
+                }
+                gen_func_label(file, function.name);
+            } break;
+            case TYPE_FUNC_CALL: {
+                Function *function = get_func(state, node->value.func_call.name);
+                if(!function) { 
+                    PRINT_ERROR((Location){0}, "function "View_Print" referenced before assignment\n", View_Arg(node->value.func_call.name));
+                }
+                if(function->args.count != node->value.func_call.args.count) {
+                    PRINT_ERROR((Location){0}, "args count do not match for function "View_Print"\n", View_Arg(function->name));
+                }
+                for(size_t i = 0; i < node->value.func_call.args.count; i++) {
+                    gen_expr(state, file, node->value.func_call.args.data[i]);
+                }
+                gen_func_call(file, node->value.func_call.name);
+            } break;
+            case TYPE_RET: {
+                size_t pos = ++state->scope_stack.data[state->scope_stack.count-1];
+                gen_expr(state, file, node->value.expr);
+                gen_inswap(file, pos);
+                //gen_pop(state, file);
+            } break;
             case TYPE_IF: {
                 fprintf(file, "; if statement\n");                                                                                
                 fprintf(file, "; expr\n");                                                                            
@@ -1126,9 +1196,13 @@ void generate(Program_State *state, Nodes nodes, char *filename) {
                     PRINT_ERROR((Location){0}, "error: block stack: %zu\n", state->block_stack.count);
                 }
                 scope_end(state, file);                    
-                if(state->block_stack.data[--state->block_stack.count] == BLOCK_WHILE) {
+                Block_Type block = state->block_stack.data[--state->block_stack.count];
+                if(block == BLOCK_WHILE) {
                     fprintf(file, "; end while\n");                                                                                                                
                     gen_while_jmp(file, state->while_labels.data[--state->while_labels.count]);
+                } else if(block == BLOCK_FUNC) {
+                    fprintf(file, "; end func\n");                                                                                                                
+                    fprintf(file, "ret\n");                                                                                                                                    
                 }
                 gen_label(file, node->value.label.num);
             } break;
@@ -1149,8 +1223,9 @@ int main(int argc, char *argv[]) {
     char *filename = argv[1];
     String_View view = read_file_to_view(filename);
     Token_Arr tokens = lex(view);
-    print_token_arr(tokens);
-    Nodes root = parse(tokens);
+    //print_token_arr(tokens);
+    Blocks block_stack = {0};
+    Nodes root = parse(tokens, NULL, &block_stack);
     Program_State state = {0};
     generate(&state, root, filename);
 }
