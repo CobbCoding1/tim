@@ -1,29 +1,62 @@
 ; var declaration
-entrypoint main
 ; expr
+push 12
+jmp label0
 foo:
+; if statement
+; expr
+indup 0
+push 15
+cmpe
+; then
+zjmp label1
 ; var reassign
 ; expr
-indup 1
+indup 2
+push 5
+add
+inswap 3
+pop
+; else statement
+jmp label2
+label1:
+; var reassign
+; expr
+indup 2
 push 1
 add
+inswap 3
+pop
+; end
+label2:
+; return
+indup 0
 inswap 2
 pop
-indup 1
-inswap 2
 ; end
 pop
 ; end func
 ret
 label0:
+jmp label3
 main:
-push 5
+; return
 push 15
+inswap 1
+pop
+; end
+pop
+pop
+pop
+; end func
+ret
+label0:
 push 15
+push 14
 call foo
 ; exit
 ; expr
-indup 4
+indup 18446744073709551615
 native 60
 ; exit
 push 0
