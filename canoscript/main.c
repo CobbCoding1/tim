@@ -136,7 +136,7 @@ typedef enum {
     OP_GREATER,
     OP_LESS,
 } Operator_Type;
-
+    
 typedef enum {
     PREC_0 = 0,
     PREC_1,
@@ -157,17 +157,30 @@ typedef struct {
     struct Expr *rhs;
     Operator op;
 } Bin_Expr;
+    
+typedef struct {
+    struct Expr **data;
+    size_t count;
+    size_t capacity;
+} Exprs;
+
+typedef struct {
+    String_View name;
+    Exprs args;    
+} Func_Call;
 
 typedef enum {
     EXPR_BIN,    
     EXPR_INT,
     EXPR_VAR,
+    EXPR_FUNCALL,
 } Expr_Type;
     
 typedef union {
     Bin_Expr bin;
     int integer;
     String_View variable;
+    Func_Call func_call;
 } Expr_Value;
 
 typedef struct Expr {
@@ -205,17 +218,6 @@ typedef struct {
     Args args;
     int type;
 } Native_Call;
-    
-typedef struct {
-    Expr **data;
-    size_t count;
-    size_t capacity;
-} Exprs;
-
-typedef struct {
-    String_View name;
-    Exprs args;    
-} Func_Call;
     
 typedef struct {
     struct Node *data;
@@ -751,6 +753,8 @@ void gen_while_label(FILE *file, size_t label) {
      fprintf(file, "while%zu:\n", label);   
 }
     
+Expr *parse_expr(Token_Arr *tokens);
+    
 // parse primary takes a primary, currently only supports integers
 // but in the future, could be identifiers, etc
 Expr *parse_primary(Token_Arr *tokens) {
@@ -764,11 +768,22 @@ Expr *parse_primary(Token_Arr *tokens) {
             .type = EXPR_INT,
             .value.integer = token.value.integer,
         };
-    } else {
-        *expr = (Expr){
-            .type = EXPR_VAR,
-            .value.variable = token.value.ident,
-        };
+    } else if(token.type == TT_IDENT) {
+        if(token_peek(tokens, 0).type == TT_O_PAREN) {
+            *expr = (Expr){
+                .type = EXPR_FUNCALL,
+                .value.func_call.name = token.value.ident,
+            };
+            while(tokens->count > 0 && token_consume(tokens).type != TT_C_PAREN) {
+                Expr *arg = parse_expr(tokens);
+                DA_APPEND(&expr->value.func_call.args, arg);
+            }
+        } else {
+            *expr = (Expr){
+                .type = EXPR_VAR,
+                .value.variable = token.value.ident,
+            };
+        }
     }
     return expr;
 }
@@ -914,12 +929,6 @@ Program parse(Token_Arr tokens, Blocks *block_stack) {
                         token_consume(&tokens);                                                                        
                         node.value.func_dec.label = cur_label;
                         DA_APPEND(&labels, cur_label++);
-                        
-                        //size_t iters = 0;
-                        //node.value.func_dec.body = parse(tokens, &iters, block_stack).nodes;
-                        //for(size_t i = 0; i < iters; i++) {
-                        //    token_consume(&tokens);
-                        //}
                     } else {
                         // function call
                         node.type = TYPE_FUNC_CALL;
@@ -974,16 +983,8 @@ Program parse(Token_Arr tokens, Blocks *block_stack) {
             case TT_END: {
                 Node node = {.type = TYPE_END};
                 token_consume(&tokens);                                
-                if(block_stack->data[--block_stack->count].type == BLOCK_FUNC) {
-                    //node.value.label.function = block_stack->data[block_stack->count].value;    
-                    //DA_APPEND(&root, node);                                    
-                    //ASSERT(iterations, "iterations was NULL");
-                    //*iterations = start-tokens.count;                    
-                    //return (Program){.nodes = root};
-                } else {
-                    if(labels.count == 0) PRINT_ERROR(node.loc, "labels count was: %zu", labels.count);
-                    node.value.label.num = labels.data[--labels.count];   
-                }
+                if(labels.count == 0) PRINT_ERROR(node.loc, "labels count was: %zu", labels.count);
+                node.value.label.num = labels.data[--labels.count];   
                 DA_APPEND(&root, node);                
             } break;
             case TT_STRING:
@@ -1071,18 +1072,35 @@ void gen_expr(Program_State *state, FILE *file, Expr *expr) {
             }
             gen_indup(state, file, state->stack_s-index); 
         } break;
+        case EXPR_FUNCALL: {
+            Function *function = get_func(state->functions, expr->value.func_call.name);
+            if(!function) { 
+                PRINT_ERROR((Location){0}, "function "View_Print" referenced before assignment\n", View_Arg(expr->value.func_call.name));
+            }
+            if(function->args.count != expr->value.func_call.args.count) {
+                PRINT_ERROR((Location){0}, "args count do not match for function "View_Print"\n", View_Arg(function->name));
+            }
+            for(size_t i = 0; i < expr->value.func_call.args.count; i++) {
+                gen_expr(state, file, expr->value.func_call.args.data[i]);
+            }
+            gen_func_call(file, expr->value.func_call.name);
+        } break;
         default:
             ASSERT(false, "UNREACHABLE");
     }       
 }
 
 void scope_end(Program_State *state, FILE *file) {
-    while(state->stack_s > state->scope_stack.data[--state->scope_stack.count]) {
+    ASSERT(state->scope_stack.count > 0, "scope stack count == 0");
+    size_t target = state->scope_stack.data[state->scope_stack.count-1];
+    while(state->stack_s > target) {
         gen_pop(state, file);
     }
-    while(state->vars.data[state->vars.count - 1].stack_pos > state->stack_s) {
-        state->vars.count--;
-    }
+    for(size_t i = state->vars.count-1; i > 0; i--) {
+        if(state->vars.count > 0 && state->vars.data[i].stack_pos > state->stack_s) {
+            state->vars.count--;
+        } else break;
+    }   
 }
     
 void gen_program(Program_State *state, Nodes nodes, FILE *file) {
@@ -1109,6 +1127,7 @@ void gen_program(Program_State *state, Nodes nodes, FILE *file) {
                         };
                         fprintf(file, "; exit\n");                
                         fprintf(file, "; expr\n");                                
+                        printf("count exit: %zu\n", state->vars.count);                
                         gen_expr(state, file, node->value.native.args.data[0].value.expr);
                         fprintf(file, "native %d\n", node->value.native.type);
                         state->stack_s--;
@@ -1121,8 +1140,12 @@ void gen_program(Program_State *state, Nodes nodes, FILE *file) {
                 fprintf(file, "; var declaration\n");                                                        
                 fprintf(file, "; expr\n");                                            
                 gen_expr(state, file, node->value.var.value);
+                printf("stack_s: %zu\n", state->stack_s);
+                printf("var: "View_Print"\n", View_Arg(node->value.var.name));
                 node->value.var.stack_pos = state->stack_s; 
+                printf("count: %zu\n", state->vars.count);                
                 DA_APPEND(&state->vars, node->value.var);    
+                printf("count: %zu\n", state->vars.count);
             } break;
             case TYPE_VAR_REASSIGN: {
                 fprintf(file, "; var reassign\n");                                            
@@ -1169,10 +1192,11 @@ void gen_program(Program_State *state, Nodes nodes, FILE *file) {
             } break;
             case TYPE_RET: {
                 fprintf(file, "; return\n");
-                size_t pos = state->scope_stack.data[state->scope_stack.count-1] + 1;
+                size_t pos = ++state->scope_stack.data[state->scope_stack.count-1];
                 gen_expr(state, file, node->value.expr);
                 gen_inswap(file, state->stack_s-pos);
-                gen_pop(state, file);
+                scope_end(state, file);                                    
+                fprintf(file, "ret\n");
             } break;
             case TYPE_IF: {
                 fprintf(file, "; if statement\n");                                                                                
@@ -1209,6 +1233,7 @@ void gen_program(Program_State *state, Nodes nodes, FILE *file) {
                     PRINT_ERROR((Location){0}, "error: block stack: %zu\n", state->block_stack.count);
                 }
                 scope_end(state, file);                    
+                state->scope_stack.count--;
                 Block_Type block = state->block_stack.data[--state->block_stack.count];
                 if(block == BLOCK_WHILE) {
                     fprintf(file, "; end while\n");                                                                                                                

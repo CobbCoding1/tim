@@ -1,12 +1,11 @@
-x: int = 12
-foo(z: int, y: int): int
-    if y == 15 then
-        x = x + 5
-    else
-        x = x + 1
-    end
-    return y
+foo(z: int, l: int): int
+    return z + l
 end
 
-foo(15, 14)
-exit x
+main(x: int): int
+    return x
+end
+
+y: int = foo(20, 14)
+z: int = main(15)
+exit z
