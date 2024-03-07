@@ -1094,13 +1094,11 @@ void scope_end(Program_State *state, FILE *file) {
     ASSERT(state->scope_stack.count > 0, "scope stack count == 0");
     size_t target = state->scope_stack.data[state->scope_stack.count-1];
     if(state->stack_s > 0) state->stack_s--;
-    printf("stack_s: %zu\n", state->stack_s);
     while(state->stack_s > target) {
         gen_pop(state, file);
     }
     while(state->vars.count > 0 && state->vars.data[state->vars.count-1].stack_pos > state->stack_s) {
         state->vars.count--;
-        printf("state-.vars: %zu\n", state->vars.count);
     }
 }
     

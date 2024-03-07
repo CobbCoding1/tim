@@ -6,6 +6,10 @@ plusone(x: int): int
     return x + 1
 end
 
+minusone(x: int): int
+    return x - 1
+end
+
 y: int = foo(20, 14)
-x: int = plusone(15+1)
+x: int = minusone(15+1)
 exit x

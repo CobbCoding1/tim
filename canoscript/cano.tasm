@@ -25,6 +25,19 @@ ret
 ; end func
 ret
 label1:
+jmp label2
+minusone:
+; return
+indup 0
+push 1
+sub
+inswap 1
+pop
+ret
+; end
+; end func
+ret
+label2:
 ; var declaration
 ; expr
 push 20
@@ -35,7 +48,7 @@ call foo
 push 15
 push 1
 add
-call plusone
+call minusone
 ; exit
 ; expr
 indup 0
