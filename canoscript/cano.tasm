@@ -13,9 +13,11 @@ ret
 ret
 label0:
 jmp label1
-main:
+plusone:
 ; return
 indup 0
+push 1
+add
 inswap 1
 pop
 ret
@@ -31,10 +33,12 @@ call foo
 ; var declaration
 ; expr
 push 15
-call main
+push 1
+add
+call plusone
 ; exit
 ; expr
-indup 4
+indup 0
 native 60
 ; exit
 push 0

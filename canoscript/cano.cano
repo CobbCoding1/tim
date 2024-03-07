@@ -2,10 +2,10 @@ foo(z: int, l: int): int
     return z + l
 end
 
-main(x: int): int
-    return x
+plusone(x: int): int
+    return x + 1
 end
 
 y: int = foo(20, 14)
-z: int = main(15)
-exit z
+x: int = plusone(15+1)
+exit x

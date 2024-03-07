@@ -1093,14 +1093,15 @@ void gen_expr(Program_State *state, FILE *file, Expr *expr) {
 void scope_end(Program_State *state, FILE *file) {
     ASSERT(state->scope_stack.count > 0, "scope stack count == 0");
     size_t target = state->scope_stack.data[state->scope_stack.count-1];
+    if(state->stack_s > 0) state->stack_s--;
+    printf("stack_s: %zu\n", state->stack_s);
     while(state->stack_s > target) {
         gen_pop(state, file);
     }
-    for(size_t i = state->vars.count-1; i > 0; i--) {
-        if(state->vars.count > 0 && state->vars.data[i].stack_pos > state->stack_s) {
-            state->vars.count--;
-        } else break;
-    }   
+    while(state->vars.count > 0 && state->vars.data[state->vars.count-1].stack_pos > state->stack_s) {
+        state->vars.count--;
+        printf("state-.vars: %zu\n", state->vars.count);
+    }
 }
     
 void gen_program(Program_State *state, Nodes nodes, FILE *file) {
@@ -1127,7 +1128,6 @@ void gen_program(Program_State *state, Nodes nodes, FILE *file) {
                         };
                         fprintf(file, "; exit\n");                
                         fprintf(file, "; expr\n");                                
-                        printf("count exit: %zu\n", state->vars.count);                
                         gen_expr(state, file, node->value.native.args.data[0].value.expr);
                         fprintf(file, "native %d\n", node->value.native.type);
                         state->stack_s--;
@@ -1140,12 +1140,8 @@ void gen_program(Program_State *state, Nodes nodes, FILE *file) {
                 fprintf(file, "; var declaration\n");                                                        
                 fprintf(file, "; expr\n");                                            
                 gen_expr(state, file, node->value.var.value);
-                printf("stack_s: %zu\n", state->stack_s);
-                printf("var: "View_Print"\n", View_Arg(node->value.var.name));
                 node->value.var.stack_pos = state->stack_s; 
-                printf("count: %zu\n", state->vars.count);                
                 DA_APPEND(&state->vars, node->value.var);    
-                printf("count: %zu\n", state->vars.count);
             } break;
             case TYPE_VAR_REASSIGN: {
                 fprintf(file, "; var reassign\n");                                            
@@ -1192,7 +1188,7 @@ void gen_program(Program_State *state, Nodes nodes, FILE *file) {
             } break;
             case TYPE_RET: {
                 fprintf(file, "; return\n");
-                size_t pos = ++state->scope_stack.data[state->scope_stack.count-1];
+                size_t pos = state->scope_stack.data[state->scope_stack.count-1] + 1;
                 gen_expr(state, file, node->value.expr);
                 gen_inswap(file, state->stack_s-pos);
                 scope_end(state, file);                                    
