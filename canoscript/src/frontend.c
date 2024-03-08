@@ -1,5 +1,13 @@
 #include "frontend.h"
 
+char *token_types[TT_COUNT] = {"none", "write", "exit", "ident", 
+                               ":", "(", ")", ",", "=", "==", "!=", ">=", "<=", ">", "<", "+", "-", "*", "/", 
+                               "string", "integer", "type", "if", "else", "while", "then", "return", "end"};
+    
+String_View data_types[DATA_COUNT] = {
+    {.data="int", .len=3},
+};    
+
 bool is_valid_escape(char c){
     switch(c){
         case 'n':

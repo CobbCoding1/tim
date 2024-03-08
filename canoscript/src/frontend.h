@@ -37,14 +37,6 @@ typedef enum {
     TT_COUNT,
 } Token_Type;
     
-char *token_types[TT_COUNT] = {"none", "write", "exit", "ident", 
-                               ":", "(", ")", ",", "=", "==", "!=", ">=", "<=", ">", "<", "+", "-", "*", "/", 
-                               "string", "integer", "type", "if", "else", "while", "then", "return", "end"};
-    
-String_View data_types[DATA_COUNT] = {
-    {.data="int", .len=3},
-};    
-
 typedef union {
     String_View string;
     String_View ident;

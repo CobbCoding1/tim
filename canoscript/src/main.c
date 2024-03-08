@@ -1,7 +1,4 @@
-
-
 #include "main.h"
-
 
 void usage(char *file) {
     fprintf(stderr, "usage: %s <filename.cano>\n", file);
