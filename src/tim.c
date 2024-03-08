@@ -2,12 +2,30 @@
 
 char *str_types[] = {"int", "float", "char", "ptr", "reg", "top"};
 
-void pop_memory(Machine *machine, size_t size) {
-    if(size > machine->memory.count) {
-        PRINT_ERROR("error: index out of bounds");
+void free_cell(Memory *cell) {
+    free(cell->cell.data);    
+    free(cell);
+}
+
+void free_memory(Machine *machine, void *ptr) {
+    Memory *cur = machine->memory;
+    if(cur == NULL) return;
+    while(cur->next != NULL) {
+        if(cur->next->cell.data == ptr) {
+           Memory *cell = cur->next;
+            cur->next = cur->next->next;
+            free_cell(cell);
+        }
+        cur = cur->next;
     }
-    memset(machine->memory.data + (machine->memory.count - size), 0, size);
-    machine->memory.count -= size;
+}
+    
+void insert_memory(Machine *machine, size_t size) {
+    Memory *new = malloc(sizeof(Memory));    
+    memset(new, 0, sizeof(Memory));
+    new->cell.data = malloc(sizeof(*new->cell.data)*size);
+    new->next = machine->memory;
+    machine->memory = new;
 }
 
 int64_t my_trunc(double num){
@@ -407,11 +425,12 @@ void run_instructions(Machine *machine){
             case INST_PUSH_STR: {
                 size_t index = machine->instructions[ip].value.as_int;
                 String_View str = machine->str_stack[index];
+                insert_memory(machine, str.len);
                 for(size_t i = 0; i < str.len; i++) {
-                    DA_APPEND(&machine->memory, str.data[i]);   
+                    machine->memory->cell.data[i] = str.data[i];
                 }
                 Word word;
-                word.as_pointer = machine->memory.data+machine->memory.count-str.len;
+                word.as_pointer = machine->memory->cell.data;
                 push(machine, word, PTR_TYPE);
             } break;
             case INST_GET_STR: {
@@ -447,22 +466,17 @@ void run_instructions(Machine *machine){
                 if(a.word.as_int < 0) {
                     PRINT_ERROR("error: size cannot be negative");
                 }
-                for(size_t i = 0; i < (size_t)a.word.as_int; i++) {
-                    DA_APPEND(&machine->memory, (uint8_t)0);   
-                }
+                insert_memory(machine, a.word.as_int);
                 Word word;
-                word.as_pointer = &machine->memory.data[machine->memory.count-a.word.as_int];
+                word.as_pointer = machine->memory->cell.data;
                 push(machine, word, PTR_TYPE);
             } break;
             case INST_DEALLOC: {
                 Data size = pop(machine);
-                if(size.type != INT_TYPE) {
+                if(size.type != PTR_TYPE) {
                     PRINT_ERROR("error: expected int");
                 }
-                if(size.word.as_int < 0) {
-                    PRINT_ERROR("error: size cannot be negative");
-                }
-                pop_memory(machine, size.word.as_int);
+                free_memory(machine, size.word.as_pointer);
             } break;
             case INST_WRITE: {
                 Data size = pop(machine);                

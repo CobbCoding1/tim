@@ -1,4 +1,3 @@
-
 fib(n: int): int
     if n <= 1 then
         return n
@@ -10,6 +9,6 @@ main(x: int): int
     return x
 end
 
-x: int = fib(10)
+x: int = fib(11)
 
 exit x

@@ -155,6 +155,11 @@ typedef struct {
     int8_t *data;
     size_t count;
     size_t capacity;
+} Memory_Cell;
+
+typedef struct Memory {
+    struct Memory *next;
+    Memory_Cell cell;
 } Memory;
     
 typedef struct {
@@ -171,7 +176,7 @@ typedef struct {
     int return_stack_size;
     size_t program_size;
     
-    Memory memory;
+    Memory *memory;
 
     size_t entrypoint;
     bool has_entrypoint;
