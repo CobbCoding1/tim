@@ -9,15 +9,23 @@ void free_cell(Memory *cell) {
 
 void free_memory(Machine *machine, void *ptr) {
     Memory *cur = machine->memory;
-    if(cur == NULL) return;
+    if(cur == NULL) goto defer;
+    if(cur->cell.data == ptr) {
+        machine->memory = cur->next;
+        free_cell(cur);
+        return;
+    }
     while(cur->next != NULL) {
         if(cur->next->cell.data == ptr) {
-           Memory *cell = cur->next;
+            Memory *cell = cur->next;
             cur->next = cur->next->next;
             free_cell(cell);
+            return;
         }
         cur = cur->next;
     }
+defer:
+    PRINT_ERROR("could not free pointer\n");
 }
     
 void insert_memory(Machine *machine, size_t size) {
