@@ -1,15 +1,15 @@
-foo(z: int, l: int): int
-    return z + l
+
+fib(n: int): int
+    if n <= 1 then
+        return n
+    end
+    return fib(n-1) + fib(n-2)
 end
 
-plusone(x: int): int
-    return x + 1
+main(x: int): int
+    return x
 end
 
-minusone(x: int): int
-    return x - 1
-end
+x: int = fib(10)
 
-y: int = foo(20, 14)
-x: int = minusone(15+1)
 exit x

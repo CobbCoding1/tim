@@ -330,6 +330,7 @@ typedef struct {
     Functions functions;
     size_t stack_s;
     Size_Stack scope_stack;
+    Size_Stack ret_stack;
     size_t while_label;
     Size_Stack while_labels;
     Block_Stack block_stack;    
@@ -1093,12 +1094,20 @@ void gen_expr(Program_State *state, FILE *file, Expr *expr) {
 void scope_end(Program_State *state, FILE *file) {
     ASSERT(state->scope_stack.count > 0, "scope stack count == 0");
     size_t target = state->scope_stack.data[state->scope_stack.count-1];
-    if(state->stack_s > 0) state->stack_s--;
     while(state->stack_s > target) {
         gen_pop(state, file);
     }
     while(state->vars.count > 0 && state->vars.data[state->vars.count-1].stack_pos > state->stack_s) {
         state->vars.count--;
+    }
+}
+
+void ret_scope_end(Program_State *state, FILE *file) {
+    ASSERT(state->ret_stack.count > 0, "scope stack count == 0");
+    size_t target = state->ret_stack.data[state->ret_stack.count-1];
+    if(state->stack_s > 0) state->stack_s--;
+    while(state->stack_s > target) {
+        gen_pop(state, file);
     }
 }
     
@@ -1160,6 +1169,7 @@ void gen_program(Program_State *state, Nodes nodes, FILE *file) {
                 function.name = node->value.func_dec.name;
                 DA_APPEND(&state->functions, function);
                 DA_APPEND(&state->block_stack, BLOCK_FUNC);                
+                DA_APPEND(&state->ret_stack, state->stack_s);                
                 DA_APPEND(&state->scope_stack, state->stack_s);                
                 for(size_t i = 0; i < function.args.count; i++) {
                     Variable var = {0};
@@ -1186,10 +1196,13 @@ void gen_program(Program_State *state, Nodes nodes, FILE *file) {
             } break;
             case TYPE_RET: {
                 fprintf(file, "; return\n");
-                size_t pos = state->scope_stack.data[state->scope_stack.count-1] + 1;
+                size_t pos = state->scope_stack.data[state->ret_stack.count-1] + 1;
                 gen_expr(state, file, node->value.expr);
+                ASSERT(pos <= state->stack_s, "pos is too great");
                 gen_inswap(file, state->stack_s-pos);
-                scope_end(state, file);                                    
+                size_t pre_stack_s = state->stack_s;
+                ret_scope_end(state, file);
+                state->stack_s = pre_stack_s;
                 fprintf(file, "ret\n");
             } break;
             case TYPE_IF: {
