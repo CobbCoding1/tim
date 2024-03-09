@@ -2,7 +2,9 @@
 
 char *node_types[TYPE_COUNT] = {"root", "native", "expr", "var_dec", "var_reassign",
                                     "if", "else", "while", "then", "func_dec", "func_call", "return", "end"};
-
+    
+size_t data_type_s[DATA_COUNT] = {8};
+    
 void gen_push(Program_State *state, FILE *file, int value) {
     fprintf(file, "push %d\n", value);
     state->stack_s++;   
@@ -53,7 +55,14 @@ void gen_func_call(FILE *file, String_View label) {
 }
     
 void gen_while_label(FILE *file, size_t label) {
-     fprintf(file, "while%zu:\n", label);   
+    fprintf(file, "while%zu:\n", label);   
+}
+    
+void gen_alloc(Program_State *state, FILE *file, Expr *s, size_t type_s) {
+    fprintf(file, "push %zu\n", type_s);
+    gen_expr(state, file, s);
+    fprintf(file, "mult\n");
+    fprintf(file, "alloc\n");    
 }
     
 void strip_off_dot(char *str) {
@@ -125,7 +134,7 @@ void gen_expr(Program_State *state, FILE *file, Expr *expr) {
             gen_func_call(file, expr->value.func_call.name);
         } break;
         default:
-            ASSERT(false, "UNREACHABLE");
+            ASSERT(false, "UNREACHABLE, %d\n", expr->type);
     }       
 }
 
@@ -184,14 +193,18 @@ void gen_program(Program_State *state, Nodes nodes, FILE *file) {
             case TYPE_VAR_DEC: {
                 fprintf(file, "; var declaration\n");                                                        
                 fprintf(file, "; expr\n");                                            
-                gen_expr(state, file, node->value.var.value);
-                node->value.var.stack_pos = state->stack_s; 
+                if(node->value.var.is_array) {
+                    gen_alloc(state, file, node->value.var.array_s, data_type_s[node->value.var.type]);
+                } else {
+                    gen_expr(state, file, node->value.var.value.data[0]);
+                }
+                node->value.var.stack_pos = state->stack_s;                 
                 DA_APPEND(&state->vars, node->value.var);    
             } break;
             case TYPE_VAR_REASSIGN: {
                 fprintf(file, "; var reassign\n");                                            
                 fprintf(file, "; expr\n");                                                                
-                gen_expr(state, file, node->value.var.value);
+                gen_expr(state, file, node->value.var.value.data[0]);
                 int index = get_variable_location(state, node->value.var.name);
                 if(index == -1) {
                     PRINT_ERROR((Location){0}, "variable "View_Print" referenced before assignment", View_Arg(node->value.var.name));

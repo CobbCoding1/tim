@@ -13,6 +13,8 @@ typedef enum {
     TT_COLON,
     TT_O_PAREN,
     TT_C_PAREN,
+    TT_O_BRACKET,
+    TT_C_BRACKET,
     TT_COMMA,
     TT_EQ,
     TT_DOUBLE_EQ,

@@ -52,7 +52,7 @@ typedef enum {
     TYPE_INT,
     DATA_COUNT,
 } Type_Type;
-    
+
 typedef struct {
     size_t row;
     size_t col;
@@ -191,8 +191,10 @@ typedef enum {
 typedef struct {
     String_View name;
     Type_Type type;
-    Expr *value;
+    Exprs value;
     size_t stack_pos;
+    bool is_array;
+    Expr *array_s;
 } Variable;
     
 typedef struct {

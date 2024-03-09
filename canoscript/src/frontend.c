@@ -1,7 +1,7 @@
 #include "frontend.h"
 
 char *token_types[TT_COUNT] = {"none", "write", "exit", "ident", 
-                               ":", "(", ")", ",", "=", "==", "!=", ">=", "<=", ">", "<", "+", "-", "*", "/", 
+                               ":", "(", ")", "[", "]", ",", "=", "==", "!=", ">=", "<=", ">", "<", "+", "-", "*", "/", 
                                "string", "integer", "type", "if", "else", "while", "then", "return", "end"};
     
 String_View data_types[DATA_COUNT] = {
@@ -247,6 +247,12 @@ Token_Arr lex(String_View view) {
         } else if(*view.data == ')') {
             Token token = {.loc = (Location) {.row=row, .col=view.data-start}, .type = TT_C_PAREN};   
             DA_APPEND(&tokens, token);                                                    
+        } else if(*view.data == '[') {
+            Token token = {.loc = (Location) {.row=row, .col=view.data-start}, .type = TT_O_BRACKET};   
+            DA_APPEND(&tokens, token);                                                    
+        } else if(*view.data == ']') {
+            Token token = {.loc = (Location) {.row=row, .col=view.data-start}, .type = TT_C_BRACKET};   
+            DA_APPEND(&tokens, token);                                                    
         } else if(*view.data == ',') {
             Token token = {.loc = (Location) {.row=row, .col=view.data-start}, .type = TT_COMMA};   
             DA_APPEND(&tokens, token);                                                    
@@ -468,6 +474,13 @@ Node parse_var_dec(Token_Arr *tokens) {
     expect_token(tokens, TT_COLON);
     expect_token(tokens, TT_TYPE);                
     node.value.var.type = tokens->data[0].value.type;
+    if(token_peek(tokens, 1).type == TT_O_BRACKET) {
+         node.value.var.is_array = true;
+         token_consume(tokens);
+         token_consume(tokens);
+         node.value.var.array_s = parse_expr(tokens);       
+         //expect_token(tokens, TT_C_BRACKET);
+    }
     return node;
 }
     
@@ -494,8 +507,21 @@ Program parse(Token_Arr tokens, Blocks *block_stack) {
                     node = parse_var_dec(&tokens);
                     expect_token(&tokens, TT_EQ);                
                     token_consume(&tokens);
-                    
-                    node.value.var.value = parse_expr(&tokens);
+                    if(node.value.var.is_array) {
+                        if(token_consume(&tokens).type != TT_O_BRACKET) {
+                            PRINT_ERROR(tokens.data[0].loc, "expected %s but found %s\n", token_types[TT_O_BRACKET], token_types[tokens.data[0].type]);
+                        }
+                        while(token_peek(&tokens, 1).type != TT_C_BRACKET) {
+                            DA_APPEND(&node.value.var.value, parse_expr(&tokens));
+                            if(&tokens, token_consume(&tokens).type != TT_COMMA) {
+                                 PRINT_ERROR(tokens.data[0].loc, "expected %s but found %s\n", token_types[TT_O_COMMA], token_types[tokens.data[0].type]);       
+                            }
+                        }
+                        token_consume(&tokens);
+                        token_consume(&tokens);
+                    } else {
+                        DA_APPEND(&node.value.var.value, parse_expr(&tokens));    
+                    }
                 } else if(token.type == TT_EQ) {
                     node.type = TYPE_VAR_REASSIGN;
                     node.value.var.name = tokens.data[0].value.ident;
@@ -503,7 +529,9 @@ Program parse(Token_Arr tokens, Blocks *block_stack) {
                     token_consume(&tokens);
                     token_consume(&tokens);                    
                     
-                    node.value.var.value = parse_expr(&tokens);
+                    DA_APPEND(&node.value.var.value, parse_expr(&tokens));
+                } else if(token.type == TT_O_BRACKET) {
+                    ASSERT(false, "Array indexing is not supported yet");
                 } else if(token.type == TT_O_PAREN) {
                     size_t i = 1;
                     while(i < tokens.count+1 && token_peek(&tokens, i).type != TT_C_PAREN) i++;
@@ -595,6 +623,8 @@ Program parse(Token_Arr tokens, Blocks *block_stack) {
             case TT_NOT_EQ:
             case TT_O_PAREN:
             case TT_C_PAREN:
+            case TT_O_BRACKET:
+            case TT_C_BRACKET:
             case TT_COMMA:
             case TT_GREATER_EQ:
             case TT_LESS_EQ:

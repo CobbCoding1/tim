@@ -14,7 +14,7 @@ typedef struct {
     Size_Stack while_labels;
     Block_Stack block_stack;    
 } Program_State;
-
+    
 void gen_push(Program_State *state, FILE *file, int value);
 void gen_pop(Program_State *state, FILE *file);
 void gen_push_str(Program_State *state, FILE *file, String_View value);
