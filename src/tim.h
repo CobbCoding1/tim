@@ -114,10 +114,11 @@ typedef struct {
     } while(0)
 
 #define MATH_OP(as_type, op, data_type) \
-    do{ \
+    do { \
         b = pop(machine);   \
         a = pop(machine);   \
-        push(machine, (Word)(a.word.as_type op b.word.as_type), data_type); \
+        Word c = {.as_type = a.word.as_type op b.word.as_type}; \
+        push(machine, c, data_type); \
     } while(0)
 
 #define ASSERT(cond, ...) \

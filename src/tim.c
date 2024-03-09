@@ -134,7 +134,8 @@ void native_open(Machine *machine){
     Word path = pop(machine).word;
     char *mode = open_modes[flag_mode.as_int];
     void *fd = fopen(path.as_pointer, mode);
-    push(machine, (Word)fd, PTR_TYPE);
+    Word w = {.as_pointer=fd};
+    push(machine, w, PTR_TYPE);
 }
 
 void native_write(Machine *machine){
@@ -188,13 +189,15 @@ void native_pow(Machine *machine){
     int64_t power = pop(machine).word.as_int;
     int64_t num = pop(machine).word.as_int;
     int64_t result = my_pow(power, num);
-    push(machine, (Word)result, INT_TYPE);
+    Word w = {.as_int=result};
+    push(machine, w, INT_TYPE);
 }
 
 void native_time(Machine *machine){
     time_t seconds;
     seconds = time(NULL);
-    push(machine, (Word)(int64_t)seconds, INT_TYPE);
+    Word w = {.as_int=seconds};
+    push(machine, w, INT_TYPE);
 }
 
 void native_exit(Machine *machine){
@@ -206,7 +209,8 @@ void native_strcmp(Machine *machine){
     char *str1 = (char*)pop(machine).word.as_pointer;
     char *str2 = (char*)pop(machine).word.as_pointer;
     int64_t result = strcmp(str1, str2) == 0;
-    push(machine, (Word)result, INT_TYPE);
+    Word w = {.as_int=result};
+    push(machine, w, INT_TYPE);
 }
 
 void native_strcpy(Machine *machine){
@@ -234,7 +238,8 @@ void native_strcat(Machine *machine){
 void native_strlen(Machine *machine){
     char *str = (char*)pop(machine).word.as_pointer;
     int64_t result = strlen(str);
-    push(machine, (Word)result, INT_TYPE);
+    Word w = {.as_int=result};
+    push(machine, w, INT_TYPE);
 }
 
 void native_ftoa(Machine *machine){
@@ -556,7 +561,7 @@ void run_instructions(Machine *machine){
             case INST_INSWAP_STR:
                 assert(false && "UNUSED");
                 break;
-            case INST_INDEX:
+            case INST_INDEX: {
                 Data value = pop(machine);
                 int64_t index = pop(machine).word.as_int;
                 if(index < 0){
@@ -565,7 +570,7 @@ void run_instructions(Machine *machine){
                 char *arr = (char*)pop(machine).word.as_pointer;
                 arr[index] = value.word.as_char;
                 push_ptr(machine, (Word*)arr);
-                break;
+            } break;
             case INST_ADD:
                 MATH_OP(as_int, +, INT_TYPE);
                 break;
@@ -608,7 +613,8 @@ void run_instructions(Machine *machine){
                 }
                 b = pop(machine);
                 a = pop(machine);
-                push(machine, (Word)(my_fmod(a.word.as_float, b.word.as_float)), FLOAT_TYPE);
+                Word c = {.as_float=my_fmod(a.word.as_float, b.word.as_float)};
+                push(machine, c, FLOAT_TYPE);
                 break;
             case INST_CMPE: {
                 a = machine->stack[machine->stack_size - 1];
