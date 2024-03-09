@@ -1,5 +1,5 @@
 CC=gcc
-CFLAGS=-Wall -Wextra -pedantic
+CFLAGS=-Wall -Wextra
 DEFINES=
 INCLUDES=-Isrc
 LIBS=

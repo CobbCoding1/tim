@@ -32,6 +32,7 @@ void insert_memory(Machine *machine, size_t size) {
     Memory *new = malloc(sizeof(Memory));    
     memset(new, 0, sizeof(Memory));
     new->cell.data = malloc(sizeof(*new->cell.data)*size);
+    memset(new->cell.data, 0, sizeof(*new->cell.data)*size);
     new->next = machine->memory;
     machine->memory = new;
 }
