@@ -7,7 +7,8 @@ There is also a working assembly which contains support for all instructions in 
 
 Quick Start:
 ```bash
-./build.sh
+make setup
+make
 ./tasm <assembly_file.tasm>
 ./tire <bytecode_file.tim>
 ```
