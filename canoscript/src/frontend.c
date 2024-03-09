@@ -511,14 +511,13 @@ Program parse(Token_Arr tokens, Blocks *block_stack) {
                         if(token_consume(&tokens).type != TT_O_BRACKET) {
                             PRINT_ERROR(tokens.data[0].loc, "expected %s but found %s\n", token_types[TT_O_BRACKET], token_types[tokens.data[0].type]);
                         }
-                        while(token_peek(&tokens, 1).type != TT_C_BRACKET) {
+                        while(tokens.count > 0) {
                             DA_APPEND(&node.value.var.value, parse_expr(&tokens));
-                            if(&tokens, token_consume(&tokens).type != TT_COMMA) {
-                                 PRINT_ERROR(tokens.data[0].loc, "expected %s but found %s\n", token_types[TT_O_COMMA], token_types[tokens.data[0].type]);       
-                            }
+                            Token next = token_consume(&tokens);
+                            if(next.type == TT_COMMA) continue;
+                            else if(next.type == TT_C_BRACKET) break;
+                            else PRINT_ERROR(tokens.data[0].loc, "expected %s but found %s\n", token_types[TT_COMMA], token_types[tokens.data[0].type]);       
                         }
-                        token_consume(&tokens);
-                        token_consume(&tokens);
                     } else {
                         DA_APPEND(&node.value.var.value, parse_expr(&tokens));    
                     }

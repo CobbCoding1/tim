@@ -61,8 +61,25 @@ void gen_while_label(FILE *file, size_t label) {
 void gen_alloc(Program_State *state, FILE *file, Expr *s, size_t type_s) {
     fprintf(file, "push %zu\n", type_s);
     gen_expr(state, file, s);
-    fprintf(file, "mult\n");
+    fprintf(file, "mul\n");
     fprintf(file, "alloc\n");    
+}
+
+void gen_dup(Program_State *state, FILE *file) {
+    fprintf(file, "dup\n");
+    state->stack_s++;
+}
+
+void gen_offset(Program_State *state, FILE *file, size_t offset) {
+    gen_dup(state, file);
+    fprintf(file, "push %zu\n", offset);
+    fprintf(file, "add\n");
+    fprintf(file, "tovp\n");
+}
+
+void gen_write(Program_State *state, FILE *file) {
+    fprintf(file, "write\n");    
+    state->stack_s--;
 }
     
 void strip_off_dot(char *str) {
@@ -195,8 +212,14 @@ void gen_program(Program_State *state, Nodes nodes, FILE *file) {
                 fprintf(file, "; expr\n");                                            
                 if(node->value.var.is_array) {
                     gen_alloc(state, file, node->value.var.array_s, data_type_s[node->value.var.type]);
+                    for(size_t i = 0; i < node->value.var.value.count; i++) {
+                        gen_offset(state, file, data_type_s[node->value.var.type]*i);
+                        gen_expr(state, file, node->value.var.value.data[i]);                                                                                            
+                        gen_push(state, file, data_type_s[node->value.var.type]);
+                        gen_write(state, file);
+                    }
                 } else {
-                    gen_expr(state, file, node->value.var.value.data[0]);
+                    gen_expr(state, file, node->value.var.value.data[0]);                                    
                 }
                 node->value.var.stack_pos = state->stack_s;                 
                 DA_APPEND(&state->vars, node->value.var);    
