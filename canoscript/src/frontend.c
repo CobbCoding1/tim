@@ -399,6 +399,14 @@ Expr *parse_primary(Token_Arr *tokens) {
                 Expr *arg = parse_expr(tokens);
                 DA_APPEND(&expr->value.func_call.args, arg);
             }
+        } else if(token_peek(tokens, 0).type == TT_O_BRACKET) {
+            *expr = (Expr){
+                .type = EXPR_ARR,
+                .value.array.name = token.value.ident,
+            };
+            token_consume(tokens);
+            expr->value.array.index = parse_expr(tokens);
+            token_consume(tokens);            
         } else {
             *expr = (Expr){
                 .type = EXPR_VAR,

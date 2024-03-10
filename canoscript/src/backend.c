@@ -79,8 +79,14 @@ void gen_offset(Program_State *state, FILE *file, size_t offset) {
 
 void gen_write(Program_State *state, FILE *file) {
     fprintf(file, "write\n");    
-    state->stack_s--;
+    state->stack_s -= 3;
 }
+    
+void gen_read(Program_State *state, FILE *file) {
+    fprintf(file, "read\n");    
+    state->stack_s -= 3;
+}
+
     
 void strip_off_dot(char *str) {
     while(*str != '\0' && *str != '.') {
@@ -118,6 +124,15 @@ int get_variable_location(Program_State *state, String_View name) {
     }
     return -1;
 }
+    
+Type_Type get_variable_type(Program_State *state, String_View name) {
+    for(size_t i = 0; i < state->vars.count; i++) {
+        if(view_cmp(state->vars.data[i].name, name)) {
+            return state->vars.data[i].type;
+        }
+    }
+    return -1;
+}
 
 void gen_expr(Program_State *state, FILE *file, Expr *expr) {
     switch(expr->type) {
@@ -149,6 +164,23 @@ void gen_expr(Program_State *state, FILE *file, Expr *expr) {
                 gen_expr(state, file, expr->value.func_call.args.data[i]);
             }
             gen_func_call(file, expr->value.func_call.name);
+        } break;
+        case EXPR_ARR: {
+            int index = get_variable_location(state, expr->value.array.name);
+            if(index == -1) {
+                PRINT_ERROR((Location){0}, "variable "View_Print" referenced before assignment", View_Arg(expr->value.array.name));
+            }
+            Type_Type type = get_variable_type(state, expr->value.array.name);                        
+            gen_indup(state, file, state->stack_s-index); 
+            gen_expr(state, file, expr->value.array.index);
+            gen_push(state, file, data_type_s[type]);            
+            fprintf(file, "mul\n");                                    
+            state->stack_s--;                
+            fprintf(file, "add\n");                    
+            state->stack_s--;
+            fprintf(file, "tovp\n");            
+            gen_push(state, file, data_type_s[type]);
+            gen_read(state, file);
         } break;
         default:
             ASSERT(false, "UNREACHABLE, %d\n", expr->type);

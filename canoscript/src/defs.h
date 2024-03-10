@@ -104,17 +104,24 @@ typedef struct {
     String_View name;
     Exprs args;    
 } Func_Call;
+    
+typedef struct {
+    String_View name;
+    struct Expr *index;
+} Array;
 
 typedef enum {
     EXPR_BIN,    
     EXPR_INT,
     EXPR_VAR,
     EXPR_FUNCALL,
+    EXPR_ARR,
 } Expr_Type;
     
 typedef union {
     Bin_Expr bin;
     int integer;
+    Array array;
     String_View variable;
     Func_Call func_call;
 } Expr_Value;
