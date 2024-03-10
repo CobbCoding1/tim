@@ -14,6 +14,26 @@ void gen_pop(Program_State *state, FILE *file) {
     fprintf(file, "pop\n");
     state->stack_s--;   
 }
+    
+void gen_add(Program_State *state, FILE *file) {
+    fprintf(file, "add\n");
+    state->stack_s--;   
+}
+    
+void gen_sub(Program_State *state, FILE *file) {
+    fprintf(file, "sub\n");
+    state->stack_s--;   
+}
+
+void gen_mul(Program_State *state, FILE *file) {
+    fprintf(file, "mul\n");
+    state->stack_s--;   
+}
+
+void gen_div(Program_State *state, FILE *file) {
+    fprintf(file, "div\n");
+    state->stack_s--;   
+}
 
 void gen_push_str(Program_State *state, FILE *file, String_View value) {
     fprintf(file, "push_str \""View_Print"\"\n", View_Arg(value));
@@ -59,9 +79,9 @@ void gen_while_label(FILE *file, size_t label) {
 }
     
 void gen_alloc(Program_State *state, FILE *file, Expr *s, size_t type_s) {
-    fprintf(file, "push %zu\n", type_s);
+    gen_push(state, file, type_s);
     gen_expr(state, file, s);
-    fprintf(file, "mul\n");
+    gen_mul(state, file);
     fprintf(file, "alloc\n");    
 }
 
@@ -72,8 +92,8 @@ void gen_dup(Program_State *state, FILE *file) {
 
 void gen_offset(Program_State *state, FILE *file, size_t offset) {
     gen_dup(state, file);
-    fprintf(file, "push %zu\n", offset);
-    fprintf(file, "add\n");
+    gen_push(state, file, offset);
+    gen_add(state, file);
     fprintf(file, "tovp\n");
 }
 
@@ -86,7 +106,16 @@ void gen_read(Program_State *state, FILE *file) {
     fprintf(file, "read\n");    
     state->stack_s -= 1;
 }
-
+    
+void gen_arr_offset(Program_State *state, FILE *file, size_t var_index, Expr *arr_index, Type_Type type) {
+    fprintf(file, "; offset\n");                                                                                
+    gen_indup(state, file, state->stack_s-var_index);    
+    gen_expr(state, file, arr_index);
+    gen_push(state, file, data_type_s[type]);            
+    gen_mul(state, file);
+    gen_add(state, file);
+    fprintf(file, "tovp\n");            
+}
     
 void strip_off_dot(char *str) {
     while(*str != '\0' && *str != '.') {
@@ -134,18 +163,6 @@ Type_Type get_variable_type(Program_State *state, String_View name) {
     return -1;
 }
     
-void gen_arr_offset(Program_State *state, FILE *file, size_t var_index, Expr *arr_index, Type_Type type) {
-    fprintf(file, "; offset\n");                                                                                
-    gen_indup(state, file, state->stack_s-var_index);    
-    gen_expr(state, file, arr_index);
-    gen_push(state, file, data_type_s[type]);            
-    fprintf(file, "mul\n");                                    
-    state->stack_s--;                
-    fprintf(file, "add\n");                    
-    state->stack_s--;
-    fprintf(file, "tovp\n");            
-}
-
 void gen_expr(Program_State *state, FILE *file, Expr *expr) {
     switch(expr->type) {
         case EXPR_BIN:
@@ -273,7 +290,6 @@ void gen_program(Program_State *state, Nodes nodes, FILE *file) {
                 }
                 gen_inswap(file, state->stack_s-index);    
                 gen_pop(state, file);
-                //DA_APPEND(&state->vars, node->value.var);    
             } break;
             case TYPE_ARR_INDEX: {
                 fprintf(file, "; arr index\n");                                            
@@ -288,13 +304,11 @@ void gen_program(Program_State *state, Nodes nodes, FILE *file) {
                 fprintf(file, "; size\n");                                                                                                                        
                 gen_push(state, file, data_type_s[type]);
                 gen_write(state, file);
-                //DA_APPEND(&state->vars, node->value.var);    
             } break;
             case TYPE_FUNC_DEC: {
+                fprintf(file, "; function declaration\n");                                                                                                                
                 Function function = {0};
-                function.type = node->value.func_dec.type;
-                function.args = node->value.func_dec.args;
-                function.name = node->value.func_dec.name;
+                memcpy(&function, &node->value.func_dec, sizeof(Function));
                 DA_APPEND(&state->functions, function);
                 DA_APPEND(&state->block_stack, BLOCK_FUNC);                
                 DA_APPEND(&state->ret_stack, state->stack_s);                

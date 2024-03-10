@@ -404,9 +404,11 @@ Expr *parse_primary(Token_Arr *tokens) {
                 .type = EXPR_ARR,
                 .value.array.name = token.value.ident,
             };
-            token_consume(tokens);
+            token_consume(tokens); // open bracket
             expr->value.array.index = parse_expr(tokens);
-            token_consume(tokens);            
+            if(token_consume(tokens).type != TT_C_BRACKET) {
+                PRINT_ERROR(tokens->data[0].loc, "expected close bracket but found %s\n", token_types[tokens->data[0].type]);
+            }            
         } else {
             *expr = (Expr){
                 .type = EXPR_VAR,
@@ -533,23 +535,23 @@ Program parse(Token_Arr tokens, Blocks *block_stack) {
                     node.type = TYPE_VAR_REASSIGN;
                     node.value.var.name = tokens.data[0].value.ident;
                         
-                    token_consume(&tokens);
-                    token_consume(&tokens);                    
+                    token_consume(&tokens); // ident
+                    token_consume(&tokens); // equal                   
                     
                     DA_APPEND(&node.value.var.value, parse_expr(&tokens));
                 } else if(token.type == TT_O_BRACKET) {
                     node.type = TYPE_ARR_INDEX;
                     node.value.array.name = tokens.data[0].value.ident;
-                        
                     token_consume(&tokens); // ident
-                    token_consume(&tokens); // open bracket                 
+                    token_consume(&tokens); // open bracket                        
                     node.value.array.index = parse_expr(&tokens);
-                    token_consume(&tokens); // close bracket                                           
-                    token_consume(&tokens); // equal sign                                            
-                    
+                    if(token_consume(&tokens).type != TT_C_BRACKET) {
+                        PRINT_ERROR(tokens.data[0].loc, "expected close bracket but found %s\n", token_types[tokens.data[0].type]);
+                    }                 
+                    if(token_consume(&tokens).type != TT_EQ) {
+                        PRINT_ERROR(tokens.data[0].loc, "expected equal but found %s\n", token_types[tokens.data[0].type]);
+                    }                 
                     DA_APPEND(&node.value.array.value, parse_expr(&tokens));
-                } else if(token.type == TT_O_BRACKET) {
-                    ASSERT(false, "Array indexing is not supported yet");
                 } else if(token.type == TT_O_PAREN) {
                     size_t i = 1;
                     while(i < tokens.count+1 && token_peek(&tokens, i).type != TT_C_PAREN) i++;
