@@ -84,7 +84,7 @@ void gen_write(Program_State *state, FILE *file) {
     
 void gen_read(Program_State *state, FILE *file) {
     fprintf(file, "read\n");    
-    state->stack_s -= 3;
+    state->stack_s -= 1;
 }
 
     
@@ -133,6 +133,18 @@ Type_Type get_variable_type(Program_State *state, String_View name) {
     }
     return -1;
 }
+    
+void gen_arr_offset(Program_State *state, FILE *file, size_t var_index, Expr *arr_index, Type_Type type) {
+    fprintf(file, "; offset\n");                                                                                
+    gen_indup(state, file, state->stack_s-var_index);    
+    gen_expr(state, file, arr_index);
+    gen_push(state, file, data_type_s[type]);            
+    fprintf(file, "mul\n");                                    
+    state->stack_s--;                
+    fprintf(file, "add\n");                    
+    state->stack_s--;
+    fprintf(file, "tovp\n");            
+}
 
 void gen_expr(Program_State *state, FILE *file, Expr *expr) {
     switch(expr->type) {
@@ -171,14 +183,7 @@ void gen_expr(Program_State *state, FILE *file, Expr *expr) {
                 PRINT_ERROR((Location){0}, "variable "View_Print" referenced before assignment", View_Arg(expr->value.array.name));
             }
             Type_Type type = get_variable_type(state, expr->value.array.name);                        
-            gen_indup(state, file, state->stack_s-index); 
-            gen_expr(state, file, expr->value.array.index);
-            gen_push(state, file, data_type_s[type]);            
-            fprintf(file, "mul\n");                                    
-            state->stack_s--;                
-            fprintf(file, "add\n");                    
-            state->stack_s--;
-            fprintf(file, "tovp\n");            
+            gen_arr_offset(state, file, index, expr->value.array.index, type);
             gen_push(state, file, data_type_s[type]);
             gen_read(state, file);
         } break;
@@ -241,16 +246,18 @@ void gen_program(Program_State *state, Nodes nodes, FILE *file) {
                 break;
             case TYPE_VAR_DEC: {
                 fprintf(file, "; var declaration\n");                                                        
-                fprintf(file, "; expr\n");                                            
                 if(node->value.var.is_array) {
+                    fprintf(file, "; array allocation\n"); 
                     gen_alloc(state, file, node->value.var.array_s, data_type_s[node->value.var.type]);
                     for(size_t i = 0; i < node->value.var.value.count; i++) {
+                        fprintf(file, "; index %zu expr\n", i);                         
                         gen_offset(state, file, data_type_s[node->value.var.type]*i);
                         gen_expr(state, file, node->value.var.value.data[i]);                                                                                            
                         gen_push(state, file, data_type_s[node->value.var.type]);
                         gen_write(state, file);
                     }
                 } else {
+                    fprintf(file, "; expr\n");                                                            
                     gen_expr(state, file, node->value.var.value.data[0]);                                    
                 }
                 node->value.var.stack_pos = state->stack_s;                 
@@ -266,7 +273,22 @@ void gen_program(Program_State *state, Nodes nodes, FILE *file) {
                 }
                 gen_inswap(file, state->stack_s-index);    
                 gen_pop(state, file);
-                DA_APPEND(&state->vars, node->value.var);    
+                //DA_APPEND(&state->vars, node->value.var);    
+            } break;
+            case TYPE_ARR_INDEX: {
+                fprintf(file, "; arr index\n");                                            
+                int index = get_variable_location(state, node->value.array.name);
+                if(index == -1) {
+                    PRINT_ERROR((Location){0}, "variable "View_Print" referenced before assignment", View_Arg(node->value.var.name));
+                }
+                Type_Type type = get_variable_type(state, node->value.array.name);                                            
+                gen_arr_offset(state, file, index, node->value.array.index, type);
+                fprintf(file, "; expr\n");                                                                                                    
+                gen_expr(state, file, node->value.array.value.data[0]);                                                    
+                fprintf(file, "; size\n");                                                                                                                        
+                gen_push(state, file, data_type_s[type]);
+                gen_write(state, file);
+                //DA_APPEND(&state->vars, node->value.var);    
             } break;
             case TYPE_FUNC_DEC: {
                 Function function = {0};

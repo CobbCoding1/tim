@@ -190,6 +190,7 @@ typedef enum {
     TYPE_THEN,
     TYPE_FUNC_DEC,
     TYPE_FUNC_CALL,
+    TYPE_ARR_INDEX,
     TYPE_RET,
     TYPE_END,
     TYPE_COUNT,
@@ -223,6 +224,12 @@ typedef struct {
 } Variables;
     
 typedef struct {
+    String_View name;
+    Expr *index;
+    Exprs value;
+} Array_Index;
+    
+typedef struct {
     size_t label1;
     size_t label2;
 } Else_Label;
@@ -237,6 +244,7 @@ typedef union {
     Expr *expr;
     Expr *conditional;
     Variable var;
+    Array_Index array;
     Label label;
     Else_Label el;
     Func_Dec func_dec;

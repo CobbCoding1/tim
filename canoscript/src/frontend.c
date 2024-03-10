@@ -538,6 +538,17 @@ Program parse(Token_Arr tokens, Blocks *block_stack) {
                     
                     DA_APPEND(&node.value.var.value, parse_expr(&tokens));
                 } else if(token.type == TT_O_BRACKET) {
+                    node.type = TYPE_ARR_INDEX;
+                    node.value.array.name = tokens.data[0].value.ident;
+                        
+                    token_consume(&tokens); // ident
+                    token_consume(&tokens); // open bracket                 
+                    node.value.array.index = parse_expr(&tokens);
+                    token_consume(&tokens); // close bracket                                           
+                    token_consume(&tokens); // equal sign                                            
+                    
+                    DA_APPEND(&node.value.array.value, parse_expr(&tokens));
+                } else if(token.type == TT_O_BRACKET) {
                     ASSERT(false, "Array indexing is not supported yet");
                 } else if(token.type == TT_O_PAREN) {
                     size_t i = 1;
