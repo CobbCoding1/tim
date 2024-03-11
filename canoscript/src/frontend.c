@@ -395,6 +395,11 @@ Expr *parse_primary(Token_Arr *tokens) {
                 .type = EXPR_FUNCALL,
                 .value.func_call.name = token.value.ident,
             };
+            if(token_peek(tokens, 1).type == TT_C_PAREN) {
+                token_consume(tokens);
+                token_consume(tokens);                
+                return expr;
+            }
             while(tokens->count > 0 && token_consume(tokens).type != TT_C_PAREN) {
                 Expr *arg = parse_expr(tokens);
                 DA_APPEND(&expr->value.func_call.args, arg);
@@ -566,12 +571,13 @@ Program parse(Token_Arr tokens, Blocks *block_stack) {
                         Block block = {.type = BLOCK_FUNC, .value = node.value.func_dec.name};
                         DA_APPEND(block_stack, block);                        
                         token_consume(&tokens);                        
-                        while(tokens.count > 0 && token_consume(&tokens).type != TT_C_PAREN) {
+                        while(tokens.count > 0 && token_consume(&tokens).type != TT_C_PAREN && i > 2) {
                             Node arg = parse_var_dec(&tokens);
                             DA_APPEND(&node.value.func_dec.args, arg);
                             token_consume(&tokens);
                         }
-                        token_consume(&tokens);                                                                        
+                        token_consume(&tokens);
+                        if(i == 2) token_consume(&tokens);
                         node.value.func_dec.type = tokens.data[0].value.type;
                         token_consume(&tokens);                                                                        
                         node.value.func_dec.label = cur_label;
@@ -581,7 +587,7 @@ Program parse(Token_Arr tokens, Blocks *block_stack) {
                         node.type = TYPE_FUNC_CALL;
                         node.value.func_call.name = tokens.data[0].value.ident;                                        
                         token_consume(&tokens);                                                
-                        while(tokens.count > 0 && token_consume(&tokens).type != TT_C_PAREN) {
+                        while(tokens.count > 0 && token_consume(&tokens).type != TT_C_PAREN && i > 2) {
                             Expr *arg = parse_expr(&tokens);
                             DA_APPEND(&node.value.func_call.args, arg);
                         }

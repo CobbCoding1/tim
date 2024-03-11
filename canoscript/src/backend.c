@@ -83,6 +83,7 @@ void gen_alloc(Program_State *state, FILE *file, Expr *s, size_t type_s) {
     gen_expr(state, file, s);
     gen_mul(state, file);
     fprintf(file, "alloc\n");    
+    state->stack_s++;
 }
 
 void gen_dup(Program_State *state, FILE *file) {
@@ -108,6 +109,7 @@ void gen_read(Program_State *state, FILE *file) {
 }
     
 void gen_arr_offset(Program_State *state, FILE *file, size_t var_index, Expr *arr_index, Type_Type type) {
+    ASSERT(var_index > 1, "Stack was corrupted");
     fprintf(file, "; offset\n");                                                                                
     gen_indup(state, file, state->stack_s-var_index);    
     gen_expr(state, file, arr_index);
@@ -245,6 +247,7 @@ void gen_program(Program_State *state, Nodes nodes, FILE *file) {
                         gen_push(state, file, STDOUT);
                         fprintf(file, "native %d\n", node->value.native.type);
                         state->stack_s -= 2;
+                        gen_pop(state, file);
                         break;
                     case NATIVE_EXIT:
                         ASSERT(node->value.native.args.count == 1, "too many arguments");
