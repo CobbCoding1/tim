@@ -61,7 +61,7 @@ typedef struct {
 bool is_valid_escape(char c);
 String_View read_file_to_view(char *filename);
 bool isword(char c);
-Token_Type get_token_type(char *str, size_t str_s);
+Token_Type get_token_type(String_View str);
 Token handle_data_type(Token token, String_View str);
 bool is_operator(String_View view);
 Token create_operator_token(size_t row, size_t col, String_View *view);

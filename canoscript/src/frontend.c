@@ -46,23 +46,23 @@ String_View read_file_to_view(char *filename) {
 bool isword(char c) {
     return isalpha(c) || isdigit(c) || c == '_';
 }
-    
-Token_Type get_token_type(char *str, size_t str_s) {
-    if(strncmp(str, "write", str_s) == 0) {
+
+Token_Type get_token_type(String_View str) {
+    if(view_cmp(str, view_create("write", 5))) {
         return TT_WRITE;
-    } else if(strncmp(str, "exit", str_s) == 0) {
+    } else if(view_cmp(str, view_create("exit", 4))) {
         return TT_EXIT;
-    } else if(strncmp(str, "if", str_s) == 0) {
+    } else if(view_cmp(str, view_create("if", 2))) {
         return TT_IF;
-    } else if(strncmp(str, "else", str_s) == 0) {
+    } else if(view_cmp(str, view_create("else", 4))) {
         return TT_ELSE;  
-    } else if (strncmp(str, "while", str_s) == 0) {
+    } else if(view_cmp(str, view_create("while", 5))) {
         return TT_WHILE;  
-    } else if(strncmp(str, "then", str_s) == 0) {
+    } else if(view_cmp(str, view_create("then", 4))) {
         return TT_THEN;
-    } else if(strncmp(str, "return", str_s) == 0) {
+    } else if(view_cmp(str, view_create("return", 6))) {
         return TT_RET;
-    } else if(strncmp(str, "end", str_s) == 0) {
+    } else if(view_cmp(str, view_create("end", 3))) {
         return TT_END;        
     }
     return TT_NONE;
@@ -179,7 +179,7 @@ Token_Arr lex(String_View view) {
             }
             view.data--;
             view.len++;
-            token.type = get_token_type(word.data, word.count);
+            token.type = get_token_type(view_create(word.data, word.count));
             token = handle_data_type(token, view_create(word.data, word.count));
             if(token.type == TT_NONE) {
                 token.type = TT_IDENT;
@@ -494,8 +494,8 @@ Node parse_var_dec(Token_Arr *tokens) {
     expect_token(tokens, TT_COLON);
     expect_token(tokens, TT_TYPE);                
     node.value.var.type = tokens->data[0].value.type;
+    node.value.var.is_array = token_peek(tokens, 1).type == TT_O_BRACKET || node.value.var.type == TYPE_STR;
     if(token_peek(tokens, 1).type == TT_O_BRACKET) {
-         node.value.var.is_array = true;
          token_consume(tokens);
          token_consume(tokens);
          node.value.var.array_s = parse_expr(tokens);       
@@ -525,7 +525,7 @@ Program parse(Token_Arr tokens, Blocks *block_stack) {
                     node = parse_var_dec(&tokens);
                     expect_token(&tokens, TT_EQ);                
                     token_consume(&tokens);
-                    if(node.value.var.is_array) {
+                    if(node.value.var.is_array && node.value.var.type != TYPE_STR) {
                         if(token_consume(&tokens).type != TT_O_BRACKET) {
                             PRINT_ERROR(tokens.data[0].loc, "expected %s but found %s\n", token_types[TT_O_BRACKET], token_types[tokens.data[0].type]);
                         }

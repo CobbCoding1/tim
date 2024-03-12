@@ -274,7 +274,7 @@ void gen_program(Program_State *state, Nodes nodes, FILE *file) {
                 break;
             case TYPE_VAR_DEC: {
                 fprintf(file, "; var declaration\n");                                                        
-                if(node->value.var.is_array) {
+                if(node->value.var.is_array && node->value.var.type != TYPE_STR) {
                     fprintf(file, "; array allocation\n"); 
                     gen_alloc(state, file, node->value.var.array_s, data_type_s[node->value.var.type]);
                     for(size_t i = 0; i < node->value.var.value.count; i++) {
