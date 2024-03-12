@@ -28,6 +28,7 @@ typedef enum {
     TT_MULT,
     TT_DIV,
     TT_STRING,
+    TT_CHAR_LIT,
     TT_INT,
     TT_TYPE,
     TT_IF,

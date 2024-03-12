@@ -115,6 +115,7 @@ typedef enum {
     EXPR_BIN,    
     EXPR_INT,
     EXPR_STR,
+    EXPR_CHAR,
     EXPR_VAR,
     EXPR_FUNCALL,
     EXPR_ARR,

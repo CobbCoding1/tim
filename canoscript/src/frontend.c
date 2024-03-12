@@ -214,6 +214,35 @@ Token_Arr lex(String_View view) {
             token.type = TT_STRING;
             token.value.string = view_create(word.data, word.count);
             DA_APPEND(&tokens, token);                                    
+        } else if(*view.data == '\'') {
+            Token token = {0};
+            token.loc = (Location){
+                .row = row,
+                .col = view.data-start,
+            };
+            Dynamic_Str word = {0};
+            view = view_chop_left(view);
+            while(view.len > 0 && *view.data != '\'') {
+                if(view.len > 1 && *view.data == '\\') {
+                    DA_APPEND(&word, *view.data);                                        
+                    view = view_chop_left(view);
+                    if(!is_valid_escape(*view.data)) {
+                        PRINT_ERROR(token.loc, "unexpected escape character: %c", *view.data);
+                    }
+                }
+                DA_APPEND(&word, *view.data);
+                view = view_chop_left(view);
+            }
+            if(word.count > 2) {
+                fprintf(stderr, "error: character cannot be made up of multiple characters\n");
+                exit(1);
+            }
+            if(view.len == 0 && *view.data != '\'') {
+                PRINT_ERROR(token.loc, "expected closing %c quote", '"');                            
+            };
+            token.type = TT_CHAR_LIT; 
+            token.value.string = view_create(word.data, word.count);
+            DA_APPEND(&tokens, token);                                    
         } else if(isdigit(*view.data)) {
             Token token = {0};
             token.loc = (Location){
@@ -381,7 +410,7 @@ Expr *parse_expr(Token_Arr *tokens);
 // but in the future, could be identifiers, etc
 Expr *parse_primary(Token_Arr *tokens) {
     Token token = token_consume(tokens);
-    if(token.type != TT_INT && token.type != TT_STRING &&  token.type != TT_IDENT) {
+    if(token.type != TT_INT && token.type != TT_STRING && token.type != TT_CHAR_LIT && token.type != TT_IDENT) {
         PRINT_ERROR(token.loc, "expected %s but found %s", token_types[TT_INT], token_types[token.type]);
     }
     Expr *expr = custom_realloc(NULL, sizeof(Expr));   
@@ -393,6 +422,11 @@ Expr *parse_primary(Token_Arr *tokens) {
     } else if(token.type == TT_STRING) {
         *expr = (Expr){
             .type = EXPR_STR,
+            .value.string = token.value.string,
+        };
+    } else if(token.type == TT_CHAR_LIT) {
+        *expr = (Expr){
+            .type = EXPR_CHAR,
             .value.string = token.value.string,
         };
     } else if(token.type == TT_IDENT) {
@@ -644,6 +678,7 @@ Program parse(Token_Arr tokens, Blocks *block_stack) {
                 DA_APPEND(&root, node);                
             } break;
             case TT_STRING:
+            case TT_CHAR_LIT:
             case TT_INT:            
             case TT_PLUS:
             case TT_COLON:

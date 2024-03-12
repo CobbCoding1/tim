@@ -10,6 +10,11 @@ void gen_push(Program_State *state, FILE *file, int value) {
     state->stack_s++;   
 }
     
+void gen_push_char(Program_State *state, FILE *file, String_View value) {
+    fprintf(file, "push '"View_Print"'\n", View_Arg(value));
+    state->stack_s++;   
+}
+    
 void gen_pop(Program_State *state, FILE *file) {
     fprintf(file, "pop\n");
     state->stack_s--;   
@@ -179,6 +184,9 @@ void gen_expr(Program_State *state, FILE *file, Expr *expr) {
         case EXPR_STR:
             gen_push_str(state, file, expr->value.string);
             break;
+        case EXPR_CHAR:
+            gen_push_char(state, file, expr->value.string);
+            break;
         case EXPR_VAR: {
             int index = get_variable_location(state, expr->value.variable);
             if(index == -1) {
@@ -205,6 +213,7 @@ void gen_expr(Program_State *state, FILE *file, Expr *expr) {
                 PRINT_ERROR((Location){0}, "variable "View_Print" referenced before assignment", View_Arg(expr->value.array.name));
             }
             Type_Type type = get_variable_type(state, expr->value.array.name);                        
+            printf(View_Print" %d\n", View_Arg(expr->value.array.name), type);
             gen_arr_offset(state, file, index, expr->value.array.index, type);
             gen_push(state, file, data_type_s[type]);
             gen_read(state, file);
@@ -325,9 +334,11 @@ void gen_program(Program_State *state, Nodes nodes, FILE *file) {
                 DA_APPEND(&state->ret_stack, state->stack_s);                
                 DA_APPEND(&state->scope_stack, state->stack_s);                
                 for(size_t i = 0; i < function.args.count; i++) {
+                    // TODO: does not push the proper stack size when using str literals
                     Variable var = {0};
                     var.stack_pos = ++state->stack_s;
                     var.name = function.args.data[i].value.var.name;
+                    var.type = function.args.data[i].value.var.type;
                     DA_APPEND(&state->vars, var);    
                 }
                 gen_jmp(file, node->value.func_dec.label);                                
