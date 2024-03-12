@@ -3,7 +3,7 @@
 char *node_types[TYPE_COUNT] = {"root", "native", "expr", "var_dec", "var_reassign",
                                     "if", "else", "while", "then", "func_dec", "func_call", "return", "end"};
     
-size_t data_type_s[DATA_COUNT] = {8};
+size_t data_type_s[DATA_COUNT] = {8, 1};
     
 void gen_push(Program_State *state, FILE *file, int value) {
     fprintf(file, "push %d\n", value);
@@ -37,7 +37,7 @@ void gen_div(Program_State *state, FILE *file) {
 
 void gen_push_str(Program_State *state, FILE *file, String_View value) {
     fprintf(file, "push_str \""View_Print"\"\n", View_Arg(value));
-    state->stack_s++;
+    state->stack_s += 2;
 }
     
 void gen_indup(Program_State *state, FILE *file, size_t value) {
@@ -176,6 +176,9 @@ void gen_expr(Program_State *state, FILE *file, Expr *expr) {
         case EXPR_INT:
             gen_push(state, file, expr->value.integer);        
             break;
+        case EXPR_STR:
+            gen_push_str(state, file, expr->value.string);
+            break;
         case EXPR_VAR: {
             int index = get_variable_location(state, expr->value.variable);
             if(index == -1) {
@@ -238,12 +241,17 @@ void gen_program(Program_State *state, Nodes nodes, FILE *file) {
             case TYPE_NATIVE:
                 switch(node->value.native.type) {
                     case NATIVE_WRITE:
-                        ASSERT(node->value.native.args.count == 1, "too many arguments");
-                        if(node->value.native.args.data[0].type != ARG_STRING) {
-                            PRINT_ERROR(node->loc, "expected type string, but found type %s", node_types[node->value.native.args.data[0].type]);
+                        if(node->value.native.args.count > 1) {
+                            fprintf(stderr, "error: too many args\n");
+                            exit(1);
+                        }
+                        Expr_Type type = node->value.native.args.data[0].value.expr->type;
+                        if(type != EXPR_STR && type != EXPR_VAR) {
+                            fprintf(stderr, "error: expected string\n");
+                            exit(1);
                         };
                         fprintf(file, "; write\n");
-                        gen_push_str(state, file, node->value.native.args.data[0].value.string);
+                        gen_expr(state, file, node->value.native.args.data[0].value.expr);
                         gen_push(state, file, STDOUT);
                         fprintf(file, "native %d\n", node->value.native.type);
                         state->stack_s -= 2;

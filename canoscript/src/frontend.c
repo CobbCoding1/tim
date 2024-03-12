@@ -6,6 +6,7 @@ char *token_types[TT_COUNT] = {"none", "write", "exit", "ident",
     
 String_View data_types[DATA_COUNT] = {
     {.data="int", .len=3},
+    {.data="str", .len=3},    
 };    
 
 bool is_valid_escape(char c){
@@ -380,7 +381,7 @@ Expr *parse_expr(Token_Arr *tokens);
 // but in the future, could be identifiers, etc
 Expr *parse_primary(Token_Arr *tokens) {
     Token token = token_consume(tokens);
-    if(token.type != TT_INT && token.type != TT_IDENT) {
+    if(token.type != TT_INT && token.type != TT_STRING &&  token.type != TT_IDENT) {
         PRINT_ERROR(token.loc, "expected %s but found %s", token_types[TT_INT], token_types[token.type]);
     }
     Expr *expr = custom_realloc(NULL, sizeof(Expr));   
@@ -388,6 +389,11 @@ Expr *parse_primary(Token_Arr *tokens) {
         *expr = (Expr){
             .type = EXPR_INT,
             .value.integer = token.value.integer,
+        };
+    } else if(token.type == TT_STRING) {
+        *expr = (Expr){
+            .type = EXPR_STR,
+            .value.string = token.value.string,
         };
     } else if(token.type == TT_IDENT) {
         if(token_peek(tokens, 0).type == TT_O_PAREN) {
@@ -459,20 +465,19 @@ Expr *parse_expr(Token_Arr *tokens) {
 
 Node parse_native_node(Token_Arr *tokens, Token_Type type, int native_value) {
     Node node = {.type = TYPE_NATIVE, .loc = tokens->data[0].loc};            
-    //expect_token(tokens, type);        
     token_consume(tokens);
     Token token = tokens->data[0];
     Native_Call call = {0};
     Arg arg = {0};
     switch(type) {
+        case TT_STRING:    
         case TT_INT: {
-            if(token.type != TT_INT && token.type != TT_IDENT) PRINT_ERROR(token.loc, "expected int or ident but found %s\n", token_types[token.type]);
+            if(token.type != TT_INT && token.type != TT_STRING && token.type != TT_IDENT) PRINT_ERROR(token.loc, "expected int or ident but found %s\n", token_types[token.type]);
             arg = (Arg){.type=ARG_EXPR, .value.expr=parse_expr(tokens)};
         } break;
-        case TT_STRING: {
-            if(token.type != TT_STRING) PRINT_ERROR(token.loc, "expected string but found %s\n", token_types[token.type]);        
-            arg = (Arg){.type=ARG_STRING, .value.string=tokens->data[0].value.string};                
-        } break;
+            //if(token.type != TT_STRING) PRINT_ERROR(token.loc, "expected string but found %s\n", token_types[token.type]);        
+            //arg = (Arg){.type=ARG_STRING, .value.string=tokens->data[0].value.string};                
+        //} break;
         default:
             PRINT_ERROR(tokens->data[0].loc, "unexpected type: %s\n", token_types[type]);
     }
@@ -494,7 +499,6 @@ Node parse_var_dec(Token_Arr *tokens) {
          token_consume(tokens);
          token_consume(tokens);
          node.value.var.array_s = parse_expr(tokens);       
-         //expect_token(tokens, TT_C_BRACKET);
     }
     return node;
 }
@@ -509,7 +513,6 @@ Program parse(Token_Arr tokens, Blocks *block_stack) {
             case TT_WRITE: {
                 Node node = parse_native_node(&tokens, TT_STRING, NATIVE_WRITE);            
                 DA_APPEND(&root, node);
-                token_consume(&tokens);
             } break;
             case TT_EXIT: {
                 Node node = parse_native_node(&tokens, TT_INT, NATIVE_EXIT);

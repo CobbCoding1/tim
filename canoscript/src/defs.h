@@ -50,6 +50,7 @@ typedef struct {
     
 typedef enum {
     TYPE_INT,
+    TYPE_STR,
     DATA_COUNT,
 } Type_Type;
 
@@ -113,6 +114,7 @@ typedef struct {
 typedef enum {
     EXPR_BIN,    
     EXPR_INT,
+    EXPR_STR,
     EXPR_VAR,
     EXPR_FUNCALL,
     EXPR_ARR,
@@ -123,6 +125,7 @@ typedef union {
     int integer;
     Array array;
     String_View variable;
+    String_View string;
     Func_Call func_call;
 } Expr_Value;
 
