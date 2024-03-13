@@ -98,9 +98,10 @@ bool is_operator(String_View view) {
     }
 }
     
-Token create_operator_token(size_t row, size_t col, String_View *view) {
+Token create_operator_token(char *filename, size_t row, size_t col, String_View *view) {
     Token token = {0};
     token.loc = (Location){
+        .filename = filename,
         .row = row,
         .col = col,
     };
@@ -159,17 +160,14 @@ void print_token_arr(Token_Arr arr) {
     }
 }
 
-Token_Arr lex(String_View view) {
+Token_Arr lex(char *filename, String_View view) {
     size_t row = 1;
     Token_Arr tokens = {0};
     char *start = view.data;
     while(view.len > 0) {
+        Token token = {0};
+        token.loc = (Location){.filename = filename, .row=row, .col=view.data-start};
         if(isalpha(*view.data)) {
-            Token token = {0};
-            token.loc = (Location){
-                .row = row,
-                .col = view.data-start,
-            };
             Dynamic_Str word = {0};    
             DA_APPEND(&word, *view.data);                    
             view = view_chop_left(view);
@@ -190,11 +188,6 @@ Token_Arr lex(String_View view) {
             DA_APPEND(&tokens, token);     
             free(word.data);
         } else if(*view.data == '"') {
-            Token token = {0};
-            token.loc = (Location){
-                .row = row,
-                .col = view.data-start,
-            };
             Dynamic_Str word = {0};
             view = view_chop_left(view);
             while(view.len > 0 && *view.data != '"') {
@@ -202,24 +195,19 @@ Token_Arr lex(String_View view) {
                     DA_APPEND(&word, *view.data);                                        
                     view = view_chop_left(view);
                     if(!is_valid_escape(*view.data)) {
-                        PRINT_ERROR(token.loc, "unexpected escape character: %c", *view.data);
+                        PRINT_ERROR(token.loc, "unexpected escape character: `%c`", *view.data);
                     }
                 }
                 DA_APPEND(&word, *view.data);
                 view = view_chop_left(view);
             }
             if(view.len == 0 && *view.data != '"') {
-                PRINT_ERROR(token.loc, "expected closing %c quote", '"');                            
+                PRINT_ERROR(token.loc, "expected closing `\"`");                            
             };
             token.type = TT_STRING;
             token.value.string = view_create(word.data, word.count);
             DA_APPEND(&tokens, token);                                    
         } else if(*view.data == '\'') {
-            Token token = {0};
-            token.loc = (Location){
-                .row = row,
-                .col = view.data-start,
-            };
             Dynamic_Str word = {0};
             view = view_chop_left(view);
             while(view.len > 0 && *view.data != '\'') {
@@ -227,29 +215,22 @@ Token_Arr lex(String_View view) {
                     DA_APPEND(&word, *view.data);                                        
                     view = view_chop_left(view);
                     if(!is_valid_escape(*view.data)) {
-                        PRINT_ERROR(token.loc, "unexpected escape character: %c", *view.data);
+                        PRINT_ERROR(token.loc, "unexpected escape character: `%c`", *view.data);
                     }
                 }
                 DA_APPEND(&word, *view.data);
                 view = view_chop_left(view);
             }
             if(word.count > 2) {
-                fprintf(stderr, "error: character cannot be made up of multiple characters\n");
-                exit(1);
+                PRINT_ERROR(token.loc, "character cannot be made up of multiple characters");
             }
             if(view.len == 0 && *view.data != '\'') {
-                PRINT_ERROR(token.loc, "expected closing %c quote", '"');                            
+                PRINT_ERROR(token.loc, "expected closing `'` quote");                            
             };
             token.type = TT_CHAR_LIT; 
             token.value.string = view_create(word.data, word.count);
             DA_APPEND(&tokens, token);                                    
         } else if(isdigit(*view.data)) {
-            Token token = {0};
-            token.loc = (Location){
-                .row = row,
-                .col = view.data-start,
-            };
-        
             Dynamic_Str num = {0};
             while(view.len > 0 && isdigit(*view.data)) {
                 DA_APPEND(&num, *view.data);
@@ -263,30 +244,29 @@ Token_Arr lex(String_View view) {
             token.value.integer = atoi(num.data);
             DA_APPEND(&tokens, token);                        
         } else if(is_operator(view)) {
-            Token token = create_operator_token(row, view.data-start, &view);
+            token = create_operator_token(filename, row, view.data-start, &view);
             DA_APPEND(&tokens, token);                                        
         } else if(*view.data == ':') {
-            Token token = {.loc = (Location) {.row=row, .col=view.data-start}, .type = TT_COLON};
+            token.type = TT_COLON;
             DA_APPEND(&tokens, token);                                                    
         } else if(*view.data == '=') {
-            Token token = {.loc = (Location) {.row=row, .col=view.data-start}, .type = TT_EQ};   
+            token.type = TT_EQ;
             DA_APPEND(&tokens, token);                                                    
         } else if(*view.data == '(') {
-            Token token = {.loc = (Location) {.row=row, .col=view.data-start}, .type = TT_O_PAREN};   
+            token.type = TT_O_PAREN;
             DA_APPEND(&tokens, token);                                                    
         } else if(*view.data == ')') {
-            Token token = {.loc = (Location) {.row=row, .col=view.data-start}, .type = TT_C_PAREN};   
+            token.type = TT_C_PAREN;                
             DA_APPEND(&tokens, token);                                                    
         } else if(*view.data == '[') {
-            Token token = {.loc = (Location) {.row=row, .col=view.data-start}, .type = TT_O_BRACKET};   
+            token.type = TT_O_BRACKET;
             DA_APPEND(&tokens, token);                                                    
         } else if(*view.data == ']') {
-            Token token = {.loc = (Location) {.row=row, .col=view.data-start}, .type = TT_C_BRACKET};   
+            token.type = TT_C_BRACKET;            
             DA_APPEND(&tokens, token);                                                    
         } else if(*view.data == ',') {
-            Token token = {.loc = (Location) {.row=row, .col=view.data-start}, .type = TT_COMMA};   
+            token.type = TT_COMMA;
             DA_APPEND(&tokens, token);                                                    
-                    
         } else if(*view.data == '\n') {
             row++;
             start = view.data;
@@ -312,7 +292,7 @@ Token token_peek(Token_Arr *tokens, size_t peek_by) {
 void expect_token(Token_Arr *tokens, Token_Type type) {
     token_consume(tokens);
     if(tokens->data[0].type != type) {
-        PRINT_ERROR(tokens->data[0].loc, "expected type: %s, but found type %s\n", 
+        PRINT_ERROR(tokens->data[0].loc, "expected type: `%s`, but found type `%s`\n", 
                     token_types[type], token_types[tokens->data[0].type]);
     };
 }
@@ -411,13 +391,14 @@ Expr *parse_expr(Token_Arr *tokens);
 Expr *parse_primary(Token_Arr *tokens) {
     Token token = token_consume(tokens);
     if(token.type != TT_INT && token.type != TT_STRING && token.type != TT_CHAR_LIT && token.type != TT_IDENT) {
-        PRINT_ERROR(token.loc, "expected %s but found %s", token_types[TT_INT], token_types[token.type]);
+        PRINT_ERROR(token.loc, "expected int, string, char, or ident but found %s", token_types[token.type]);
     }
     Expr *expr = custom_realloc(NULL, sizeof(Expr));   
     if(token.type == TT_INT) {
         *expr = (Expr){
             .type = EXPR_INT,
             .value.integer = token.value.integer,
+            .loc = token.loc,
         };
     } else if(token.type == TT_STRING) {
         *expr = (Expr){
@@ -452,7 +433,7 @@ Expr *parse_primary(Token_Arr *tokens) {
             token_consume(tokens); // open bracket
             expr->value.array.index = parse_expr(tokens);
             if(token_consume(tokens).type != TT_C_BRACKET) {
-                PRINT_ERROR(tokens->data[0].loc, "expected close bracket but found %s\n", token_types[tokens->data[0].type]);
+                PRINT_ERROR(tokens->data[0].loc, "expected `]` but found `%s`\n", token_types[tokens->data[0].type]);
             }            
         } else {
             *expr = (Expr){
@@ -506,12 +487,11 @@ Node parse_native_node(Token_Arr *tokens, Token_Type type, int native_value) {
     switch(type) {
         case TT_STRING:    
         case TT_INT: {
-            if(token.type != TT_INT && token.type != TT_STRING && token.type != TT_IDENT) PRINT_ERROR(token.loc, "expected int or ident but found %s\n", token_types[token.type]);
+            if(token.type != TT_INT && token.type != TT_STRING && token.type != TT_CHAR_LIT && token.type != TT_IDENT) {
+                PRINT_ERROR(token.loc, "expected int, string, char, or ident but found %s\n", token_types[token.type]);
+            }
             arg = (Arg){.type=ARG_EXPR, .value.expr=parse_expr(tokens)};
         } break;
-            //if(token.type != TT_STRING) PRINT_ERROR(token.loc, "expected string but found %s\n", token_types[token.type]);        
-            //arg = (Arg){.type=ARG_STRING, .value.string=tokens->data[0].value.string};                
-        //} break;
         default:
             PRINT_ERROR(tokens->data[0].loc, "unexpected type: %s\n", token_types[type]);
     }
@@ -524,6 +504,7 @@ Node parse_native_node(Token_Arr *tokens, Token_Type type, int native_value) {
 Node parse_var_dec(Token_Arr *tokens) {
     Node node = {0};
     node.type = TYPE_VAR_DEC;
+    node.loc = tokens->data[0].loc;
     node.value.var.name = tokens->data[0].value.ident;
     expect_token(tokens, TT_COLON);
     expect_token(tokens, TT_TYPE);                
@@ -543,17 +524,17 @@ Program parse(Token_Arr tokens, Blocks *block_stack) {
     size_t cur_label = 0;
     Size_Stack labels = {0};
     while(tokens.count > 0) {
+        Node node = {.loc=tokens.data[0].loc};    
         switch(tokens.data[0].type) {
             case TT_WRITE: {
-                Node node = parse_native_node(&tokens, TT_STRING, NATIVE_WRITE);            
+                node = parse_native_node(&tokens, TT_STRING, NATIVE_WRITE);            
                 DA_APPEND(&root, node);
             } break;
             case TT_EXIT: {
-                Node node = parse_native_node(&tokens, TT_INT, NATIVE_EXIT);
+                node = parse_native_node(&tokens, TT_INT, NATIVE_EXIT);
                 DA_APPEND(&root, node);
             } break;
             case TT_IDENT: {
-                Node node = {0};
                 Token token = token_peek(&tokens, 1);
                 if(token.type == TT_COLON) {
                     node = parse_var_dec(&tokens);
@@ -561,14 +542,14 @@ Program parse(Token_Arr tokens, Blocks *block_stack) {
                     token_consume(&tokens);
                     if(node.value.var.is_array && node.value.var.type != TYPE_STR) {
                         if(token_consume(&tokens).type != TT_O_BRACKET) {
-                            PRINT_ERROR(tokens.data[0].loc, "expected %s but found %s\n", token_types[TT_O_BRACKET], token_types[tokens.data[0].type]);
+                            PRINT_ERROR(tokens.data[0].loc, "expected `[` but found `%s`\n", token_types[tokens.data[0].type]);
                         }
                         while(tokens.count > 0) {
                             DA_APPEND(&node.value.var.value, parse_expr(&tokens));
                             Token next = token_consume(&tokens);
                             if(next.type == TT_COMMA) continue;
                             else if(next.type == TT_C_BRACKET) break;
-                            else PRINT_ERROR(tokens.data[0].loc, "expected %s but found %s\n", token_types[TT_COMMA], token_types[tokens.data[0].type]);       
+                            else PRINT_ERROR(tokens.data[0].loc, "expected `,` but found `%s`\n", token_types[tokens.data[0].type]);       
                         }
                     } else {
                         DA_APPEND(&node.value.var.value, parse_expr(&tokens));    
@@ -588,17 +569,17 @@ Program parse(Token_Arr tokens, Blocks *block_stack) {
                     token_consume(&tokens); // open bracket                        
                     node.value.array.index = parse_expr(&tokens);
                     if(token_consume(&tokens).type != TT_C_BRACKET) {
-                        PRINT_ERROR(tokens.data[0].loc, "expected close bracket but found %s\n", token_types[tokens.data[0].type]);
+                        PRINT_ERROR(tokens.data[0].loc, "expected `]` but found `%s`\n", token_types[tokens.data[0].type]);
                     }                 
                     if(token_consume(&tokens).type != TT_EQ) {
-                        PRINT_ERROR(tokens.data[0].loc, "expected equal but found %s\n", token_types[tokens.data[0].type]);
+                        PRINT_ERROR(tokens.data[0].loc, "expected `=` but found `%s`\n", token_types[tokens.data[0].type]);
                     }                 
                     DA_APPEND(&node.value.array.value, parse_expr(&tokens));
                 } else if(token.type == TT_O_PAREN) {
                     size_t i = 1;
                     while(i < tokens.count+1 && token_peek(&tokens, i).type != TT_C_PAREN) i++;
                     if(i == tokens.count) {
-                        PRINT_ERROR(tokens.data[0].loc, "expected %s\n", token_types[TT_C_PAREN]);
+                        PRINT_ERROR(tokens.data[0].loc, "expected `%s`\n", token_types[tokens.data[0].type]);
                     }
                     Token token = token_peek(&tokens, i+1);
                     if(token.type == TT_COLON) {
@@ -630,50 +611,51 @@ Program parse(Token_Arr tokens, Blocks *block_stack) {
                         }
                     }
                 } else {
-                    PRINT_ERROR(token.loc, "unexpected token %s\n", token_types[token.type]);
+                    PRINT_ERROR(token.loc, "unexpected token `%s`\n", token_types[token.type]);
                 }
                 DA_APPEND(&root, node);                
             } break;       
             case TT_RET: {
-                Node node = {.type = TYPE_RET};
+                node.type = TYPE_RET;
                 token_consume(&tokens);
                 node.value.expr = parse_expr(&tokens);
                 DA_APPEND(&root, node);                
             } break;
             case TT_IF: {
-                Node node = {.type = TYPE_IF};
+                node.type = TYPE_IF;
                 DA_APPEND(block_stack, (Block){.type=BLOCK_IF});                
                 token_consume(&tokens);
                 node.value.conditional = parse_expr(&tokens);
                 DA_APPEND(&root, node);
             } break;
             case TT_ELSE: {
-                Node node = {.type = TYPE_ELSE};
+                node.type = TYPE_ELSE;
                 token_consume(&tokens);
                 DA_APPEND(block_stack, (Block){.type=BLOCK_ELSE});                                                
+                if(labels.count == 0) PRINT_ERROR(node.loc, "`else` statement without prior `if`");
                 node.value.el.label1 = labels.data[--labels.count];                
                 node.value.el.label2 = cur_label;
                 DA_APPEND(&labels, cur_label++);
                 DA_APPEND(&root, node);                
             } break;
             case TT_WHILE: {
-                Node node = {.type = TYPE_WHILE};
+                node.type = TYPE_WHILE;
                 token_consume(&tokens);
                 DA_APPEND(block_stack, (Block){.type=BLOCK_WHILE});                                
                 node.value.conditional = parse_expr(&tokens);
                 DA_APPEND(&root, node);
             } break;
             case TT_THEN: {
-                Node node = {.type = TYPE_THEN};
+                node.type = TYPE_THEN;
                 token_consume(&tokens);                
                 node.value.label.num = cur_label;
                 DA_APPEND(&labels, cur_label++);
                 DA_APPEND(&root, node);                
             } break;
             case TT_END: {
-                Node node = {.type = TYPE_END};
+                node.type = TYPE_END;
                 token_consume(&tokens);                                
-                if(labels.count == 0) PRINT_ERROR(node.loc, "labels count was: %zu", labels.count);
+                if(labels.count == 0) PRINT_ERROR(node.loc, "`end` without an opening block");
                 node.value.label.num = labels.data[--labels.count];   
                 DA_APPEND(&root, node);                
             } break;

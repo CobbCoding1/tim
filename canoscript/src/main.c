@@ -18,7 +18,7 @@ int main(int argc, char *argv[]) {
     }
     char *filename = argv[1];
     String_View view = read_file_to_view(filename);
-    Token_Arr tokens = lex(view);
+    Token_Arr tokens = lex(filename, view);
     //print_token_arr(tokens);
     Blocks block_stack = {0};
     Program program = parse(tokens, &block_stack);

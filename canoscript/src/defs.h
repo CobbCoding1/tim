@@ -36,9 +36,11 @@
     (da)->data[(da)->count++] = (item);                                               \
 } while (0)
     
-#define PRINT_ERROR(loc, str, ...)                                                 \
+#define PRINT_ERROR(loc, ...)                                                 \
     do {                                                                           \
-        fprintf(stderr, "%zu:%zu: error: "str"\n", loc.row, loc.col, __VA_ARGS__);  \
+        fprintf(stderr, "%s:%zu:%zu: error: ", loc.filename, loc.row, loc.col);  \
+        fprintf(stderr, __VA_ARGS__);    \
+        fprintf(stderr, "\n"); \
         exit(1);                                                                   \
     } while(0)
     
@@ -133,6 +135,7 @@ typedef union {
 typedef struct Expr {
     Expr_Value value;
     Expr_Type type;   
+    Location loc;
 } Expr;
     
 

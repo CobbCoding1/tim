@@ -5,6 +5,7 @@ char *node_types[TYPE_COUNT] = {"root", "native", "expr", "var_dec", "var_reassi
     
 size_t data_type_s[DATA_COUNT] = {8, 1};
     
+// TODO: add ASSERTs to all "popping" functions
 void gen_push(Program_State *state, FILE *file, int value) {
     fprintf(file, "push %d\n", value);
     state->stack_s++;   
@@ -190,17 +191,17 @@ void gen_expr(Program_State *state, FILE *file, Expr *expr) {
         case EXPR_VAR: {
             int index = get_variable_location(state, expr->value.variable);
             if(index == -1) {
-                PRINT_ERROR((Location){0}, "variable "View_Print" referenced before assignment", View_Arg(expr->value.variable));
+                PRINT_ERROR(expr->loc, "variable `"View_Print"` referenced before assignment", View_Arg(expr->value.variable));
             }
             gen_indup(state, file, state->stack_s-index); 
         } break;
         case EXPR_FUNCALL: {
             Function *function = get_func(state->functions, expr->value.func_call.name);
             if(!function) { 
-                PRINT_ERROR((Location){0}, "function "View_Print" referenced before assignment\n", View_Arg(expr->value.func_call.name));
+                PRINT_ERROR(expr->loc, "function `"View_Print"` referenced before assignment\n", View_Arg(expr->value.func_call.name));
             }
             if(function->args.count != expr->value.func_call.args.count) {
-                PRINT_ERROR((Location){0}, "args count do not match for function "View_Print"\n", View_Arg(function->name));
+                PRINT_ERROR(expr->loc, "args count do not match for function `"View_Print"`\n", View_Arg(function->name));
             }
             for(size_t i = 0; i < expr->value.func_call.args.count; i++) {
                 gen_expr(state, file, expr->value.func_call.args.data[i]);
@@ -210,7 +211,7 @@ void gen_expr(Program_State *state, FILE *file, Expr *expr) {
         case EXPR_ARR: {
             int index = get_variable_location(state, expr->value.array.name);
             if(index == -1) {
-                PRINT_ERROR((Location){0}, "variable "View_Print" referenced before assignment", View_Arg(expr->value.array.name));
+                PRINT_ERROR(expr->loc, "variable `"View_Print"` referenced before assignment", View_Arg(expr->value.array.name));
             }
             Type_Type type = get_variable_type(state, expr->value.array.name);                        
             printf(View_Print" %d\n", View_Arg(expr->value.array.name), type);
@@ -306,7 +307,7 @@ void gen_program(Program_State *state, Nodes nodes, FILE *file) {
                 gen_expr(state, file, node->value.var.value.data[0]);
                 int index = get_variable_location(state, node->value.var.name);
                 if(index == -1) {
-                    PRINT_ERROR((Location){0}, "variable "View_Print" referenced before assignment", View_Arg(node->value.var.name));
+                    PRINT_ERROR(node->loc, "variable `"View_Print"` referenced before assignment", View_Arg(node->value.var.name));
                 }
                 gen_inswap(file, state->stack_s-index);    
                 gen_pop(state, file);
@@ -315,7 +316,7 @@ void gen_program(Program_State *state, Nodes nodes, FILE *file) {
                 fprintf(file, "; arr index\n");                                            
                 int index = get_variable_location(state, node->value.array.name);
                 if(index == -1) {
-                    PRINT_ERROR((Location){0}, "variable "View_Print" referenced before assignment", View_Arg(node->value.var.name));
+                    PRINT_ERROR(node->loc, "array `"View_Print"` referenced before assignment", View_Arg(node->value.var.name));
                 }
                 Type_Type type = get_variable_type(state, node->value.array.name);                                            
                 gen_arr_offset(state, file, index, node->value.array.index, type);
@@ -347,10 +348,10 @@ void gen_program(Program_State *state, Nodes nodes, FILE *file) {
             case TYPE_FUNC_CALL: {
                 Function *function = get_func(state->functions, node->value.func_call.name);
                 if(!function) { 
-                    PRINT_ERROR((Location){0}, "function "View_Print" referenced before assignment\n", View_Arg(node->value.func_call.name));
+                    PRINT_ERROR(node->loc, "function `"View_Print"` referenced before assignment\n", View_Arg(node->value.func_call.name));
                 }
                 if(function->args.count != node->value.func_call.args.count) {
-                    PRINT_ERROR((Location){0}, "args count do not match for function "View_Print"\n", View_Arg(function->name));
+                    PRINT_ERROR(node->loc, "args count do not match for function `"View_Print"`\n", View_Arg(function->name));
                 }
                 for(size_t i = 0; i < node->value.func_call.args.count; i++) {
                     gen_expr(state, file, node->value.func_call.args.data[i]);
@@ -377,10 +378,11 @@ void gen_program(Program_State *state, Nodes nodes, FILE *file) {
             } break;
             case TYPE_ELSE: {
                 fprintf(file, "; else statement\n");                                                                                
+                ASSERT(state->block_stack.count > 0, "block stack underflowed");
                 if(state->block_stack.data[--state->block_stack.count] == BLOCK_IF) {
                     gen_jmp(file, node->value.el.label2);
                 } else {
-                    PRINT_ERROR((Location){0}, "expected if but found %d\n", state->block_stack.data[state->block_stack.count]);
+                    PRINT_ERROR(node->loc, "expected `if` but found `%d`\n", state->block_stack.data[state->block_stack.count]);
                 }
                 DA_APPEND(&state->block_stack, BLOCK_ELSE);                
                 gen_label(file, node->value.el.label1);
@@ -400,9 +402,7 @@ void gen_program(Program_State *state, Nodes nodes, FILE *file) {
             } break;
             case TYPE_END: {
                 fprintf(file, "; end\n");                                                                                                        
-                if(state->block_stack.count == 0) {
-                    PRINT_ERROR((Location){0}, "error: block stack: %zu\n", state->block_stack.count);
-                }
+                ASSERT(state->block_stack.count > 0, "block stack was underflowed");
                 scope_end(state, file);                    
                 state->scope_stack.count--;
                 Block_Type block = state->block_stack.data[--state->block_stack.count];
