@@ -478,6 +478,18 @@ Expr *parse_expr(Token_Arr *tokens) {
     return parse_expr_1(tokens, parse_primary(tokens), 1);
 }
 
+char *expr_types[EXPR_COUNT] = {"bin", "int", "str", "char", "var", "func", "arr"};
+
+Expr_Type expr_type_check(Location loc, Expr *expr) {
+    if(expr->type != EXPR_BIN) return expr->type;
+    Expr_Type typel = expr_type_check(loc, expr->value.bin.lhs);
+    Expr_Type typer = expr_type_check(loc, expr->value.bin.rhs);
+    if(typel != typer) {
+        PRINT_ERROR(loc, "expected type `%s` but found type `%s`", expr_types[typel], expr_types[typer]);
+    }
+    return typel;
+}
+
 Node parse_native_node(Token_Arr *tokens, Token_Type type, int native_value) {
     Node node = {.type = TYPE_NATIVE, .loc = tokens->data[0].loc};            
     token_consume(tokens);
@@ -491,6 +503,7 @@ Node parse_native_node(Token_Arr *tokens, Token_Type type, int native_value) {
                 PRINT_ERROR(token.loc, "expected int, string, char, or ident but found %s\n", token_types[token.type]);
             }
             arg = (Arg){.type=ARG_EXPR, .value.expr=parse_expr(tokens)};
+            expr_type_check(node.loc, arg.value.expr);
         } break;
         default:
             PRINT_ERROR(tokens->data[0].loc, "unexpected type: %s\n", token_types[type]);
@@ -511,9 +524,10 @@ Node parse_var_dec(Token_Arr *tokens) {
     node.value.var.type = tokens->data[0].value.type;
     node.value.var.is_array = token_peek(tokens, 1).type == TT_O_BRACKET || node.value.var.type == TYPE_STR;
     if(token_peek(tokens, 1).type == TT_O_BRACKET) {
-         token_consume(tokens);
-         token_consume(tokens);
-         node.value.var.array_s = parse_expr(tokens);       
+        token_consume(tokens);
+        token_consume(tokens);
+        node.value.var.array_s = parse_expr(tokens);       
+        expr_type_check(node.loc, node.value.var.array_s);
     }
     return node;
 }
@@ -546,6 +560,7 @@ Program parse(Token_Arr tokens, Blocks *block_stack) {
                         }
                         while(tokens.count > 0) {
                             DA_APPEND(&node.value.var.value, parse_expr(&tokens));
+                            expr_type_check(node.loc, node.value.var.value.data[node.value.var.value.count-1]);
                             Token next = token_consume(&tokens);
                             if(next.type == TT_COMMA) continue;
                             else if(next.type == TT_C_BRACKET) break;
@@ -553,6 +568,7 @@ Program parse(Token_Arr tokens, Blocks *block_stack) {
                         }
                     } else {
                         DA_APPEND(&node.value.var.value, parse_expr(&tokens));    
+                        expr_type_check(node.loc, node.value.var.value.data[node.value.var.value.count-1]);
                     }
                 } else if(token.type == TT_EQ) {
                     node.type = TYPE_VAR_REASSIGN;
@@ -562,12 +578,14 @@ Program parse(Token_Arr tokens, Blocks *block_stack) {
                     token_consume(&tokens); // equal                   
                     
                     DA_APPEND(&node.value.var.value, parse_expr(&tokens));
+                    expr_type_check(node.loc, node.value.var.value.data[node.value.var.value.count-1]);
                 } else if(token.type == TT_O_BRACKET) {
                     node.type = TYPE_ARR_INDEX;
                     node.value.array.name = tokens.data[0].value.ident;
                     token_consume(&tokens); // ident
                     token_consume(&tokens); // open bracket                        
                     node.value.array.index = parse_expr(&tokens);
+                    expr_type_check(node.loc, node.value.array.index);
                     if(token_consume(&tokens).type != TT_C_BRACKET) {
                         PRINT_ERROR(tokens.data[0].loc, "expected `]` but found `%s`\n", token_types[tokens.data[0].type]);
                     }                 
@@ -575,6 +593,7 @@ Program parse(Token_Arr tokens, Blocks *block_stack) {
                         PRINT_ERROR(tokens.data[0].loc, "expected `=` but found `%s`\n", token_types[tokens.data[0].type]);
                     }                 
                     DA_APPEND(&node.value.array.value, parse_expr(&tokens));
+                    expr_type_check(node.loc, node.value.array.value.data[node.value.array.value.count - 1]);
                 } else if(token.type == TT_O_PAREN) {
                     size_t i = 1;
                     while(i < tokens.count+1 && token_peek(&tokens, i).type != TT_C_PAREN) i++;
@@ -608,6 +627,7 @@ Program parse(Token_Arr tokens, Blocks *block_stack) {
                         while(tokens.count > 0 && token_consume(&tokens).type != TT_C_PAREN && i > 2) {
                             Expr *arg = parse_expr(&tokens);
                             DA_APPEND(&node.value.func_call.args, arg);
+                            expr_type_check(node.loc, node.value.func_call.args.data[node.value.func_call.args.count - 1]);
                         }
                     }
                 } else {
@@ -619,6 +639,7 @@ Program parse(Token_Arr tokens, Blocks *block_stack) {
                 node.type = TYPE_RET;
                 token_consume(&tokens);
                 node.value.expr = parse_expr(&tokens);
+                expr_type_check(node.loc, node.value.expr);
                 DA_APPEND(&root, node);                
             } break;
             case TT_IF: {
@@ -626,6 +647,7 @@ Program parse(Token_Arr tokens, Blocks *block_stack) {
                 DA_APPEND(block_stack, (Block){.type=BLOCK_IF});                
                 token_consume(&tokens);
                 node.value.conditional = parse_expr(&tokens);
+                expr_type_check(node.loc, node.value.conditional);
                 DA_APPEND(&root, node);
             } break;
             case TT_ELSE: {
@@ -643,6 +665,7 @@ Program parse(Token_Arr tokens, Blocks *block_stack) {
                 token_consume(&tokens);
                 DA_APPEND(block_stack, (Block){.type=BLOCK_WHILE});                                
                 node.value.conditional = parse_expr(&tokens);
+                expr_type_check(node.loc, node.value.conditional);
                 DA_APPEND(&root, node);
             } break;
             case TT_THEN: {

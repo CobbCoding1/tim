@@ -121,8 +121,9 @@ typedef enum {
     EXPR_VAR,
     EXPR_FUNCALL,
     EXPR_ARR,
+    EXPR_COUNT,
 } Expr_Type;
-    
+
 typedef union {
     Bin_Expr bin;
     int integer;
