@@ -68,6 +68,7 @@ typedef enum {
     OP_MINUS,
     OP_MULT,
     OP_DIV,
+    OP_MOD,
     OP_EQ,
     OP_NOT_EQ,
     OP_GREATER_EQ,

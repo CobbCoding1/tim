@@ -86,6 +86,7 @@ bool is_operator(String_View view) {
         case '/':
         case '>':
         case '<':
+        case '%':
             return true;        
         case '=':
             if(view.len > 1 && view.data[1] == '=') return true;        
@@ -117,6 +118,9 @@ Token create_operator_token(char *filename, size_t row, size_t col, String_View 
             break;
         case '/':
             token.type = TT_DIV;
+            break;
+        case '%':
+            token.type = TT_MOD;
             break;
         case '=':
             if(view->len > 1 && view->data[1] == '=') {
@@ -316,6 +320,7 @@ Precedence op_get_prec(Token_Type type) {
             return PREC_1;
         case TT_MULT:
         case TT_DIV:
+        case TT_MOD:
             return PREC_2;
             break;
         default:
@@ -338,6 +343,9 @@ Operator create_operator(Token_Type type) {
             break;        
         case TT_DIV:
             op.type = OP_DIV;
+            break;
+        case TT_MOD:
+            op.type = OP_MOD;
             break;
         case TT_DOUBLE_EQ:
             op.type = OP_EQ;
@@ -484,7 +492,7 @@ Expr_Type expr_type_check(Location loc, Expr *expr) {
     if(expr->type != EXPR_BIN) return expr->type;
     Expr_Type typel = expr_type_check(loc, expr->value.bin.lhs);
     Expr_Type typer = expr_type_check(loc, expr->value.bin.rhs);
-    if(typel != typer) {
+    if(typel != typer && typel != EXPR_VAR && typer != EXPR_VAR) {
         PRINT_ERROR(loc, "expected type `%s` but found type `%s`", expr_types[typel], expr_types[typer]);
     }
     return typel;
@@ -703,6 +711,7 @@ Program parse(Token_Arr tokens, Blocks *block_stack) {
             case TT_MINUS:
             case TT_MULT:
             case TT_DIV:
+            case TT_MOD:
             case TT_NONE:
             case TT_COUNT:
                 printf("type: %s %d\n", token_types[tokens.data[0].type], tokens.data[0].value.integer);

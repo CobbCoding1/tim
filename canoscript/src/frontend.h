@@ -27,6 +27,7 @@ typedef enum {
     TT_MINUS,
     TT_MULT,
     TT_DIV,
+    TT_MOD,
     TT_STRING,
     TT_CHAR_LIT,
     TT_INT,

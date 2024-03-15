@@ -142,7 +142,7 @@ char *append_tasm_ext(char *filename) {
     return output_filename;
 }
     
-char *op_types[] = {"add", "sub", "mul", "div", "cmpe", "cmpne", "cmpge", "cmple", "cmpg", "cmpl"};
+char *op_types[] = {"add", "sub", "mul", "div", "mod", "cmpe", "cmpne", "cmpge", "cmple", "cmpg", "cmpl"};
 
 Function *get_func(Functions functions, String_View name) {
     for(size_t i = 0; i < functions.count; i++) {
