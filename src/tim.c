@@ -445,7 +445,7 @@ void run_instructions(Machine *machine){
                 }
                 Word word;
                 word.as_pointer = machine->memory->cell.data;
-                push(machine, (Word){.as_int=str.len}, INT_TYPE);                
+                //push(machine, (Word){.as_int=str.len}, INT_TYPE);                
                 push(machine, word, PTR_TYPE);
             } break;
             case INST_GET_STR: {
@@ -484,7 +484,7 @@ void run_instructions(Machine *machine){
                 insert_memory(machine, a.word.as_int);
                 Word word;
                 word.as_pointer = machine->memory->cell.data;
-                push(machine, a.word, INT_TYPE);                
+                //push(machine, a.word, INT_TYPE);                
                 push(machine, word, PTR_TYPE);
             } break;
             case INST_DEALLOC: {
