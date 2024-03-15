@@ -53,6 +53,7 @@ typedef struct {
 typedef enum {
     TYPE_INT,
     TYPE_STR,
+    TYPE_VOID,
     DATA_COUNT,
 } Type_Type;
 

@@ -3,7 +3,7 @@
 char *node_types[TYPE_COUNT] = {"root", "native", "expr", "var_dec", "var_reassign",
                                     "if", "else", "while", "then", "func_dec", "func_call", "return", "end"};
     
-size_t data_type_s[DATA_COUNT] = {8, 1};
+size_t data_type_s[DATA_COUNT] = {8, 1, 1};
     
 // TODO: add ASSERTs to all "popping" functions
 void gen_push(Program_State *state, FILE *file, int value) {
@@ -214,7 +214,6 @@ void gen_expr(Program_State *state, FILE *file, Expr *expr) {
                 PRINT_ERROR(expr->loc, "variable `"View_Print"` referenced before assignment", View_Arg(expr->value.array.name));
             }
             Type_Type type = get_variable_type(state, expr->value.array.name);                        
-            printf(View_Print" %d\n", View_Arg(expr->value.array.name), type);
             gen_arr_offset(state, file, index, expr->value.array.index, type);
             gen_push(state, file, data_type_s[type]);
             gen_read(state, file);
@@ -256,7 +255,7 @@ void gen_program(Program_State *state, Nodes nodes, FILE *file) {
                             exit(1);
                         }
                         Expr_Type type = node->value.native.args.data[0].value.expr->type;
-                        if(type != EXPR_STR && type != EXPR_VAR) {
+                        if(type != EXPR_STR && type != EXPR_VAR && type != EXPR_FUNCALL) {
                             fprintf(stderr, "error: expected string\n");
                             exit(1);
                         };
@@ -358,12 +357,22 @@ void gen_program(Program_State *state, Nodes nodes, FILE *file) {
                 }
                 gen_func_call(file, node->value.func_call.name);
                 state->stack_s -= node->value.func_call.args.count;
+                // for the return value
+                if(function->type != TYPE_VOID) gen_pop(state, file);
             } break;
             case TYPE_RET: {
                 fprintf(file, "; return\n");
+                if(state->functions.count == 0) {
+                    PRINT_ERROR(node->loc, "return without function definition");
+                }
+                Function function = state->functions.data[state->functions.count-1];
+                if(function.type == TYPE_VOID) {
+                    PRINT_ERROR(node->loc, "function `"View_Print"` with return type of void returns value", View_Arg(function.name));    
+                }
                 size_t pos = state->scope_stack.data[state->ret_stack.count-1] + 1;
                 gen_expr(state, file, node->value.expr);
                 ASSERT(pos <= state->stack_s, "pos is too great");
+                // TODO: need to inswap with the arr and str capacity in those cases as well
                 gen_inswap(file, state->stack_s-pos);
                 size_t pre_stack_s = state->stack_s;
                 ret_scope_end(state, file);

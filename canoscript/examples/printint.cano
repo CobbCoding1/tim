@@ -1,12 +1,12 @@
-printint(n: int): int
+printint(n: int): void 
     if n > 9 then
         new: int = n / 10
         printint(new)
     end
-    string: str = "\0\0"
+    string: str = " "
     string[0] = n % 10 + 48 
-    string[1] = '\0'
     write string
 end
 
-printint(12345)
+printint(420)
+write "\n"

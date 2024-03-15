@@ -31,6 +31,7 @@ typedef enum {
     TT_STRING,
     TT_CHAR_LIT,
     TT_INT,
+    TT_VOID,
     TT_TYPE,
     TT_IF,
     TT_ELSE,

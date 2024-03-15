@@ -1,0 +1,13 @@
+y: str = "this string is x chars long"
+
+strlen(a: str): int
+    i: int = 0
+    while a[i] != '\0' then
+        i = i + 1
+    end
+    return i
+end
+
+x: int = strlen(y)
+
+exit x

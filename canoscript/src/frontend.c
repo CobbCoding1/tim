@@ -2,11 +2,12 @@
 
 char *token_types[TT_COUNT] = {"none", "write", "exit", "ident", 
                                ":", "(", ")", "[", "]", ",", "=", "==", "!=", ">=", "<=", ">", "<", "+", "-", "*", "/", 
-                               "string", "integer", "type", "if", "else", "while", "then", "return", "end"};
+                               "char", "string", "integer", "void", "type", "if", "else", "while", "then", "return", "end"};
     
 String_View data_types[DATA_COUNT] = {
     {.data="int", .len=3},
     {.data="str", .len=3},    
+    {.data="void", .len=4},        
 };    
 
 bool is_valid_escape(char c){
@@ -492,7 +493,8 @@ Expr_Type expr_type_check(Location loc, Expr *expr) {
     if(expr->type != EXPR_BIN) return expr->type;
     Expr_Type typel = expr_type_check(loc, expr->value.bin.lhs);
     Expr_Type typer = expr_type_check(loc, expr->value.bin.rhs);
-    if(typel != typer && typel != EXPR_VAR && typer != EXPR_VAR) {
+    if(typel != typer && typel != EXPR_VAR && typer != EXPR_VAR && 
+       typel != EXPR_ARR && typer != EXPR_ARR && typel != EXPR_FUNCALL && typer != EXPR_FUNCALL) {
         PRINT_ERROR(loc, "expected type `%s` but found type `%s`", expr_types[typel], expr_types[typer]);
     }
     return typel;
@@ -693,6 +695,7 @@ Program parse(Token_Arr tokens, Blocks *block_stack) {
             case TT_STRING:
             case TT_CHAR_LIT:
             case TT_INT:            
+            case TT_VOID:
             case TT_PLUS:
             case TT_COLON:
             case TT_EQ:

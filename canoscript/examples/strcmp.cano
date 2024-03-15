@@ -1,0 +1,17 @@
+x: str = "Same"
+y: str = "Same"
+
+strcmp(a: str, b: str): int
+    i: int = 0
+    while a[i] == b[i] then
+        if a[i] == '\0' then
+            return 1
+        end
+        i = i + 1
+    end
+    return 0
+end
+
+a: int = strcmp(x, y)
+
+exit a
