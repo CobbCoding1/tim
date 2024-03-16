@@ -1,5 +1,16 @@
 y: str = "this string is x chars long"
 
+printint(n: int): int 
+    if n > 9 then
+        new: int = n / 10
+        printint(new)
+    end
+    string: str = " "
+    string[0] = n % 10 + 48 
+    write string
+    return 0
+end
+
 strlen(a: str): int
     i: int = 0
     while a[i] != '\0' then
@@ -9,5 +20,7 @@ strlen(a: str): int
 end
 
 x: int = strlen(y)
+printint(x)
+write "\n"
 
-exit x
+exit 0

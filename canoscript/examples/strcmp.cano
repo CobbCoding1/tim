@@ -1,6 +1,17 @@
 x: str = "Same"
 y: str = "Same"
 
+printint(n: int): int 
+    if n > 9 then
+        new: int = n / 10
+        printint(new)
+    end
+    string: str = " "
+    string[0] = n % 10 + 48 
+    write string
+    return 0
+end
+
 strcmp(a: str, b: str): int
     i: int = 0
     while a[i] == b[i] then
@@ -14,4 +25,7 @@ end
 
 a: int = strcmp(x, y)
 
-exit a
+printint(a)
+write "\n"
+
+exit 0
