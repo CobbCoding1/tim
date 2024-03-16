@@ -367,7 +367,7 @@ void gen_program(Program_State *state, Nodes nodes, FILE *file) {
                 if(function.type == TYPE_VOID) {
                     PRINT_ERROR(node->loc, "function `"View_Print"` with return type of void returns value", View_Arg(function.name));    
                 }
-                size_t pos = state->scope_stack.data[state->ret_stack.count-1] + 1;
+                size_t pos = state->ret_stack.data[state->ret_stack.count-1] + 1;
                 gen_expr(state, file, node->value.expr);
                 ASSERT(pos <= state->stack_s, "pos is too great");
                 // TODO: need to inswap with the arr and str capacity in those cases as well
