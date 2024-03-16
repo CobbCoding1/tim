@@ -30,7 +30,9 @@ typedef enum {
     TT_MOD,
     TT_STRING,
     TT_CHAR_LIT,
+    // TODO TT_INT_LIT
     TT_INT,
+    TT_FLOAT_LIT,
     TT_VOID,
     TT_TYPE,
     TT_IF,
@@ -46,6 +48,7 @@ typedef union {
     String_View string;
     String_View ident;
     int integer;
+    double floating;
     Type_Type type;
 } Token_Value;
 

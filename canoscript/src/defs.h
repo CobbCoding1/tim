@@ -54,6 +54,8 @@ typedef enum {
     TYPE_INT,
     TYPE_STR,
     TYPE_VOID,
+    TYPE_CHAR,
+    TYPE_FLOAT,
     DATA_COUNT,
 } Type_Type;
 
@@ -118,6 +120,7 @@ typedef struct {
 typedef enum {
     EXPR_BIN,    
     EXPR_INT,
+    EXPR_FLOAT,
     EXPR_STR,
     EXPR_CHAR,
     EXPR_VAR,
@@ -129,6 +132,7 @@ typedef enum {
 typedef union {
     Bin_Expr bin;
     int integer;
+    double floating;
     Array array;
     String_View variable;
     String_View string;

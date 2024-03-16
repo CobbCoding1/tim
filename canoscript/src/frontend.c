@@ -1,13 +1,15 @@
 #include "frontend.h"
 
 char *token_types[TT_COUNT] = {"none", "write", "exit", "ident", 
-                               ":", "(", ")", "[", "]", ",", "=", "==", "!=", ">=", "<=", ">", "<", "+", "-", "*", "/", 
-                               "char", "string", "integer", "void", "type", "if", "else", "while", "then", "return", "end"};
+                               ":", "(", ")", "[", "]", ",", "=", "==", "!=", ">=", "<=", ">", "<", "+", "-", "*", "/", "%",
+                               "string", "char", "integer", "float", "void", "type", "if", "else", "while", "then", "return", "end"};
     
 String_View data_types[DATA_COUNT] = {
     {.data="int", .len=3},
     {.data="str", .len=3},    
     {.data="void", .len=4},        
+    {.data="char", .len=4},                    
+    {.data="float", .len=5},            
 };    
 
 bool is_valid_escape(char c){
@@ -237,7 +239,9 @@ Token_Arr lex(char *filename, String_View view) {
             DA_APPEND(&tokens, token);                                    
         } else if(isdigit(*view.data)) {
             Dynamic_Str num = {0};
-            while(view.len > 0 && isdigit(*view.data)) {
+            token.type = TT_INT;            
+            while(view.len > 0 && (isdigit(*view.data) || *view.data == '.')) {
+                if(*view.data == '.') token.type = TT_FLOAT_LIT;
                 DA_APPEND(&num, *view.data);
                 view = view_chop_left(view);
             }
@@ -245,8 +249,8 @@ Token_Arr lex(char *filename, String_View view) {
             view.len++;
                 
             DA_APPEND(&num, '\0');
-            token.type = TT_INT;
-            token.value.integer = atoi(num.data);
+            if(token.type == TT_FLOAT_LIT) token.value.floating = atof(num.data);
+            else token.value.integer = atoi(num.data);
             DA_APPEND(&tokens, token);                        
         } else if(is_operator(view)) {
             token = create_operator_token(filename, row, view.data-start, &view);
@@ -399,7 +403,7 @@ Expr *parse_expr(Token_Arr *tokens);
 // but in the future, could be identifiers, etc
 Expr *parse_primary(Token_Arr *tokens) {
     Token token = token_consume(tokens);
-    if(token.type != TT_INT && token.type != TT_O_PAREN && token.type != TT_STRING && token.type != TT_CHAR_LIT && token.type != TT_IDENT) {
+    if(token.type != TT_INT && token.type != TT_FLOAT_LIT && token.type != TT_O_PAREN && token.type != TT_STRING && token.type != TT_CHAR_LIT && token.type != TT_IDENT) {
         PRINT_ERROR(token.loc, "expected int, string, char, or ident but found %s", token_types[token.type]);
     }
     Expr *expr = custom_realloc(NULL, sizeof(Expr));   
@@ -407,6 +411,12 @@ Expr *parse_primary(Token_Arr *tokens) {
         *expr = (Expr){
             .type = EXPR_INT,
             .value.integer = token.value.integer,
+            .loc = token.loc,
+        };
+    } else if(token.type == TT_FLOAT_LIT) {
+        *expr = (Expr){
+            .type = EXPR_FLOAT,
+            .value.floating = token.value.floating,
             .loc = token.loc,
         };
     } else if(token.type == TT_STRING) {
@@ -702,6 +712,7 @@ Program parse(Token_Arr tokens, Blocks *block_stack) {
             case TT_STRING:
             case TT_CHAR_LIT:
             case TT_INT:            
+            case TT_FLOAT_LIT:
             case TT_VOID:
             case TT_PLUS:
             case TT_COLON:

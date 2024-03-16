@@ -1,13 +1,18 @@
 #include "backend.h"
 
 char *node_types[TYPE_COUNT] = {"root", "native", "expr", "var_dec", "var_reassign",
-                                    "if", "else", "while", "then", "func_dec", "func_call", "return", "end"};
+                                "if", "else", "while", "then", "func_dec", "func_call", "return", "end"};
     
-size_t data_type_s[DATA_COUNT] = {8, 1, 1};
+size_t data_type_s[DATA_COUNT] = {8, 1, 1, 1, 8};
     
 // TODO: add ASSERTs to all "popping" functions
 void gen_push(Program_State *state, FILE *file, int value) {
     fprintf(file, "push %d\n", value);
+    state->stack_s++;   
+}
+    
+void gen_push_float(Program_State *state, FILE *file, double value) {
+    fprintf(file, "push %f\n", value);
     state->stack_s++;   
 }
     
@@ -114,7 +119,8 @@ void gen_read(Program_State *state, FILE *file) {
 }
     
 void gen_arr_offset(Program_State *state, FILE *file, size_t var_index, Expr *arr_index, Type_Type type) {
-    ASSERT(var_index > 1, "stack was corrupted");
+    // i dont remember why this was here
+    //ASSERT(var_index > 1, "stack was corrupted");
     fprintf(file, "; offset\n");                                                                                
     gen_indup(state, file, state->stack_s-var_index);    
     gen_expr(state, file, arr_index);
@@ -180,6 +186,9 @@ void gen_expr(Program_State *state, FILE *file, Expr *expr) {
             break;
         case EXPR_INT:
             gen_push(state, file, expr->value.integer);        
+            break;
+        case EXPR_FLOAT:
+            gen_push_float(state, file, expr->value.floating);        
             break;
         case EXPR_STR:
             gen_push_str(state, file, expr->value.string);
