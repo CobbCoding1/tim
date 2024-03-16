@@ -399,7 +399,7 @@ Expr *parse_expr(Token_Arr *tokens);
 // but in the future, could be identifiers, etc
 Expr *parse_primary(Token_Arr *tokens) {
     Token token = token_consume(tokens);
-    if(token.type != TT_INT && token.type != TT_STRING && token.type != TT_CHAR_LIT && token.type != TT_IDENT) {
+    if(token.type != TT_INT && token.type != TT_O_PAREN && token.type != TT_STRING && token.type != TT_CHAR_LIT && token.type != TT_IDENT) {
         PRINT_ERROR(token.loc, "expected int, string, char, or ident but found %s", token_types[token.type]);
     }
     Expr *expr = custom_realloc(NULL, sizeof(Expr));   
@@ -419,6 +419,12 @@ Expr *parse_primary(Token_Arr *tokens) {
             .type = EXPR_CHAR,
             .value.string = token.value.string,
         };
+    } else if(token.type == TT_O_PAREN) {
+        Expr *expr = parse_expr(tokens);
+        if(token_consume(tokens).type != TT_C_PAREN) {
+            PRINT_ERROR(token.loc, "expected `)`");   
+        }
+        return expr;
     } else if(token.type == TT_IDENT) {
         if(token_peek(tokens, 0).type == TT_O_PAREN) {
             *expr = (Expr){
@@ -490,6 +496,7 @@ Expr *parse_expr(Token_Arr *tokens) {
 char *expr_types[EXPR_COUNT] = {"bin", "int", "str", "char", "var", "func", "arr"};
 
 Expr_Type expr_type_check(Location loc, Expr *expr) {
+    return expr->type;
     if(expr->type != EXPR_BIN) return expr->type;
     Expr_Type typel = expr_type_check(loc, expr->value.bin.lhs);
     Expr_Type typer = expr_type_check(loc, expr->value.bin.rhs);
