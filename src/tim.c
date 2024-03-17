@@ -809,6 +809,9 @@ void run_instructions(Machine *machine){
                 printf("as float: %f, as int: %" PRId64 ", as char: %c, as pointer: %p, type: %s\n",
                         a.word.as_float, a.word.as_int, a.word.as_char, a.word.as_pointer, str_types[a.type]);
                 break;
+            case INST_SS:
+                push(machine, (Word){.as_int=machine->stack_size}, INT_TYPE);
+                break;
             case INST_NATIVE: {
                 void (*native_ptrs[100])(Machine*) = {native_open, native_write, native_read, 
                                                    native_close, native_malloc, native_realloc, 

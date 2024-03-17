@@ -72,6 +72,7 @@ typedef enum {
     INST_PRINT,
     INST_NATIVE,
     INST_ENTRYPOINT,
+    INST_SS,
     INST_HALT,
     INST_COUNT,
 } Inst_Set;

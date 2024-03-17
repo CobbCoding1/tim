@@ -67,6 +67,7 @@ typedef enum {
     TYPE_PRINT,
     TYPE_NATIVE,
     TYPE_ENTRYPOINT,
+    TYPE_SS,
     TYPE_HALT,
     TYPE_INT,
     TYPE_FLOAT,
