@@ -488,11 +488,11 @@ void run_instructions(Machine *machine){
                 push(machine, word, PTR_TYPE);
             } break;
             case INST_DEALLOC: {
-                Data size = pop(machine);
-                if(size.type != PTR_TYPE) {
-                    PRINT_ERROR("error: expected int");
+                Data ptr = pop(machine);
+                if(ptr.type != PTR_TYPE) {
+                    PRINT_ERROR("error: expected ptr");
                 }
-                free_memory(machine, size.word.as_pointer);
+                free_memory(machine, ptr.word.as_pointer);
             } break;
             case INST_WRITE: {
                 Data size = pop(machine);                

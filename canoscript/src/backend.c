@@ -182,8 +182,12 @@ void gen_builtin(Program_State *state, FILE *file, Expr *expr) {
         case BUILTIN_ALLOC: {
             gen_expr(state, file, expr->value.builtin.value);               
             fprintf(file, "alloc\n");
-            state->stack_s--;
         } break;
+        case BUILTIN_DEALLOC: {
+            gen_expr(state, file, expr->value.builtin.value);               
+            fprintf(file, "dealloc\n");
+            state->stack_s--;
+        }
     }
 }
     
@@ -444,6 +448,10 @@ void gen_program(Program_State *state, Nodes nodes, FILE *file) {
                     fprintf(file, "ret\n");                                                                                                                                    
                 }
                 gen_label(file, node->value.label.num);
+            } break;
+            case TYPE_EXPR_STMT: {
+                gen_expr(state, file, node->value.expr_stmt);
+                if(node->value.expr_stmt->return_type != TYPE_VOID) gen_pop(state, file);
             } break;
             default:
                 break;

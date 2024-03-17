@@ -46,6 +46,7 @@
     
 typedef enum {
     BUILTIN_ALLOC = 0,
+    BUILTIN_DEALLOC,
 } Builtin_Type;
     
 typedef struct {
@@ -103,6 +104,7 @@ struct Node;
 typedef struct {
     Builtin_Type type;
     struct Expr *value;
+    Type_Type return_type;
 } Builtin;
 
 typedef struct {
@@ -154,6 +156,7 @@ typedef union {
 typedef struct Expr {
     Expr_Value value;
     Expr_Type type;   
+    Type_Type return_type;
     Location loc;
 } Expr;
     
@@ -208,6 +211,7 @@ typedef enum {
     TYPE_ROOT = 0,
     TYPE_NATIVE,
     TYPE_EXPR,
+    TYPE_EXPR_STMT,
     TYPE_VAR_DEC,
     TYPE_VAR_REASSIGN,
     TYPE_IF,
@@ -269,6 +273,7 @@ typedef union {
     Native_Call native;
     Expr *expr;
     Expr *conditional;
+    Expr *expr_stmt;
     Variable var;
     Array_Index array;
     Label label;

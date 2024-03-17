@@ -75,6 +75,8 @@ Token_Type get_token_type(String_View str) {
 Token token_get_builtin(Token token, String_View view) {
     if(view_cmp(view, view_create("alloc", 5))) {
         return (Token){.type = TT_BUILTIN, .value.builtin = BUILTIN_ALLOC};
+    } else if(view_cmp(view, view_create("dealloc", 7))) {
+        return (Token){.type = TT_BUILTIN, .value.builtin = BUILTIN_DEALLOC};
     }
     return token;
 }
@@ -418,6 +420,14 @@ Builtin parse_builtin_node(Token_Arr *tokens, Builtin_Type type) {
         .value = parse_expr(tokens),
         .type = type,
     };
+    switch(type) {
+        case BUILTIN_ALLOC:
+            builtin.return_type = TYPE_PTR;
+            break;
+        case BUILTIN_DEALLOC:
+            builtin.return_type = TYPE_VOID;
+            break;        
+    }
     return builtin;
 }
 
@@ -463,6 +473,7 @@ Expr *parse_primary(Token_Arr *tokens) {
                 .value.builtin = value,
                 .loc = token.loc,
             };
+            if(expr->value.builtin.type == BUILTIN_DEALLOC) expr->return_type = TYPE_VOID;
         } break;
         case TT_O_PAREN:
             expr = parse_expr(tokens);
@@ -757,6 +768,11 @@ Program parse(Token_Arr tokens, Blocks *block_stack) {
             case TT_CHAR_LIT:
             case TT_INT:            
             case TT_FLOAT_LIT:
+            case TT_BUILTIN: {
+                node.type = TYPE_EXPR_STMT;
+                node.value.expr_stmt = parse_expr(&tokens);
+                DA_APPEND(&root, node);
+            } break;
             case TT_VOID:
             case TT_PLUS:
             case TT_COLON:
@@ -778,7 +794,6 @@ Program parse(Token_Arr tokens, Blocks *block_stack) {
             case TT_DIV:
             case TT_MOD:
             case TT_NONE:
-            case TT_BUILTIN:
             case TT_COUNT:
                 PRINT_ERROR(tokens.data[0].loc, "unexpected token: %s", token_types[tokens.data[0].type]);
         }
