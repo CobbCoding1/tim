@@ -174,6 +174,7 @@ Token_Arr lex(char *filename, String_View view) {
     while(view.len > 0) {
         Token token = {0};
         token.loc = (Location){.filename = filename, .row=row, .col=view.data-start};
+        // TODO: REFACTOR INTO SWITCH STATEMENT
         if(isalpha(*view.data)) {
             Dynamic_Str word = {0};    
             DA_APPEND(&word, *view.data);                    
@@ -279,8 +280,13 @@ Token_Arr lex(char *filename, String_View view) {
         } else if(*view.data == '\n') {
             row++;
             start = view.data;
+        } else if(isspace(*view.data)) {
+            view = view_chop_left(view);                   
+            continue;
+        } else {
+            PRINT_ERROR(token.loc, "unexpected token");
         }
-        view = view_chop_left(view);
+        view = view_chop_left(view);               
     }
     return tokens;
 }
@@ -741,8 +747,7 @@ Program parse(Token_Arr tokens, Blocks *block_stack) {
             case TT_MOD:
             case TT_NONE:
             case TT_COUNT:
-                printf("type: %s %d\n", token_types[tokens.data[0].type], tokens.data[0].value.integer);
-                ASSERT(false, "unreachable");
+                PRINT_ERROR(tokens.data[0].loc, "unexpected token: %s", token_types[tokens.data[0].type]);
         }
     }
     Program program = {0};
