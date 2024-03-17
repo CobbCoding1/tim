@@ -47,6 +47,8 @@
 typedef enum {
     BUILTIN_ALLOC = 0,
     BUILTIN_DEALLOC,
+    BUILTIN_STORE,
+    BUILTIN_TOVP,
 } Builtin_Type;
     
 typedef struct {
@@ -102,12 +104,6 @@ struct Expr;
 struct Node;
 
 typedef struct {
-    Builtin_Type type;
-    struct Expr *value;
-    Type_Type return_type;
-} Builtin;
-
-typedef struct {
     struct Expr *lhs;
     struct Expr *rhs;
     Operator op;
@@ -118,6 +114,12 @@ typedef struct {
     size_t count;
     size_t capacity;
 } Exprs;
+    
+typedef struct {
+    Builtin_Type type;
+    Exprs value;
+    Type_Type return_type;
+} Builtin;
 
 typedef struct {
     String_View name;

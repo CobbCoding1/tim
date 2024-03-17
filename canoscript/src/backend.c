@@ -180,14 +180,28 @@ void gen_builtin(Program_State *state, FILE *file, Expr *expr) {
     ASSERT(expr->type == EXPR_BUILTIN, "type is incorrect");
     switch(expr->value.builtin.type) {
         case BUILTIN_ALLOC: {
-            gen_expr(state, file, expr->value.builtin.value);               
+            gen_expr(state, file, expr->value.builtin.value.data[0]);               
             fprintf(file, "alloc\n");
         } break;
         case BUILTIN_DEALLOC: {
-            gen_expr(state, file, expr->value.builtin.value);               
+            gen_expr(state, file, expr->value.builtin.value.data[0]);               
             fprintf(file, "dealloc\n");
             state->stack_s--;
-        }
+        } break;
+        case BUILTIN_TOVP: {
+            gen_expr(state, file, expr->value.builtin.value.data[0]);               
+            fprintf(file, "tovp\n");
+        } break;
+        case BUILTIN_STORE: {
+            if(expr->value.builtin.value.count != 3) {
+                PRINT_ERROR(expr->loc, "incorrect arg amounts for store");
+            }
+            for(size_t i = 0; i < expr->value.builtin.value.count; i++) {
+                gen_expr(state, file, expr->value.builtin.value.data[i]);
+            }
+            fprintf(file, "write\n");
+            state->stack_s -= 3;
+        } break;
     }
 }
     

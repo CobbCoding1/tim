@@ -77,7 +77,12 @@ Token token_get_builtin(Token token, String_View view) {
         return (Token){.type = TT_BUILTIN, .value.builtin = BUILTIN_ALLOC};
     } else if(view_cmp(view, view_create("dealloc", 7))) {
         return (Token){.type = TT_BUILTIN, .value.builtin = BUILTIN_DEALLOC};
+    } else if(view_cmp(view, view_create("store", 5))) {
+        return (Token){.type = TT_BUILTIN, .value.builtin = BUILTIN_STORE};
+    } else if(view_cmp(view, view_create("tovp", 4))) {
+        return (Token){.type = TT_BUILTIN, .value.builtin = BUILTIN_TOVP};
     }
+        
     return token;
 }
 
@@ -417,13 +422,19 @@ void print_expr(Expr *expr) {
     
 Builtin parse_builtin_node(Token_Arr *tokens, Builtin_Type type) {
     Builtin builtin = {
-        .value = parse_expr(tokens),
         .type = type,
     };
+    DA_APPEND(&builtin.value, parse_expr(tokens));
+    while(token_peek(tokens, 0).type == TT_COMMA) {
+        token_consume(tokens);
+        DA_APPEND(&builtin.value, parse_expr(tokens));        
+    }
     switch(type) {
+        case BUILTIN_TOVP:
         case BUILTIN_ALLOC:
             builtin.return_type = TYPE_PTR;
             break;
+        case BUILTIN_STORE:
         case BUILTIN_DEALLOC:
             builtin.return_type = TYPE_VOID;
             break;        
@@ -473,7 +484,7 @@ Expr *parse_primary(Token_Arr *tokens) {
                 .value.builtin = value,
                 .loc = token.loc,
             };
-            if(expr->value.builtin.type == BUILTIN_DEALLOC) expr->return_type = TYPE_VOID;
+            if(expr->value.builtin.return_type == TYPE_VOID) expr->return_type = TYPE_VOID;
         } break;
         case TT_O_PAREN:
             expr = parse_expr(tokens);
