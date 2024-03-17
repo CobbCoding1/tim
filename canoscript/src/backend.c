@@ -316,7 +316,7 @@ void gen_program(Program_State *state, Nodes nodes, FILE *file) {
                     PRINT_ERROR(node->loc, "variable `"View_Print"` referenced before assignment", View_Arg(node->value.var.name));
                 }
                 gen_inswap(file, state->stack_s-index);    
-                gen_pop(state, file);
+                //gen_pop(state, file);
             } break;
             case TYPE_ARR_INDEX: {
                 fprintf(file, "; arr index\n");                                            

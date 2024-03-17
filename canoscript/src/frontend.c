@@ -663,10 +663,16 @@ Program parse(Token_Arr tokens, Blocks *block_stack) {
                         node.type = TYPE_FUNC_CALL;
                         node.value.func_call.name = tokens.data[0].value.ident;                                        
                         token_consume(&tokens);                                                
-                        while(tokens.count > 0 && token_consume(&tokens).type != TT_C_PAREN && i > 2) {
-                            Expr *arg = parse_expr(&tokens);
-                            DA_APPEND(&node.value.func_call.args, arg);
-                            expr_type_check(node.loc, node.value.func_call.args.data[node.value.func_call.args.count - 1]);
+                        if(token_peek(&tokens, 1).type == TT_C_PAREN) {
+                            // consume the open and close paren of empty funcall
+                            token_consume(&tokens);
+                            token_consume(&tokens);                    
+                        } else {
+                            while(tokens.count > 0 && token_consume(&tokens).type != TT_C_PAREN && i > 2) {
+                                Expr *arg = parse_expr(&tokens);
+                                DA_APPEND(&node.value.func_call.args, arg);
+                                expr_type_check(node.loc, node.value.func_call.args.data[node.value.func_call.args.count - 1]);
+                            }
                         }
                     }
                 } else {
