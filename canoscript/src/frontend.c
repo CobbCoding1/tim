@@ -399,8 +399,6 @@ void print_expr(Expr *expr) {
 
 Expr *parse_expr(Token_Arr *tokens);
     
-// parse primary takes a primary, currently only supports integers
-// but in the future, could be identifiers, etc
 Expr *parse_primary(Token_Arr *tokens) {
     Token token = token_consume(tokens);
     if(token.type != TT_INT && token.type != TT_FLOAT_LIT && token.type != TT_O_PAREN && token.type != TT_STRING && token.type != TT_CHAR_LIT && token.type != TT_IDENT) {
