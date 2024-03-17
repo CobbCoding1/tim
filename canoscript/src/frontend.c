@@ -407,65 +407,73 @@ Expr *parse_primary(Token_Arr *tokens) {
         PRINT_ERROR(token.loc, "expected int, string, char, or ident but found %s", token_types[token.type]);
     }
     Expr *expr = custom_realloc(NULL, sizeof(Expr));   
-    if(token.type == TT_INT) {
-        *expr = (Expr){
-            .type = EXPR_INT,
-            .value.integer = token.value.integer,
-            .loc = token.loc,
-        };
-    } else if(token.type == TT_FLOAT_LIT) {
-        *expr = (Expr){
-            .type = EXPR_FLOAT,
-            .value.floating = token.value.floating,
-            .loc = token.loc,
-        };
-    } else if(token.type == TT_STRING) {
-        *expr = (Expr){
-            .type = EXPR_STR,
-            .value.string = token.value.string,
-        };
-    } else if(token.type == TT_CHAR_LIT) {
-        *expr = (Expr){
-            .type = EXPR_CHAR,
-            .value.string = token.value.string,
-        };
-    } else if(token.type == TT_O_PAREN) {
-        Expr *expr = parse_expr(tokens);
-        if(token_consume(tokens).type != TT_C_PAREN) {
-            PRINT_ERROR(token.loc, "expected `)`");   
-        }
-        return expr;
-    } else if(token.type == TT_IDENT) {
-        if(token_peek(tokens, 0).type == TT_O_PAREN) {
+    switch(token.type) {
+        case TT_INT:
             *expr = (Expr){
-                .type = EXPR_FUNCALL,
-                .value.func_call.name = token.value.ident,
+                .type = EXPR_INT,
+                .value.integer = token.value.integer,
+                .loc = token.loc,
             };
-            if(token_peek(tokens, 1).type == TT_C_PAREN) {
-                token_consume(tokens);
-                token_consume(tokens);                
-                return expr;
+            break;
+        case TT_FLOAT_LIT:
+            *expr = (Expr){
+                .type = EXPR_FLOAT,
+                .value.floating = token.value.floating,
+                .loc = token.loc,
+            };
+            break;
+        case TT_STRING:
+            *expr = (Expr){
+                .type = EXPR_STR,
+                .value.string = token.value.string,
+            };
+            break;
+        case TT_CHAR_LIT:
+            *expr = (Expr){
+                .type = EXPR_CHAR,
+                .value.string = token.value.string,
+            };
+            break;
+        case TT_O_PAREN:
+            expr = parse_expr(tokens);
+            if(token_consume(tokens).type != TT_C_PAREN) {
+                PRINT_ERROR(token.loc, "expected `)`");   
             }
-            while(tokens->count > 0 && token_consume(tokens).type != TT_C_PAREN) {
-                Expr *arg = parse_expr(tokens);
-                DA_APPEND(&expr->value.func_call.args, arg);
+            break;
+        case TT_IDENT:
+            if(token_peek(tokens, 0).type == TT_O_PAREN) {
+                *expr = (Expr){
+                    .type = EXPR_FUNCALL,
+                    .value.func_call.name = token.value.ident,
+                };
+                if(token_peek(tokens, 1).type == TT_C_PAREN) {
+                    token_consume(tokens);
+                    token_consume(tokens);                
+                    return expr;
+                }
+                while(tokens->count > 0 && token_consume(tokens).type != TT_C_PAREN) {
+                    Expr *arg = parse_expr(tokens);
+                    DA_APPEND(&expr->value.func_call.args, arg);
+                }
+            } else if(token_peek(tokens, 0).type == TT_O_BRACKET) {
+                *expr = (Expr){
+                    .type = EXPR_ARR,
+                    .value.array.name = token.value.ident,
+                };
+                token_consume(tokens); // open bracket
+                expr->value.array.index = parse_expr(tokens);
+                if(token_consume(tokens).type != TT_C_BRACKET) {
+                    PRINT_ERROR(tokens->data[0].loc, "expected `]` but found `%s`\n", token_types[tokens->data[0].type]);
+                }            
+            } else {
+                *expr = (Expr){
+                    .type = EXPR_VAR,
+                    .value.variable = token.value.ident,
+                };
             }
-        } else if(token_peek(tokens, 0).type == TT_O_BRACKET) {
-            *expr = (Expr){
-                .type = EXPR_ARR,
-                .value.array.name = token.value.ident,
-            };
-            token_consume(tokens); // open bracket
-            expr->value.array.index = parse_expr(tokens);
-            if(token_consume(tokens).type != TT_C_BRACKET) {
-                PRINT_ERROR(tokens->data[0].loc, "expected `]` but found `%s`\n", token_types[tokens->data[0].type]);
-            }            
-        } else {
-            *expr = (Expr){
-                .type = EXPR_VAR,
-                .value.variable = token.value.ident,
-            };
-        }
+            break;
+        default:
+            ASSERT(false, "unexpected token");
     }
     return expr;
 }
