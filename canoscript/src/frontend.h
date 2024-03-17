@@ -9,6 +9,7 @@ typedef enum {
     TT_NONE = 0,
     TT_WRITE,
     TT_EXIT,
+    TT_BUILTIN,
     TT_IDENT,
     TT_COLON,
     TT_O_PAREN,
@@ -43,13 +44,14 @@ typedef enum {
     TT_END,
     TT_COUNT,
 } Token_Type;
-    
+
 typedef union {
     String_View string;
     String_View ident;
     int integer;
     double floating;
     Type_Type type;
+    Builtin_Type builtin;
 } Token_Value;
 
 typedef struct {

@@ -3,7 +3,7 @@
 char *node_types[TYPE_COUNT] = {"root", "native", "expr", "var_dec", "var_reassign",
                                 "if", "else", "while", "then", "func_dec", "func_call", "return", "end"};
     
-size_t data_type_s[DATA_COUNT] = {8, 1, 1, 1, 8};
+size_t data_type_s[DATA_COUNT] = {8, 1, 1, 1, 8, 8};
     
 // TODO: add ASSERTs to all "popping" functions
 void gen_push(Program_State *state, FILE *file, int value) {
@@ -176,6 +176,17 @@ Type_Type get_variable_type(Program_State *state, String_View name) {
     return -1;
 }
     
+void gen_builtin(Program_State *state, FILE *file, Expr *expr) {
+    ASSERT(expr->type == EXPR_BUILTIN, "type is incorrect");
+    switch(expr->value.builtin.type) {
+        case BUILTIN_ALLOC: {
+            gen_expr(state, file, expr->value.builtin.value);               
+            fprintf(file, "alloc\n");
+            state->stack_s--;
+        } break;
+    }
+}
+    
 void gen_expr(Program_State *state, FILE *file, Expr *expr) {
     switch(expr->type) {
         case EXPR_BIN:
@@ -225,6 +236,9 @@ void gen_expr(Program_State *state, FILE *file, Expr *expr) {
             gen_arr_offset(state, file, index, expr->value.array.index, type);
             gen_push(state, file, data_type_s[type]);
             gen_read(state, file);
+        } break;
+        case EXPR_BUILTIN: {
+            gen_builtin(state, file, expr);   
         } break;
         default:
             ASSERT(false, "UNREACHABLE, %d\n", expr->type);

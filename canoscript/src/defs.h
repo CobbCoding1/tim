@@ -44,6 +44,10 @@
         exit(1);                                                                   \
     } while(0)
     
+typedef enum {
+    BUILTIN_ALLOC = 0,
+} Builtin_Type;
+    
 typedef struct {
     char *data;
     size_t count;
@@ -56,6 +60,7 @@ typedef enum {
     TYPE_VOID,
     TYPE_CHAR,
     TYPE_FLOAT,
+    TYPE_PTR,
     DATA_COUNT,
 } Type_Type;
 
@@ -96,6 +101,11 @@ struct Expr;
 struct Node;
 
 typedef struct {
+    Builtin_Type type;
+    struct Expr *value;
+} Builtin;
+
+typedef struct {
     struct Expr *lhs;
     struct Expr *rhs;
     Operator op;
@@ -126,6 +136,7 @@ typedef enum {
     EXPR_VAR,
     EXPR_FUNCALL,
     EXPR_ARR,
+    EXPR_BUILTIN,
     EXPR_COUNT,
 } Expr_Type;
 
@@ -137,6 +148,7 @@ typedef union {
     String_View variable;
     String_View string;
     Func_Call func_call;
+    Builtin builtin;
 } Expr_Value;
 
 typedef struct Expr {

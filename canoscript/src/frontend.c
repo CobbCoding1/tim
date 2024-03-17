@@ -10,6 +10,7 @@ String_View data_types[DATA_COUNT] = {
     {.data="void", .len=4},        
     {.data="char", .len=4},                    
     {.data="float", .len=5},            
+    {.data="ptr", .len=3},                
 };    
 
 bool is_valid_escape(char c){
@@ -69,6 +70,13 @@ Token_Type get_token_type(String_View str) {
         return TT_END;        
     }
     return TT_NONE;
+}
+    
+Token token_get_builtin(Token token, String_View view) {
+    if(view_cmp(view, view_create("alloc", 5))) {
+        return (Token){.type = TT_BUILTIN, .value.builtin = BUILTIN_ALLOC};
+    }
+    return token;
 }
 
 Token handle_data_type(Token token, String_View str) {
@@ -185,8 +193,10 @@ Token_Arr lex(char *filename, String_View view) {
             }
             view.data--;
             view.len++;
-            token.type = get_token_type(view_create(word.data, word.count));
-            token = handle_data_type(token, view_create(word.data, word.count));
+            String_View view = view_create(word.data, word.count);
+            token.type = get_token_type(view);
+            token = handle_data_type(token, view);
+            token = token_get_builtin(token, view);
             if(token.type == TT_NONE) {
                 token.type = TT_IDENT;
                 char *ident = custom_realloc(NULL, sizeof(char)*word.count);
@@ -402,12 +412,20 @@ void print_expr(Expr *expr) {
         print_expr(expr->value.bin.rhs);        
     }
 }
+    
+Builtin parse_builtin_node(Token_Arr *tokens, Builtin_Type type) {
+    Builtin builtin = {
+        .value = parse_expr(tokens),
+        .type = type,
+    };
+    return builtin;
+}
 
 Expr *parse_expr(Token_Arr *tokens);
     
 Expr *parse_primary(Token_Arr *tokens) {
     Token token = token_consume(tokens);
-    if(token.type != TT_INT && token.type != TT_FLOAT_LIT && token.type != TT_O_PAREN && token.type != TT_STRING && token.type != TT_CHAR_LIT && token.type != TT_IDENT) {
+    if(token.type != TT_INT && token.type != TT_BUILTIN && token.type != TT_FLOAT_LIT && token.type != TT_O_PAREN && token.type != TT_STRING && token.type != TT_CHAR_LIT && token.type != TT_IDENT) {
         PRINT_ERROR(token.loc, "expected int, string, char, or ident but found %s", token_types[token.type]);
     }
     Expr *expr = custom_realloc(NULL, sizeof(Expr));   
@@ -438,6 +456,14 @@ Expr *parse_primary(Token_Arr *tokens) {
                 .value.string = token.value.string,
             };
             break;
+        case TT_BUILTIN: {
+            Builtin value = parse_builtin_node(tokens, token.value.builtin);
+            *expr = (Expr) {
+                .type = EXPR_BUILTIN,
+                .value.builtin = value,
+                .loc = token.loc,
+            };
+        } break;
         case TT_O_PAREN:
             expr = parse_expr(tokens);
             if(token_consume(tokens).type != TT_C_PAREN) {
@@ -752,6 +778,7 @@ Program parse(Token_Arr tokens, Blocks *block_stack) {
             case TT_DIV:
             case TT_MOD:
             case TT_NONE:
+            case TT_BUILTIN:
             case TT_COUNT:
                 PRINT_ERROR(tokens.data[0].loc, "unexpected token: %s", token_types[tokens.data[0].type]);
         }
