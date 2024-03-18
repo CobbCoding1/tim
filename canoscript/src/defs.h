@@ -49,6 +49,7 @@ typedef enum {
     BUILTIN_DEALLOC,
     BUILTIN_STORE,
     BUILTIN_TOVP,
+    BUILTIN_GET,        
 } Builtin_Type;
     
 typedef struct {

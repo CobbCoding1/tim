@@ -202,6 +202,16 @@ void gen_builtin(Program_State *state, FILE *file, Expr *expr) {
             fprintf(file, "write\n");
             state->stack_s -= 3;
         } break;
+        case BUILTIN_GET: {
+            if(expr->value.builtin.value.count != 2) {
+                PRINT_ERROR(expr->loc, "incorrect arg amounts for get");
+            }
+            for(size_t i = 0; i < expr->value.builtin.value.count; i++) {
+                gen_expr(state, file, expr->value.builtin.value.data[i]);
+            }
+            fprintf(file, "read\n");
+            state->stack_s -= 1;
+        } break;
     }
 }
     
@@ -295,10 +305,6 @@ void gen_program(Program_State *state, Nodes nodes, FILE *file) {
                             exit(1);
                         }
                         Expr_Type type = node->value.native.args.data[0].value.expr->type;
-                        if(type != EXPR_STR && type != EXPR_VAR && type != EXPR_FUNCALL) {
-                            fprintf(stderr, "error: expected string\n");
-                            exit(1);
-                        };
                         fprintf(file, "; write\n");
                         gen_expr(state, file, node->value.native.args.data[0].value.expr);
                         gen_push(state, file, STDOUT);

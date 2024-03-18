@@ -1,6 +1,6 @@
 #include "frontend.h"
 
-char *token_types[TT_COUNT] = {"none", "write", "exit", "ident", 
+char *token_types[TT_COUNT] = {"none", "write", "exit", "builtin", "ident", 
                                ":", "(", ")", "[", "]", ",", "=", "==", "!=", ">=", "<=", ">", "<", "+", "-", "*", "/", "%",
                                "string", "char", "integer", "float", "void", "type", "if", "else", "while", "then", "return", "end"};
     
@@ -81,6 +81,8 @@ Token token_get_builtin(Token token, String_View view) {
         return (Token){.type = TT_BUILTIN, .value.builtin = BUILTIN_STORE};
     } else if(view_cmp(view, view_create("tovp", 4))) {
         return (Token){.type = TT_BUILTIN, .value.builtin = BUILTIN_TOVP};
+    } else if(view_cmp(view, view_create("get", 3))) {
+        return (Token){.type = TT_BUILTIN, .value.builtin = BUILTIN_GET};
     }
         
     return token;
@@ -431,6 +433,7 @@ Builtin parse_builtin_node(Token_Arr *tokens, Builtin_Type type) {
     }
     switch(type) {
         case BUILTIN_TOVP:
+        case BUILTIN_GET:        
         case BUILTIN_ALLOC:
             builtin.return_type = TYPE_PTR;
             break;
@@ -577,24 +580,13 @@ Expr_Type expr_type_check(Location loc, Expr *expr) {
     return typel;
 }
 
-Node parse_native_node(Token_Arr *tokens, Token_Type type, int native_value) {
+Node parse_native_node(Token_Arr *tokens, int native_value) {
     Node node = {.type = TYPE_NATIVE, .loc = tokens->data[0].loc};            
     token_consume(tokens);
-    Token token = tokens->data[0];
     Native_Call call = {0};
     Arg arg = {0};
-    switch(type) {
-        case TT_STRING:    
-        case TT_INT: {
-            if(token.type != TT_INT && token.type != TT_STRING && token.type != TT_CHAR_LIT && token.type != TT_IDENT) {
-                PRINT_ERROR(token.loc, "expected int, string, char, or ident but found %s\n", token_types[token.type]);
-            }
-            arg = (Arg){.type=ARG_EXPR, .value.expr=parse_expr(tokens)};
-            expr_type_check(node.loc, arg.value.expr);
-        } break;
-        default:
-            PRINT_ERROR(tokens->data[0].loc, "unexpected type: %s\n", token_types[type]);
-    }
+    arg = (Arg){.type=ARG_EXPR, .value.expr=parse_expr(tokens)};
+    expr_type_check(node.loc, arg.value.expr);
     DA_APPEND(&call.args, arg);
     call.type = native_value;
     node.value.native = call;
@@ -628,11 +620,11 @@ Program parse(Token_Arr tokens, Blocks *block_stack) {
         Node node = {.loc=tokens.data[0].loc};    
         switch(tokens.data[0].type) {
             case TT_WRITE: {
-                node = parse_native_node(&tokens, TT_STRING, NATIVE_WRITE);            
+                node = parse_native_node(&tokens, NATIVE_WRITE);            
                 DA_APPEND(&root, node);
             } break;
             case TT_EXIT: {
-                node = parse_native_node(&tokens, TT_INT, NATIVE_EXIT);
+                node = parse_native_node(&tokens, NATIVE_EXIT);
                 DA_APPEND(&root, node);
             } break;
             case TT_IDENT: {

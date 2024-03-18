@@ -85,7 +85,7 @@ Expr *parse_expr(Token_Arr *tokens);
 Expr *parse_primary(Token_Arr *tokens);
 Expr *parse_expr_1(Token_Arr *tokens, Expr *lhs, Precedence min_precedence);
 Expr *parse_expr(Token_Arr *tokens);
-Node parse_native_node(Token_Arr *tokens, Token_Type type, int native_value);
+Node parse_native_node(Token_Arr *tokens, int native_value);
 Node parse_var_dec(Token_Arr *tokens);
 Program parse(Token_Arr tokens, Blocks *block_stack);
 
