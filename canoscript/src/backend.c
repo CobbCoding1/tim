@@ -299,19 +299,18 @@ void gen_program(Program_State *state, Nodes nodes, FILE *file) {
         switch(node->type) {
             case TYPE_NATIVE:
                 switch(node->value.native.type) {
-                    case NATIVE_WRITE:
+                    case NATIVE_WRITE: {
                         if(node->value.native.args.count > 1) {
                             fprintf(stderr, "error: too many args\n");
                             exit(1);
                         }
-                        Expr_Type type = node->value.native.args.data[0].value.expr->type;
                         fprintf(file, "; write\n");
                         gen_expr(state, file, node->value.native.args.data[0].value.expr);
                         gen_push(state, file, STDOUT);
                         fprintf(file, "native %d\n", node->value.native.type);
                         state->stack_s -= 2;
-                        break;
-                    case NATIVE_EXIT:
+                    } break;
+                    case NATIVE_EXIT: {
                         ASSERT(node->value.native.args.count == 1, "too many arguments");
                         if(node->value.native.args.data[0].type != ARG_EXPR) {
                             PRINT_ERROR(node->loc, "expected type int, but found type %s", node_types[node->value.native.args.data[0].type]);
@@ -321,7 +320,7 @@ void gen_program(Program_State *state, Nodes nodes, FILE *file) {
                         gen_expr(state, file, node->value.native.args.data[0].value.expr);
                         fprintf(file, "native %d\n", node->value.native.type);
                         state->stack_s--;
-                        break;           
+                    } break;           
                     default:
                         ASSERT(false, "unreachable");
                 }

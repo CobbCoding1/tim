@@ -191,119 +191,130 @@ Token_Arr lex(char *filename, String_View view) {
     while(view.len > 0) {
         Token token = {0};
         token.loc = (Location){.filename = filename, .row=row, .col=view.data-start};
-        // TODO: REFACTOR INTO SWITCH STATEMENT
-        if(isalpha(*view.data)) {
-            Dynamic_Str word = {0};    
-            DA_APPEND(&word, *view.data);                    
-            view = view_chop_left(view);
-            while(view.len > 0 && isword(*view.data)) {
-                DA_APPEND(&word, *view.data);            
-                view = view_chop_left(view);    
-            }
-            view.data--;
-            view.len++;
-            String_View view = view_create(word.data, word.count);
-            token.type = get_token_type(view);
-            token = handle_data_type(token, view);
-            token = token_get_builtin(token, view);
-            if(token.type == TT_NONE) {
-                token.type = TT_IDENT;
-                char *ident = custom_realloc(NULL, sizeof(char)*word.count);
-                strncpy(ident, word.data, word.count);
-                token.value.ident = view_create(ident, word.count);
-            };
-            DA_APPEND(&tokens, token);     
-            free(word.data);
-        } else if(*view.data == '"') {
-            Dynamic_Str word = {0};
-            view = view_chop_left(view);
-            while(view.len > 0 && *view.data != '"') {
-                if(view.len > 1 && *view.data == '\\') {
-                    DA_APPEND(&word, *view.data);                                        
+        switch(*view.data) {
+            case ':':
+                token.type = TT_COLON;
+                DA_APPEND(&tokens, token);                                                    
+                break;
+            case '=':
+                token.type = TT_EQ;
+                DA_APPEND(&tokens, token);                                                    
+                break;
+            case '(':
+                token.type = TT_O_PAREN;
+                DA_APPEND(&tokens, token);                                                    
+                break;
+            case ')':
+                token.type = TT_C_PAREN;
+                DA_APPEND(&tokens, token);                                                    
+                break;
+            case '[':
+                token.type = TT_O_BRACKET;
+                DA_APPEND(&tokens, token);                                                    
+                break;
+            case ']':
+                token.type = TT_C_BRACKET;
+                DA_APPEND(&tokens, token);                                                    
+                break;
+            case ',':
+                token.type = TT_O_PAREN;
+                DA_APPEND(&tokens, token);                                                    
+                break;
+            case '\n':
+                row++;
+                start = view.data;
+                break;
+            default: {
+                if(isalpha(*view.data)) {
+                    Dynamic_Str word = {0};    
+                    DA_APPEND(&word, *view.data);                    
                     view = view_chop_left(view);
-                    if(!is_valid_escape(*view.data)) {
-                        PRINT_ERROR(token.loc, "unexpected escape character: `%c`", *view.data);
+                    while(view.len > 0 && isword(*view.data)) {
+                        DA_APPEND(&word, *view.data);            
+                        view = view_chop_left(view);    
                     }
-                }
-                DA_APPEND(&word, *view.data);
-                view = view_chop_left(view);
-            }
-            if(view.len == 0 && *view.data != '"') {
-                PRINT_ERROR(token.loc, "expected closing `\"`");                            
-            };
-            token.type = TT_STRING;
-            token.value.string = view_create(word.data, word.count);
-            DA_APPEND(&tokens, token);                                    
-        } else if(*view.data == '\'') {
-            Dynamic_Str word = {0};
-            view = view_chop_left(view);
-            while(view.len > 0 && *view.data != '\'') {
-                if(view.len > 1 && *view.data == '\\') {
-                    DA_APPEND(&word, *view.data);                                        
+                    view.data--;
+                    view.len++;
+                    String_View view = view_create(word.data, word.count);
+                    token.type = get_token_type(view);
+                    token = handle_data_type(token, view);
+                    token = token_get_builtin(token, view);
+                    if(token.type == TT_NONE) {
+                        token.type = TT_IDENT;
+                        char *ident = custom_realloc(NULL, sizeof(char)*word.count);
+                        strncpy(ident, word.data, word.count);
+                        token.value.ident = view_create(ident, word.count);
+                    };
+                    DA_APPEND(&tokens, token);     
+                    free(word.data);
+                } else if(*view.data == '"') {
+                    Dynamic_Str word = {0};
                     view = view_chop_left(view);
-                    if(!is_valid_escape(*view.data)) {
-                        PRINT_ERROR(token.loc, "unexpected escape character: `%c`", *view.data);
+                    while(view.len > 0 && *view.data != '"') {
+                        if(view.len > 1 && *view.data == '\\') {
+                            DA_APPEND(&word, *view.data);                                        
+                            view = view_chop_left(view);
+                            if(!is_valid_escape(*view.data)) {
+                                PRINT_ERROR(token.loc, "unexpected escape character: `%c`", *view.data);
+                            }
+                        }
+                        DA_APPEND(&word, *view.data);
+                        view = view_chop_left(view);
                     }
+                    if(view.len == 0 && *view.data != '"') {
+                        PRINT_ERROR(token.loc, "expected closing `\"`");                            
+                    };
+                    token.type = TT_STRING;
+                    token.value.string = view_create(word.data, word.count);
+                    DA_APPEND(&tokens, token);                                    
+                } else if(*view.data == '\'') {
+                    Dynamic_Str word = {0};
+                    view = view_chop_left(view);
+                    while(view.len > 0 && *view.data != '\'') {
+                        if(view.len > 1 && *view.data == '\\') {
+                            DA_APPEND(&word, *view.data);                                        
+                            view = view_chop_left(view);
+                            if(!is_valid_escape(*view.data)) {
+                                PRINT_ERROR(token.loc, "unexpected escape character: `%c`", *view.data);
+                            }
+                        }
+                        DA_APPEND(&word, *view.data);
+                        view = view_chop_left(view);
+                    }
+                    if(word.count > 2) {
+                        PRINT_ERROR(token.loc, "character cannot be made up of multiple characters");
+                    }
+                    if(view.len == 0 && *view.data != '\'') {
+                        PRINT_ERROR(token.loc, "expected closing `'` quote");                            
+                    };
+                    token.type = TT_CHAR_LIT; 
+                    token.value.string = view_create(word.data, word.count);
+                    DA_APPEND(&tokens, token);                                    
+                } else if(isdigit(*view.data)) {
+                    Dynamic_Str num = {0};
+                    token.type = TT_INT;            
+                    while(view.len > 0 && (isdigit(*view.data) || *view.data == '.')) {
+                        if(*view.data == '.') token.type = TT_FLOAT_LIT;
+                        DA_APPEND(&num, *view.data);
+                        view = view_chop_left(view);
+                    }
+                    view.data--;
+                    view.len++;
+                        
+                    DA_APPEND(&num, '\0');
+                    if(token.type == TT_FLOAT_LIT) token.value.floating = atof(num.data);
+                    else token.value.integer = atoi(num.data);
+                    DA_APPEND(&tokens, token);                        
+                } else if(is_operator(view)) {
+                    token = create_operator_token(filename, row, view.data-start, &view);
+                    DA_APPEND(&tokens, token);                                        
+                } else if(isspace(*view.data)) {
+                    view = view_chop_left(view);                   
+                    continue;
+                } else {
+                    PRINT_ERROR(token.loc, "unexpected token");
                 }
-                DA_APPEND(&word, *view.data);
-                view = view_chop_left(view);
             }
-            if(word.count > 2) {
-                PRINT_ERROR(token.loc, "character cannot be made up of multiple characters");
-            }
-            if(view.len == 0 && *view.data != '\'') {
-                PRINT_ERROR(token.loc, "expected closing `'` quote");                            
-            };
-            token.type = TT_CHAR_LIT; 
-            token.value.string = view_create(word.data, word.count);
-            DA_APPEND(&tokens, token);                                    
-        } else if(isdigit(*view.data)) {
-            Dynamic_Str num = {0};
-            token.type = TT_INT;            
-            while(view.len > 0 && (isdigit(*view.data) || *view.data == '.')) {
-                if(*view.data == '.') token.type = TT_FLOAT_LIT;
-                DA_APPEND(&num, *view.data);
-                view = view_chop_left(view);
-            }
-            view.data--;
-            view.len++;
-                
-            DA_APPEND(&num, '\0');
-            if(token.type == TT_FLOAT_LIT) token.value.floating = atof(num.data);
-            else token.value.integer = atoi(num.data);
-            DA_APPEND(&tokens, token);                        
-        } else if(is_operator(view)) {
-            token = create_operator_token(filename, row, view.data-start, &view);
-            DA_APPEND(&tokens, token);                                        
-        } else if(*view.data == ':') {
-            token.type = TT_COLON;
-            DA_APPEND(&tokens, token);                                                    
-        } else if(*view.data == '=') {
-            token.type = TT_EQ;
-            DA_APPEND(&tokens, token);                                                    
-        } else if(*view.data == '(') {
-            token.type = TT_O_PAREN;
-            DA_APPEND(&tokens, token);                                                    
-        } else if(*view.data == ')') {
-            token.type = TT_C_PAREN;                
-            DA_APPEND(&tokens, token);                                                    
-        } else if(*view.data == '[') {
-            token.type = TT_O_BRACKET;
-            DA_APPEND(&tokens, token);                                                    
-        } else if(*view.data == ']') {
-            token.type = TT_C_BRACKET;            
-            DA_APPEND(&tokens, token);                                                    
-        } else if(*view.data == ',') {
-            token.type = TT_COMMA;
-            DA_APPEND(&tokens, token);                                                    
-        } else if(*view.data == '\n') {
-            row++;
-            start = view.data;
-        } else if(isspace(*view.data)) {
-            view = view_chop_left(view);                   
-            continue;
-        } else {
-            PRINT_ERROR(token.loc, "unexpected token");
         }
         view = view_chop_left(view);               
     }
