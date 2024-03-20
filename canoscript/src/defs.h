@@ -182,6 +182,7 @@ typedef enum {
 typedef struct {
     Arg_Type type;
     Arg_Value value; 
+    String_View name;
 } Arg;
     
 typedef struct {
@@ -223,6 +224,7 @@ typedef enum {
     TYPE_THEN,
     TYPE_FUNC_DEC,
     TYPE_FUNC_CALL,
+    TYPE_STRUCT,
     TYPE_ARR_INDEX,
     TYPE_RET,
     TYPE_END,
@@ -231,10 +233,13 @@ typedef enum {
     
 typedef struct {
     String_View name;
+    String_View struct_name;
+    Args struct_value;
     Type_Type type;
     Exprs value;
     size_t stack_pos;
     bool is_array;
+    bool is_struct;
     Expr *array_s;
 } Variable;
     
@@ -243,6 +248,11 @@ typedef struct {
     Nodes args;
     Type_Type type;
 } Function;
+    
+typedef struct {
+    String_View name;
+    Nodes values;
+} Struct;
 
 typedef struct {
     Function *data;
@@ -283,6 +293,7 @@ typedef union {
     Else_Label el;
     Func_Dec func_dec;
     Func_Call func_call;
+    Struct structs;
 } Node_Value;
 
 typedef struct Node {
@@ -324,6 +335,7 @@ typedef struct {
 typedef struct {
     Nodes nodes;  
     Nodes functions;
+    Nodes structs;
 } Program;
 
 void *custom_realloc(void *ptr, size_t size);

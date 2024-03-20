@@ -20,6 +20,7 @@ int main(int argc, char *argv[]) {
     String_View view = read_file_to_view(filename);
     Token_Arr tokens = lex(filename, view);
     Blocks block_stack = {0};
+    print_token_arr(tokens);
     Program program = parse(tokens, &block_stack);
     Program_State state = {0};
     generate(&state, &program, filename);

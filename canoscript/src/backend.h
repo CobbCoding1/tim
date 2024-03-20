@@ -33,7 +33,7 @@ Function *get_func(Functions functions, String_View name);
 int get_variable_location(Program_State *state, String_View name);
 void gen_expr(Program_State *state, FILE *file, Expr *expr);
 void scope_end(Program_State *state, FILE *file);
-void gen_program(Program_State *state, Nodes nodes, FILE *file);
+void gen_program(Program_State *state, Nodes nodes, Nodes structs, FILE *file);
 void generate(Program_State *state, Program *program, char *filename);
 
 #endif // BACKEND_H

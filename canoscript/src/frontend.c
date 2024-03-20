@@ -1,8 +1,9 @@
 #include "frontend.h"
 
 char *token_types[TT_COUNT] = {"none", "write", "exit", "builtin", "ident", 
-                               ":", "(", ")", "[", "]", ",", "=", "==", "!=", ">=", "<=", ">", "<", "+", "-", "*", "/", "%",
-                               "string", "char", "integer", "float", "void", "type", "if", "else", "while", "then", "return", "end"};
+                               ":", "(", ")", "[", "]", "{", "}", ",", "=", "==", "!=", ">=", "<=", ">", "<", "+", "-", "*", "/", "%",
+                               "string", "char", "integer", "float", "struct", "void", "type", "if", "else", "while", "then", 
+                               "return", "end"};
     
 String_View data_types[DATA_COUNT] = {
     {.data="int", .len=3},
@@ -68,6 +69,8 @@ Token_Type get_token_type(String_View str) {
         return TT_RET;
     } else if(view_cmp(str, view_create("end", 3))) {
         return TT_END;        
+    } else if(view_cmp(str, view_create("struct", 6))) {
+        return TT_STRUCT;        
     }
     return TT_NONE;
 }
@@ -216,8 +219,16 @@ Token_Arr lex(char *filename, String_View view) {
                 token.type = TT_C_BRACKET;
                 DA_APPEND(&tokens, token);                                                    
                 break;
+            case '{':
+                token.type = TT_O_CURLY;
+                DA_APPEND(&tokens, token);                                                    
+                break;
+            case '}':
+                token.type = TT_C_CURLY;
+                DA_APPEND(&tokens, token);                                                    
+                break;
             case ',':
-                token.type = TT_O_PAREN;
+                token.type = TT_COMMA;
                 DA_APPEND(&tokens, token);                                                    
                 break;
             case '\n':
@@ -603,15 +614,34 @@ Node parse_native_node(Token_Arr *tokens, int native_value) {
     node.value.native = call;
     return node;
 }
+
+bool is_struct(Token_Arr *tokens, Nodes *structs) {
+    Token token = token_peek(tokens, 0);
+    if(token.type != TT_IDENT) PRINT_ERROR(token.loc, "expected identifier but found `%s`\n", token_types[token.type]);
+    for(size_t i = 0; i < structs->count; i++) {
+        printf(View_Print"\n", View_Arg(structs->data[i].value.structs.name));
+        if(view_cmp(structs->data[i].value.structs.name, token.value.ident)) return true;
+    }
+    return false;
+}
+
     
-Node parse_var_dec(Token_Arr *tokens) {
+Node parse_var_dec(Token_Arr *tokens, Nodes *structs) {
     Node node = {0};
     node.type = TYPE_VAR_DEC;
     node.loc = tokens->data[0].loc;
     node.value.var.name = tokens->data[0].value.ident;
     expect_token(tokens, TT_COLON);
-    expect_token(tokens, TT_TYPE);                
-    node.value.var.type = tokens->data[0].value.type;
+    token_consume(tokens);
+    Token name_t = token_peek(tokens, 0);
+    if(name_t.type == TT_TYPE) {
+        node.value.var.type = tokens->data[0].value.type;       
+    } else if(is_struct(tokens, structs)) {
+        node.value.var.is_struct = true;
+        node.value.var.struct_name = name_t.value.ident;
+    } else {
+        PRINT_ERROR(token_peek(tokens, 0).loc, "expected `type` but found `%s`\n", token_types[token_peek(tokens, 0).type]);
+    }
     node.value.var.is_array = token_peek(tokens, 1).type == TT_O_BRACKET || node.value.var.type == TYPE_STR;
     if(token_peek(tokens, 1).type == TT_O_BRACKET) {
         token_consume(tokens);
@@ -623,8 +653,10 @@ Node parse_var_dec(Token_Arr *tokens) {
 }
     
 Program parse(Token_Arr tokens, Blocks *block_stack) {
+    // TODO: initialize the Program struct at the top of func
     Nodes root = {0};
     Nodes functions = {0};
+    Nodes structs = {0};
     size_t cur_label = 0;
     Size_Stack labels = {0};
     while(tokens.count > 0) {
@@ -641,7 +673,7 @@ Program parse(Token_Arr tokens, Blocks *block_stack) {
             case TT_IDENT: {
                 Token token = token_peek(&tokens, 1);
                 if(token.type == TT_COLON) {
-                    node = parse_var_dec(&tokens);
+                    node = parse_var_dec(&tokens, &structs);
                     expect_token(&tokens, TT_EQ);                
                     token_consume(&tokens);
                     if(node.value.var.is_array && node.value.var.type != TYPE_STR) {
@@ -656,6 +688,23 @@ Program parse(Token_Arr tokens, Blocks *block_stack) {
                             else if(next.type == TT_C_BRACKET) break;
                             else PRINT_ERROR(tokens.data[0].loc, "expected `,` but found `%s`\n", token_types[tokens.data[0].type]);       
                         }
+                    } else if(node.value.var.is_struct) { 
+                        Token open_curly = token_consume(&tokens);
+                        if(open_curly.type != TT_O_CURLY) {
+                            PRINT_ERROR(open_curly.loc, "Expected `{` but found `%s`\n", token_types[open_curly.type]);
+                        }                                                
+                        while(tokens.count > 0 && token_peek(&tokens, 0).type != TT_C_CURLY) {
+                            Token identifier = token_consume(&tokens);
+                            if(identifier.type != TT_IDENT) PRINT_ERROR(identifier.loc, "expected identifier but found %s\n", token_types[identifier.type]);
+                            Arg arg = {.name = identifier.value.ident, .type = ARG_EXPR};
+                            if(token_consume(&tokens).type != TT_EQ) PRINT_ERROR(identifier.loc, "expected `=`\n");
+                            arg.value.expr = parse_expr(&tokens);
+                            Token comma_t = token_consume(&tokens);
+                            DA_APPEND(&node.value.var.struct_value, arg);
+                            if(comma_t.type == TT_C_CURLY) break;
+                            if(comma_t.type != TT_COMMA) PRINT_ERROR(comma_t.loc, "expected `,` but found %s\n", token_types[comma_t.type]);                            
+                        }
+                        if(token_peek(&tokens, 0).type == TT_C_CURLY) token_consume(&tokens);
                     } else {
                         DA_APPEND(&node.value.var.value, parse_expr(&tokens));    
                         expr_type_check(node.loc, node.value.var.value.data[node.value.var.value.count-1]);
@@ -699,7 +748,7 @@ Program parse(Token_Arr tokens, Blocks *block_stack) {
                         DA_APPEND(block_stack, block);                        
                         token_consume(&tokens);                        
                         while(tokens.count > 0 && token_consume(&tokens).type != TT_C_PAREN && i > 2) {
-                            Node arg = parse_var_dec(&tokens);
+                            Node arg = parse_var_dec(&tokens, &structs);
                             DA_APPEND(&node.value.func_dec.args, arg);
                             token_consume(&tokens);
                         }
@@ -731,6 +780,29 @@ Program parse(Token_Arr tokens, Blocks *block_stack) {
                 }
                 DA_APPEND(&root, node);                
             } break;       
+            case TT_STRUCT: {
+                node.type = TYPE_STRUCT;        
+                token_consume(&tokens);
+                Token name_t = token_consume(&tokens);
+                if(name_t.type != TT_IDENT) {
+                    PRINT_ERROR(name_t.loc, "expected identifier but found %s\n", token_types[name_t.type]);
+                }       
+                node.value.structs.name = name_t.value.ident;
+                if(token_consume(&tokens).type != TT_O_CURLY) {
+                    PRINT_ERROR(name_t.loc, "expected `{` but found `%s`\n", token_types[name_t.type]);
+                }       
+                while(tokens.count > 0 && token_peek(&tokens, 0).type != TT_C_CURLY) {
+                    Node arg = parse_var_dec(&tokens, &structs);
+                    DA_APPEND(&node.value.structs.values, arg);
+                    token_consume(&tokens);
+                    Token token = token_consume(&tokens);
+                    if(token.type != TT_COMMA) {
+                        PRINT_ERROR(token_peek(&tokens, 0).loc, "expected `,` but found `%s`\n", token_types[token.type]);
+                    }
+                }
+                token_consume(&tokens);
+                DA_APPEND(&structs, node);
+            } break;
             case TT_RET: {
                 node.type = TYPE_RET;
                 token_consume(&tokens);
@@ -797,6 +869,8 @@ Program parse(Token_Arr tokens, Blocks *block_stack) {
             case TT_C_PAREN:
             case TT_O_BRACKET:
             case TT_C_BRACKET:
+            case TT_O_CURLY:
+            case TT_C_CURLY:
             case TT_COMMA:
             case TT_GREATER_EQ:
             case TT_LESS_EQ:
@@ -815,5 +889,6 @@ Program parse(Token_Arr tokens, Blocks *block_stack) {
     Program program = {0};
     program.nodes = root;
     program.functions = functions;
+    program.structs = structs;
     return program;
 }

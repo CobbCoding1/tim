@@ -95,6 +95,11 @@ void gen_alloc(Program_State *state, FILE *file, Expr *s, size_t type_s) {
     gen_mul(state, file);
     fprintf(file, "alloc\n");    
 }
+    
+void gen_struct_alloc(Program_State *state, FILE *file, size_t total_s) {
+    gen_push(state, file, total_s);
+    fprintf(file, "alloc\n");    
+}
 
 void gen_dup(Program_State *state, FILE *file) {
     fprintf(file, "dup\n");
@@ -128,6 +133,29 @@ void gen_arr_offset(Program_State *state, FILE *file, size_t var_index, Expr *ar
     gen_mul(state, file);
     gen_add(state, file);
     fprintf(file, "tovp\n");            
+}
+
+void gen_struct_offset(Program_State *state, FILE *file, Type_Type type, size_t var_index, size_t offset) {
+    fprintf(file, "; offset\n");                                                                                
+ //   gen_indup(state, file, state->stack_s-var_index);    
+    gen_dup(state, file);
+    gen_push(state, file, offset);
+    gen_push(state, file, data_type_s[type]);            
+    gen_mul(state, file);
+    gen_add(state, file);
+    fprintf(file, "tovp\n");            
+}
+    
+void gen_struct_value(Program_State *state, FILE *file, size_t field_pos, Node *field, Node *value) {
+    for(size_t i = 0; i < value->value.var.struct_value.count; i++) {
+        Arg var = value->value.var.struct_value.data[i];
+        if(view_cmp(field->value.var.name, var.name)) {
+            gen_struct_offset(state, file, field->value.var.type, value->value.var.stack_pos, field_pos);
+            gen_expr(state, file, var.value.expr);
+            gen_push(state, file, data_type_s[field->value.var.type]);
+            gen_write(state, file);
+        }
+    }
 }
     
 void strip_off_dot(char *str) {
@@ -293,7 +321,16 @@ void ret_scope_end(Program_State *state, FILE *file) {
     }
 }
     
-void gen_program(Program_State *state, Nodes nodes, FILE *file) {
+Node get_struct(Nodes structs, String_View name) {
+    for(size_t i = 0; i < structs.count; i++) {
+        if(view_cmp(name, structs.data[i].value.structs.name)) {
+            return structs.data[i];
+        }
+    }
+    PRINT_ERROR((Location){0}, "unknown struct\n");
+}
+    
+void gen_program(Program_State *state, Nodes nodes, Nodes structs, FILE *file) {
     for(size_t i = 0; i < nodes.count; i++) {
         Node *node = &nodes.data[i];
         switch(node->type) {
@@ -336,6 +373,19 @@ void gen_program(Program_State *state, Nodes nodes, FILE *file) {
                         gen_expr(state, file, node->value.var.value.data[i]);                                                                                            
                         gen_push(state, file, data_type_s[node->value.var.type]);
                         gen_write(state, file);
+                    }
+                } else if(node->value.var.is_struct) {
+                    Node cur_struct = get_struct(structs, node->value.var.struct_name);
+                    if(cur_struct.value.structs.values.count != node->value.var.struct_value.count) {
+                        PRINT_ERROR(node->loc, "struct value count does not match\n");
+                    }
+                    size_t alloc_s = 0;
+                    for(size_t i = 0; i < cur_struct.value.structs.values.count; i++) {
+                        alloc_s += data_type_s[cur_struct.value.structs.values.data[i].value.var.type];
+                    }
+                    gen_struct_alloc(state, file, alloc_s);
+                    for(size_t i = 0; i < cur_struct.value.structs.values.count; i++) {
+                        gen_struct_value(state, file, i, &cur_struct.value.structs.values.data[i], node);
                     }
                 } else {
                     fprintf(file, "; expr\n");                                                            
@@ -482,7 +532,7 @@ void gen_program(Program_State *state, Nodes nodes, FILE *file) {
 void generate(Program_State *state, Program *program, char *filename) {
     char *output = append_tasm_ext(filename);
     FILE *file = fopen(output, "w");
-    gen_program(state, program->nodes, file);
+    gen_program(state, program->nodes, program->structs, file);
     fprintf(file, "; exit\n");                
     gen_push(state, file, 0);
     fprintf(file, "native 60\n");

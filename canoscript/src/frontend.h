@@ -16,6 +16,8 @@ typedef enum {
     TT_C_PAREN,
     TT_O_BRACKET,
     TT_C_BRACKET,
+    TT_O_CURLY,
+    TT_C_CURLY,
     TT_COMMA,
     TT_EQ,
     TT_DOUBLE_EQ,
@@ -34,6 +36,7 @@ typedef enum {
     // TODO TT_INT_LIT
     TT_INT,
     TT_FLOAT_LIT,
+    TT_STRUCT,
     TT_VOID,
     TT_TYPE,
     TT_IF,
@@ -86,7 +89,7 @@ Expr *parse_primary(Token_Arr *tokens);
 Expr *parse_expr_1(Token_Arr *tokens, Expr *lhs, Precedence min_precedence);
 Expr *parse_expr(Token_Arr *tokens);
 Node parse_native_node(Token_Arr *tokens, int native_value);
-Node parse_var_dec(Token_Arr *tokens);
+Node parse_var_dec(Token_Arr *tokens, Nodes *structs);
 Program parse(Token_Arr tokens, Blocks *block_stack);
 
 #endif // FRONTEND_H
