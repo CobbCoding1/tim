@@ -1,6 +1,6 @@
 #include "view.h"
 
-String_View view_create(char *str, size_t len) {
+String_View view_create(const char *str, size_t len) {
     String_View view = {
         .data = str,
         .len = len,
@@ -96,7 +96,7 @@ size_t view_last_of(String_View view, char target) {
 }
 
 size_t view_split(String_View view, char c, String_View *arr, size_t arr_s) {
-    char *cur = view.data;
+    const char *cur = view.data;
     size_t arr_index = 0;
     size_t i;
     for(i = 0; i < view.len; i++) {
@@ -130,20 +130,7 @@ String_View view_chop(String_View view, char c) {
         .len = view.len - i,
     };
 }
-
-String_View view_rev(String_View view, char *data, size_t data_s) {
-    if(view.len >= data_s) {
-        return (String_View){.data = NULL, .len = 0};
-    }
-    String_View result;
-    result.data = data;
-    result.len = view.len;
-    for(int i = view.len-1; i >= 0; i--) {
-        result.data[view.len-1 - i] = view.data[i]; 
-    }
-    return result;
-}
-
+    
 size_t view_find(String_View haystack, String_View needle) {
     if(needle.len > haystack.len) return 0;
     String_View compare = view_create(haystack.data, needle.len);

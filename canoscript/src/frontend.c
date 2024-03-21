@@ -190,7 +190,7 @@ void print_token_arr(Token_Arr arr) {
 Token_Arr lex(char *filename, String_View view) {
     size_t row = 1;
     Token_Arr tokens = {0};
-    char *start = view.data;
+    const char *start = view.data;
     while(view.len > 0) {
         Token token = {0};
         token.loc = (Location){.filename = filename, .row=row, .col=view.data-start};
@@ -246,7 +246,8 @@ Token_Arr lex(char *filename, String_View view) {
                     }
                     view.data--;
                     view.len++;
-                    String_View view = view_create(word.data, word.count);
+                    const char *data = word.data;
+                    String_View view = view_create(data, word.count);
                     token.type = get_token_type(view);
                     token = handle_data_type(token, view);
                     token = token_get_builtin(token, view);
