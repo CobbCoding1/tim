@@ -135,6 +135,7 @@ typedef struct {
 typedef struct {
     String_View structure;
     String_View var_name;
+    Exprs value;
 } Field;
 
 typedef enum {
@@ -225,6 +226,7 @@ typedef enum {
     TYPE_EXPR_STMT,
     TYPE_VAR_DEC,
     TYPE_VAR_REASSIGN,
+    TYPE_FIELD_REASSIGN,
     TYPE_IF,
     TYPE_ELSE,
     TYPE_WHILE,
@@ -301,6 +303,7 @@ typedef union {
     Func_Dec func_dec;
     Func_Call func_call;
     Struct structs;
+    Field field;
 } Node_Value;
 
 typedef struct Node {

@@ -272,7 +272,6 @@ void gen_struct_field_offset(Program_State *state, FILE *file, String_View struc
     gen_indup(state, file, state->stack_s-struct_var.stack_pos);
     gen_offset(state, file, offset);
     gen_push(state, file, data_type_s[structure.values.data[i].value.var.type]);
-    gen_read(state, file);
 }
     
 void gen_expr(Program_State *state, FILE *file, Expr *expr) {
@@ -329,6 +328,7 @@ void gen_expr(Program_State *state, FILE *file, Expr *expr) {
             String_View structure = expr->value.field.structure;
             String_View var_name = expr->value.field.var_name;
             gen_struct_field_offset(state, file, structure, var_name);
+            gen_read(state, file);            
         } break;
         case EXPR_BUILTIN: {
             gen_builtin(state, file, expr);   
@@ -432,7 +432,16 @@ void gen_program(Program_State *state, Nodes nodes, Nodes structs, FILE *file) {
                     PRINT_ERROR(node->loc, "variable `"View_Print"` referenced before assignment", View_Arg(node->value.var.name));
                 }
                 gen_inswap(file, state->stack_s-index);    
-                //gen_pop(state, file);
+            } break;
+            case TYPE_FIELD_REASSIGN: {
+                fprintf(file, "; field reassign\n");                                            
+                fprintf(file, "; expr\n");                                                                
+                String_View structure = node->value.field.structure;
+                String_View var_name = node->value.field.var_name;
+                gen_struct_field_offset(state, file, structure, var_name);
+                gen_expr(state, file, node->value.field.value.data[0]);
+                gen_inswap(file, 1);
+                gen_write(state, file);
             } break;
             case TYPE_ARR_INDEX: {
                 fprintf(file, "; arr index\n");                                            

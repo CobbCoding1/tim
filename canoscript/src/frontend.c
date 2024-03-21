@@ -724,13 +724,28 @@ Program parse(Token_Arr tokens, Blocks *block_stack) {
                     }
                 } else if(token.type == TT_EQ) {
                     node.type = TYPE_VAR_REASSIGN;
-                    node.value.var.name = tokens.data[0].value.ident;
-                        
-                    token_consume(&tokens); // ident
-                    token_consume(&tokens); // equal                   
+                    Token name_t = token_consume(&tokens);
+                    token_consume(&tokens); // eq
+                    node.value.var.name = name_t.value.ident;                        
                     
                     DA_APPEND(&node.value.var.value, parse_expr(&tokens));
                     expr_type_check(node.loc, node.value.var.value.data[node.value.var.value.count-1]);
+                } else if(token.type == TT_DOT) {
+                    Token name_t = token_consume(&tokens);
+                    if(token_consume(&tokens).type != TT_DOT) {
+                        PRINT_ERROR(name_t.loc, "expected identifier but found %s\n", token_types[name_t.type]);                           
+                    }
+                    node.type = TYPE_FIELD_REASSIGN;
+                    node.value.field.structure = name_t.value.ident;
+                    Token var_t = token_consume(&tokens);                        
+                    if(var_t.type != TT_IDENT) PRINT_ERROR(var_t.loc, "expected identifier but found %s\n", token_types[var_t.type]);
+                    node.value.field.var_name = var_t.value.ident;                        
+                    Token eq_t = token_consume(&tokens);
+                    if(eq_t.type != TT_EQ) {
+                        PRINT_ERROR(eq_t.loc, "expected `=` but found %s\n", token_types[eq_t.type]);
+                    }
+                    DA_APPEND(&node.value.field.value, parse_expr(&tokens));
+                    expr_type_check(node.loc, node.value.field.value.data[node.value.field.value.count-1]);
                 } else if(token.type == TT_O_BRACKET) {
                     node.type = TYPE_ARR_INDEX;
                     node.value.array.name = tokens.data[0].value.ident;
