@@ -131,6 +131,11 @@ typedef struct {
     String_View name;
     struct Expr *index;
 } Array;
+    
+typedef struct {
+    String_View structure;
+    String_View var_name;
+} Field;
 
 typedef enum {
     EXPR_BIN,    
@@ -141,6 +146,7 @@ typedef enum {
     EXPR_VAR,
     EXPR_FUNCALL,
     EXPR_ARR,
+    EXPR_FIELD,
     EXPR_BUILTIN,
     EXPR_COUNT,
 } Expr_Type;
@@ -149,6 +155,7 @@ typedef union {
     Bin_Expr bin;
     int integer;
     double floating;
+    Field field;
     Array array;
     String_View variable;
     String_View string;

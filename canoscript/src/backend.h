@@ -13,6 +13,7 @@ typedef struct {
     size_t while_label;
     Size_Stack while_labels;
     Block_Stack block_stack;    
+    Nodes structs;
 } Program_State;
     
 void gen_push(Program_State *state, FILE *file, int value);

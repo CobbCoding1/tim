@@ -19,6 +19,7 @@ typedef enum {
     TT_O_CURLY,
     TT_C_CURLY,
     TT_COMMA,
+    TT_DOT,
     TT_EQ,
     TT_DOUBLE_EQ,
     TT_NOT_EQ,

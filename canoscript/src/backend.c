@@ -4,6 +4,16 @@ char *node_types[TYPE_COUNT] = {"root", "native", "expr", "var_dec", "var_reassi
                                 "if", "else", "while", "then", "func_dec", "func_call", "return", "end"};
     
 size_t data_type_s[DATA_COUNT] = {8, 1, 1, 1, 8, 8};
+
+Node get_struct(Nodes structs, String_View name) {
+    for(size_t i = 0; i < structs.count; i++) {
+        if(view_cmp(name, structs.data[i].value.structs.name)) {
+            return structs.data[i];
+        }
+    }
+    ASSERT(false, "unknown struct: "View_Print, View_Arg(name));
+    PRINT_ERROR((Location){0}, "unknown struct\n");
+}
     
 // TODO: add ASSERTs to all "popping" functions
 void gen_push(Program_State *state, FILE *file, int value) {
@@ -107,7 +117,6 @@ void gen_dup(Program_State *state, FILE *file) {
 }
 
 void gen_offset(Program_State *state, FILE *file, size_t offset) {
-    gen_dup(state, file);
     gen_push(state, file, offset);
     gen_add(state, file);
     fprintf(file, "tovp\n");
@@ -195,6 +204,15 @@ int get_variable_location(Program_State *state, String_View name) {
     return -1;
 }
     
+Variable get_variable(Program_State *state, String_View name) {
+    for(size_t i = 0; i < state->vars.count; i++) {
+        if(view_cmp(state->vars.data[i].name, name)) {
+            return state->vars.data[i];
+        }
+    }
+    ASSERT(false, "unknown variable: "View_Print, View_Arg(name));
+}
+    
 Type_Type get_variable_type(Program_State *state, String_View name) {
     for(size_t i = 0; i < state->vars.count; i++) {
         if(view_cmp(state->vars.data[i].name, name)) {
@@ -241,6 +259,20 @@ void gen_builtin(Program_State *state, FILE *file, Expr *expr) {
             state->stack_s -= 1;
         } break;
     }
+}
+    
+void gen_struct_field_offset(Program_State *state, FILE *file, String_View struct_name, String_View var) {
+    Variable struct_var = get_variable(state, struct_name);
+    Struct structure = get_struct(state->structs, struct_var.struct_name).value.structs;
+    size_t offset = 0;
+    size_t i;
+    for(i = 0; i < structure.values.count && !view_cmp(structure.values.data[i].value.var.name, var); i++) {
+        offset += (1 * data_type_s[structure.values.data[i].value.var.type]);
+    }
+    gen_indup(state, file, state->stack_s-struct_var.stack_pos);
+    gen_offset(state, file, offset);
+    gen_push(state, file, data_type_s[structure.values.data[i].value.var.type]);
+    gen_read(state, file);
 }
     
 void gen_expr(Program_State *state, FILE *file, Expr *expr) {
@@ -293,6 +325,11 @@ void gen_expr(Program_State *state, FILE *file, Expr *expr) {
             gen_push(state, file, data_type_s[type]);
             gen_read(state, file);
         } break;
+        case EXPR_FIELD: {
+            String_View structure = expr->value.field.structure;
+            String_View var_name = expr->value.field.var_name;
+            gen_struct_field_offset(state, file, structure, var_name);
+        } break;
         case EXPR_BUILTIN: {
             gen_builtin(state, file, expr);   
         } break;
@@ -319,15 +356,6 @@ void ret_scope_end(Program_State *state, FILE *file) {
     while(state->stack_s > target) {
         gen_pop(state, file);
     }
-}
-    
-Node get_struct(Nodes structs, String_View name) {
-    for(size_t i = 0; i < structs.count; i++) {
-        if(view_cmp(name, structs.data[i].value.structs.name)) {
-            return structs.data[i];
-        }
-    }
-    PRINT_ERROR((Location){0}, "unknown struct\n");
 }
     
 void gen_program(Program_State *state, Nodes nodes, Nodes structs, FILE *file) {
@@ -369,6 +397,7 @@ void gen_program(Program_State *state, Nodes nodes, Nodes structs, FILE *file) {
                     gen_alloc(state, file, node->value.var.array_s, data_type_s[node->value.var.type]);
                     for(size_t i = 0; i < node->value.var.value.count; i++) {
                         fprintf(file, "; index %zu expr\n", i);                         
+                        gen_dup(state, file);
                         gen_offset(state, file, data_type_s[node->value.var.type]*i);
                         gen_expr(state, file, node->value.var.value.data[i]);                                                                                            
                         gen_push(state, file, data_type_s[node->value.var.type]);

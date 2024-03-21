@@ -1,7 +1,7 @@
 #include "frontend.h"
 
 char *token_types[TT_COUNT] = {"none", "write", "exit", "builtin", "ident", 
-                               ":", "(", ")", "[", "]", "{", "}", ",", "=", "==", "!=", ">=", "<=", ">", "<", "+", "-", "*", "/", "%",
+                               ":", "(", ")", "[", "]", "{", "}", ",", ".", "=", "==", "!=", ">=", "<=", ">", "<", "+", "-", "*", "/", "%",
                                "string", "char", "integer", "float", "struct", "void", "type", "if", "else", "while", "then", 
                                "return", "end"};
     
@@ -229,6 +229,10 @@ Token_Arr lex(char *filename, String_View view) {
                 break;
             case ',':
                 token.type = TT_COMMA;
+                DA_APPEND(&tokens, token);                                                    
+                break;
+            case '.':
+                token.type = TT_DOT;
                 DA_APPEND(&tokens, token);                                                    
                 break;
             case '\n':
@@ -543,6 +547,14 @@ Expr *parse_primary(Token_Arr *tokens) {
                 if(token_consume(tokens).type != TT_C_BRACKET) {
                     PRINT_ERROR(tokens->data[0].loc, "expected `]` but found `%s`\n", token_types[tokens->data[0].type]);
                 }            
+            } else if(token_peek(tokens, 0).type == TT_DOT) {
+                *expr = (Expr){
+                    .type = EXPR_FIELD,
+                    .value.field.structure = token.value.ident,
+                };
+                token_consume(tokens); // dot
+                token = token_consume(tokens); // field name
+                expr->value.field.var_name = token.value.ident;
             } else {
                 *expr = (Expr){
                     .type = EXPR_VAR,
@@ -873,6 +885,7 @@ Program parse(Token_Arr tokens, Blocks *block_stack) {
             case TT_O_CURLY:
             case TT_C_CURLY:
             case TT_COMMA:
+            case TT_DOT:
             case TT_GREATER_EQ:
             case TT_LESS_EQ:
             case TT_GREATER:
@@ -885,6 +898,8 @@ Program parse(Token_Arr tokens, Blocks *block_stack) {
             case TT_NONE:
             case TT_COUNT:
                 PRINT_ERROR(tokens.data[0].loc, "unexpected token: %s", token_types[tokens.data[0].type]);
+            default:
+                ASSERT(false, "invalid token detected, something went wrong in the parsing...");
         }
     }
     Program program = {0};
