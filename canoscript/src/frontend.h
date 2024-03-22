@@ -85,12 +85,13 @@ void expect_token(Token_Arr *tokens, Token_Type type);
 Node *create_node(Node_Type type);
 Precedence op_get_prec(Token_Type type);
 Operator create_operator(Token_Type type);
-Expr *parse_expr(Token_Arr *tokens);
-Expr *parse_primary(Token_Arr *tokens);
-Expr *parse_expr_1(Token_Arr *tokens, Expr *lhs, Precedence min_precedence);
-Expr *parse_expr(Token_Arr *tokens);
-Node parse_native_node(Token_Arr *tokens, int native_value);
+Expr *parse_expr(Token_Arr *tokens, Nodes *structs);
+Expr *parse_primary(Token_Arr *tokens, Nodes *structs);
+Expr *parse_expr_1(Token_Arr *tokens, Expr *lhs, Precedence min_precedence, Nodes *structs);
+Node parse_native_node(Token_Arr *tokens, int native_value, Nodes *structs);
 Node parse_var_dec(Token_Arr *tokens, Nodes *structs);
 Program parse(Token_Arr tokens, Blocks *block_stack);
+Struct get_structure(Location loc, Nodes *structs, String_View name);
+bool is_field(Struct *structure, String_View field);
 
 #endif // FRONTEND_H

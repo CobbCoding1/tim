@@ -266,7 +266,8 @@ void gen_struct_field_offset(Program_State *state, FILE *file, String_View struc
     Struct structure = get_struct(state->structs, struct_var.struct_name).value.structs;
     size_t offset = 0;
     size_t i;
-    for(i = 0; i < structure.values.count && !view_cmp(structure.values.data[i].value.var.name, var); i++) {
+    for(i = 0; !view_cmp(structure.values.data[i].value.var.name, var); i++) {
+        if(i == structure.values.count) PRINT_ERROR((Location){0}, "unknown field: "View_Print" of struct: "View_Print, View_Arg(var), View_Arg(struct_name));
         offset += (1 * data_type_s[structure.values.data[i].value.var.type]);
     }
     gen_indup(state, file, state->stack_s-struct_var.stack_pos);
@@ -405,9 +406,6 @@ void gen_program(Program_State *state, Nodes nodes, Nodes structs, FILE *file) {
                     }
                 } else if(node->value.var.is_struct) {
                     Node cur_struct = get_struct(structs, node->value.var.struct_name);
-                    if(cur_struct.value.structs.values.count != node->value.var.struct_value.count) {
-                        PRINT_ERROR(node->loc, "struct value count does not match\n");
-                    }
                     size_t alloc_s = 0;
                     for(size_t i = 0; i < cur_struct.value.structs.values.count; i++) {
                         alloc_s += data_type_s[cur_struct.value.structs.values.data[i].value.var.type];
