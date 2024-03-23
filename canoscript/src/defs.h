@@ -243,12 +243,14 @@ typedef enum {
 typedef struct {
     String_View name;
     String_View struct_name;
+	String_View function;	
     Args struct_value;
     Type_Type type;
     Exprs value;
     size_t stack_pos;
     bool is_array;
     bool is_struct;
+	bool global;	
     Expr *array_s;
 } Variable;
     

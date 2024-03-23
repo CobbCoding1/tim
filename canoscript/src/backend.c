@@ -194,10 +194,30 @@ Function *get_func(Functions functions, String_View name) {
     }
     return false;
 }
+	
+bool is_func_arg(Program_State *state, String_View name) {
+	if(state->functions.count == 0) return false;
+	size_t index = state->functions.count-1;
+	for(size_t i = 0; i < state->functions.data[index].args.count; i++) {
+		if(view_cmp(name, state->functions.data[index].args.data[i].value.var.name)) return true;
+	}
+	return false;
+}
+	
+
+bool is_current_func(Program_State *state, String_View func) {
+	if(state->functions.count == 0) return false;
+	if(view_cmp(func, state->functions.data[state->functions.count-1].name)) return true;
+	return false;
+	
+}
 
 int get_variable_location(Program_State *state, String_View name) {
     for(size_t i = 0; i < state->vars.count; i++) {
-        if(view_cmp(state->vars.data[i].name, name)) {
+        if(view_cmp(state->vars.data[i].name, name) && (state->vars.data[i].global || 
+			is_func_arg(state, name) || true ||
+			is_current_func(state, state->vars.data[i].function)
+			)) {
             return state->vars.data[i].stack_pos;
         }
     }
@@ -479,12 +499,11 @@ void gen_program(Program_State *state, Nodes nodes, Nodes structs, FILE *file) {
                 DA_APPEND(&state->ret_stack, state->stack_s);                
                 DA_APPEND(&state->scope_stack, state->stack_s);                
                 for(size_t i = 0; i < function.args.count; i++) {
-                    // TODO: does not push the proper stack size when using str literals
                     Variable var = {0};
-                    var.stack_pos = ++state->stack_s;
+                    //var.stack_pos = ++state->stack_s;
                     var.name = function.args.data[i].value.var.name;
                     var.type = function.args.data[i].value.var.type;
-                    DA_APPEND(&state->vars, var);    
+                    //DA_APPEND(&state->vars, var);    
                 }
                 gen_jmp(file, node->value.func_dec.label);                                
                 gen_func_label(file, function.name);

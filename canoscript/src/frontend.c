@@ -676,6 +676,13 @@ bool is_field(Struct *structure, String_View field) {
     }
     return false;
 }
+	
+bool is_in_function(Blocks *blocks) {
+	for(size_t i = 0; i < blocks->count; i++) {
+		if(blocks->data[i].type == BLOCK_FUNC) return true;			
+	}	
+	return false;
+}
     
 Program parse(Token_Arr tokens, Blocks *block_stack) {
     // TODO: initialize the Program struct at the top of func
@@ -702,6 +709,11 @@ Program parse(Token_Arr tokens, Blocks *block_stack) {
                     node = parse_var_dec(&tokens, &structs);
                     expect_token(&tokens, TT_EQ);                
                     token_consume(&tokens);
+					if(block_stack->count == 0) node.value.var.global = 1;
+					if(is_in_function(block_stack)) {
+						ASSERT(functions.count > 0, "Block stack got messed up frfr");
+						node.value.var.function = functions.data[functions.count-1].name;							
+					}
                     if(node.value.var.is_array && node.value.var.type != TYPE_STR) {
                         if(token_consume(&tokens).type != TT_O_BRACKET) {
                             PRINT_ERROR(tokens.data[0].loc, "expected `[` but found `%s`\n", token_types[tokens.data[0].type]);
@@ -796,8 +808,17 @@ Program parse(Token_Arr tokens, Blocks *block_stack) {
                         token_consume(&tokens);                        
                         while(tokens.count > 0 && token_consume(&tokens).type != TT_C_PAREN && i > 2) {
                             Node arg = parse_var_dec(&tokens, &structs);
+							Expr *expr = malloc(sizeof(Expr));
+							*expr = (Expr) {
+				                .type = EXPR_INT,
+				                .value.integer = token.value.integer,
+				                .loc = token.loc
+							};
+							DA_APPEND(&arg.value.var.value, expr);
+							arg.value.var.function = node.value.func_dec.name;
                             DA_APPEND(&node.value.func_dec.args, arg);
                             DA_APPEND(&function.args, arg);								
+							DA_APPEND(&vars, arg);
                             token_consume(&tokens);
                         }
                         token_consume(&tokens);
