@@ -553,8 +553,6 @@ Expr *parse_primary(Token_Arr *tokens, Nodes *structs) {
                 token_consume(tokens); // dot
                 token = token_consume(tokens); // field name
                 expr->value.field.var_name = token.value.ident;
-                //Struct structure = get_structure(token.loc, structs, expr->value.field.structure);
-                //if(!is_field(&structure, token.value.ident)) PRINT_ERROR(token.loc, "unexpected field: "View_Print, View_Arg(token.value.ident));
             } else {
                 *expr = (Expr){
                     .type = EXPR_VAR,
@@ -596,7 +594,6 @@ Expr *parse_expr_1(Token_Arr *tokens, Expr *lhs, Precedence min_precedence, Node
     }
     return lhs;
 }
-    
 Expr *parse_expr(Token_Arr *tokens, Nodes *structs) {
     return parse_expr_1(tokens, parse_primary(tokens, structs), 1, structs);
 }
@@ -683,8 +680,9 @@ bool is_field(Struct *structure, String_View field) {
 Program parse(Token_Arr tokens, Blocks *block_stack) {
     // TODO: initialize the Program struct at the top of func
     Nodes root = {0};
-    Nodes functions = {0};
+    Functions functions = {0};
     Nodes structs = {0};
+	Nodes vars = {0};
     size_t cur_label = 0;
     Size_Stack labels = {0};
     while(tokens.count > 0) {
@@ -739,6 +737,8 @@ Program parse(Token_Arr tokens, Blocks *block_stack) {
                         DA_APPEND(&node.value.var.value, parse_expr(&tokens, &structs));    
                         expr_type_check(node.loc, node.value.var.value.data[node.value.var.value.count-1]);
                     }
+					DA_APPEND(&vars, node);
+					break;
                 } else if(token.type == TT_EQ) {
                     node.type = TYPE_VAR_REASSIGN;
                     Token name_t = token_consume(&tokens);
@@ -787,21 +787,26 @@ Program parse(Token_Arr tokens, Blocks *block_stack) {
                     Token token = token_peek(&tokens, i+1);
                     if(token.type == TT_COLON) {
                         // function dec
+						Function function = {0};
                         node.type = TYPE_FUNC_DEC;
                         node.value.func_dec.name = tokens.data[0].value.ident;                                        
+						function.name = node.value.func_dec.name;
                         Block block = {.type = BLOCK_FUNC, .value = node.value.func_dec.name};
                         DA_APPEND(block_stack, block);                        
                         token_consume(&tokens);                        
                         while(tokens.count > 0 && token_consume(&tokens).type != TT_C_PAREN && i > 2) {
                             Node arg = parse_var_dec(&tokens, &structs);
                             DA_APPEND(&node.value.func_dec.args, arg);
+                            DA_APPEND(&function.args, arg);								
                             token_consume(&tokens);
                         }
                         token_consume(&tokens);
                         if(i == 2) token_consume(&tokens);
                         node.value.func_dec.type = tokens.data[0].value.type;
+						function.type = node.value.func_dec.type;
                         token_consume(&tokens);                                                                        
                         node.value.func_dec.label = cur_label;
+						DA_APPEND(&functions, function);
                         DA_APPEND(&labels, cur_label++);
                     } else {
                         // function call
@@ -938,5 +943,6 @@ Program parse(Token_Arr tokens, Blocks *block_stack) {
     program.nodes = root;
     program.functions = functions;
     program.structs = structs;
+	program.vars = vars;
     return program;
 }

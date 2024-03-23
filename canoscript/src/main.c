@@ -23,6 +23,7 @@ int main(int argc, char *argv[]) {
     //print_token_arr(tokens);
     Program program = parse(tokens, &block_stack);
     Program_State state = {0};
+	state.program = program;
     state.structs = program.structs;
     generate(&state, &program, filename);
 }

@@ -257,18 +257,18 @@ typedef struct {
     Nodes args;
     Type_Type type;
 } Function;
+	
+typedef struct {
+	Function *data;
+	size_t count;
+	size_t capacity;
+} Functions;
     
 typedef struct {
     String_View name;
     Nodes values;
 } Struct;
 
-typedef struct {
-    Function *data;
-    size_t count;
-    size_t capacity;
-} Functions;
-    
 typedef struct {
     Variable *data;
     size_t count;
@@ -344,8 +344,9 @@ typedef struct {
     
 typedef struct {
     Nodes nodes;  
-    Nodes functions;
+    Functions functions;
     Nodes structs;
+	Nodes vars;
 } Program;
 
 void *custom_realloc(void *ptr, size_t size);
