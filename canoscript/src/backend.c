@@ -60,14 +60,36 @@ void gen_push_str(Program_State *state, FILE *file, String_View value) {
     fprintf(file, "push_str \""View_Print"\"\n", View_Arg(value));
     state->stack_s += 1;
 }
-    
-void gen_indup(Program_State *state, FILE *file, size_t value) {
-    fprintf(file, "indup %zu\n", value);
-    state->stack_s++;
+
+void gen_ss(Program_State *state, FILE *file) {
+	fprintf(file, "ss\n");
+	state->stack_s++;
 }
     
-void gen_inswap(FILE *file, size_t value) {
-    fprintf(file, "inswap %zu\n", value);
+void gen_indup(Program_State *state, FILE *file, size_t value) {
+	gen_push(state, file, value);
+    fprintf(file, "indup\n");
+}
+	
+void gen_global_indup(Program_State *state, FILE *file, size_t value) {
+	gen_ss(state, file);
+	gen_push(state, file, value);
+	gen_sub(state, file);
+    fprintf(file, "indup\n");
+}
+	
+void gen_inswap(Program_State *state, FILE *file, size_t value) {
+	gen_push(state, file, value);
+    fprintf(file, "inswap\n");
+	state->stack_s--;
+}
+	
+void gen_global_inswap(Program_State *state, FILE *file, size_t value) {
+	gen_ss(state, file);
+	gen_push(state, file, value);
+	gen_sub(state, file);
+    fprintf(file, "inswap\n");
+	state->stack_s--;
 }
     
 void gen_zjmp(Program_State *state, FILE *file, size_t label) {
@@ -320,7 +342,8 @@ void gen_expr(Program_State *state, FILE *file, Expr *expr) {
             if(index == -1) {
                 PRINT_ERROR(expr->loc, "variable `"View_Print"` referenced before assignment", View_Arg(expr->value.variable));
             }
-            gen_indup(state, file, state->stack_s-index); 
+			if(get_variable(state, expr->value.variable).global) gen_global_indup(state, file, index);
+            else gen_indup(state, file, state->stack_s-index); 
         } break;
         case EXPR_FUNCALL: {
             Function *function = get_func(state->program.functions, expr->value.func_call.name);
@@ -412,6 +435,7 @@ void gen_vars(Program_State *state, Program *program, FILE *file) {
                     gen_expr(state, file, node->value.var.value.data[0]);                                    
                 }
                 node->value.var.stack_pos = state->stack_s;                 
+				node->value.var.global = true;
                 DA_APPEND(&state->vars, node->value.var);    
             } break;
 			default: {
@@ -420,7 +444,7 @@ void gen_vars(Program_State *state, Program *program, FILE *file) {
 		}
 	}
 }
-    
+
 void gen_program(Program_State *state, Nodes nodes, Nodes structs, FILE *file) {
     for(size_t i = 0; i < nodes.count; i++) {
         Node *node = &nodes.data[i];
@@ -454,7 +478,34 @@ void gen_program(Program_State *state, Nodes nodes, Nodes structs, FILE *file) {
                 }
                 break;
             case TYPE_VAR_DEC: {
-				ASSERT(false, "unexpected variable declataion");
+                fprintf(file, "; var declaration\n");                                                        
+                if(node->value.var.is_array && node->value.var.type != TYPE_STR) {
+                    fprintf(file, "; array allocation\n"); 
+                    gen_alloc(state, file, node->value.var.array_s, data_type_s[node->value.var.type]);
+                    for(size_t i = 0; i < node->value.var.value.count; i++) {
+                        fprintf(file, "; index %zu expr\n", i);                         
+                        gen_dup(state, file);
+                        gen_offset(state, file, data_type_s[node->value.var.type]*i);
+                        gen_expr(state, file, node->value.var.value.data[i]);                                                                                            
+                        gen_push(state, file, data_type_s[node->value.var.type]);
+                        gen_write(state, file);
+                    }
+                } else if(node->value.var.is_struct) {
+                    Node cur_struct = get_struct(state->structs, node->value.var.struct_name);
+                    size_t alloc_s = 0;
+                    for(size_t i = 0; i < cur_struct.value.structs.values.count; i++) {
+                        alloc_s += data_type_s[cur_struct.value.structs.values.data[i].value.var.type];
+                    }
+                    gen_struct_alloc(state, file, alloc_s);
+                    for(size_t i = 0; i < cur_struct.value.structs.values.count; i++) {
+                        gen_struct_value(state, file, i, &cur_struct.value.structs.values.data[i], node);
+                    }
+                } else {
+                    fprintf(file, "; expr\n");                                                            
+                    gen_expr(state, file, node->value.var.value.data[0]);                                    
+                }
+                node->value.var.stack_pos = state->stack_s;                 
+                DA_APPEND(&state->vars, node->value.var);    
             } break;
             case TYPE_VAR_REASSIGN: {
                 fprintf(file, "; var reassign\n");                                            
@@ -464,7 +515,8 @@ void gen_program(Program_State *state, Nodes nodes, Nodes structs, FILE *file) {
                 if(index == -1) {
                     PRINT_ERROR(node->loc, "variable `"View_Print"` referenced before assignment", View_Arg(node->value.var.name));
                 }
-                gen_inswap(file, state->stack_s-index);    
+				if(get_variable(state, node->value.var.name).global) gen_global_inswap(state, file, index);
+                else gen_inswap(state, file, state->stack_s-index);    
             } break;
             case TYPE_FIELD_REASSIGN: {
                 fprintf(file, "; field reassign\n");                                            
@@ -473,7 +525,7 @@ void gen_program(Program_State *state, Nodes nodes, Nodes structs, FILE *file) {
                 String_View var_name = node->value.field.var_name;
                 gen_struct_field_offset(state, file, structure, var_name);
                 gen_expr(state, file, node->value.field.value.data[0]);
-                gen_inswap(file, 1);
+                gen_inswap(state, file, 1);
                 gen_write(state, file);
             } break;
             case TYPE_ARR_INDEX: {
@@ -500,10 +552,10 @@ void gen_program(Program_State *state, Nodes nodes, Nodes structs, FILE *file) {
                 DA_APPEND(&state->scope_stack, state->stack_s);                
                 for(size_t i = 0; i < function.args.count; i++) {
                     Variable var = {0};
-                    //var.stack_pos = ++state->stack_s;
+                    var.stack_pos = ++state->stack_s;
                     var.name = function.args.data[i].value.var.name;
                     var.type = function.args.data[i].value.var.type;
-                    //DA_APPEND(&state->vars, var);    
+                    DA_APPEND(&state->vars, var);    
                 }
                 gen_jmp(file, node->value.func_dec.label);                                
                 gen_func_label(file, function.name);
@@ -536,8 +588,7 @@ void gen_program(Program_State *state, Nodes nodes, Nodes structs, FILE *file) {
                 size_t pos = state->ret_stack.data[state->ret_stack.count-1] + 1;
                 gen_expr(state, file, node->value.expr);
                 ASSERT(pos <= state->stack_s, "pos is too great");
-                // TODO: need to inswap with the arr and str capacity in those cases as well
-                gen_inswap(file, state->stack_s-pos);
+                gen_inswap(state, file, state->stack_s-pos);
                 size_t pre_stack_s = state->stack_s;
                 ret_scope_end(state, file);
                 state->stack_s = pre_stack_s;

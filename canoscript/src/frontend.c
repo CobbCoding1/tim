@@ -710,10 +710,6 @@ Program parse(Token_Arr tokens, Blocks *block_stack) {
                     expect_token(&tokens, TT_EQ);                
                     token_consume(&tokens);
 					if(block_stack->count == 0) node.value.var.global = 1;
-					if(is_in_function(block_stack)) {
-						ASSERT(functions.count > 0, "Block stack got messed up frfr");
-						node.value.var.function = functions.data[functions.count-1].name;							
-					}
                     if(node.value.var.is_array && node.value.var.type != TYPE_STR) {
                         if(token_consume(&tokens).type != TT_O_BRACKET) {
                             PRINT_ERROR(tokens.data[0].loc, "expected `[` but found `%s`\n", token_types[tokens.data[0].type]);
@@ -749,7 +745,13 @@ Program parse(Token_Arr tokens, Blocks *block_stack) {
                         DA_APPEND(&node.value.var.value, parse_expr(&tokens, &structs));    
                         expr_type_check(node.loc, node.value.var.value.data[node.value.var.value.count-1]);
                     }
-					DA_APPEND(&vars, node);
+					if(is_in_function(block_stack)) {
+						ASSERT(functions.count > 0, "Block stack got messed up frfr");
+						node.value.var.function = functions.data[functions.count-1].name;							
+						DA_APPEND(&root, node);
+					} else {
+						DA_APPEND(&vars, node);							
+					}
 					break;
                 } else if(token.type == TT_EQ) {
                     node.type = TYPE_VAR_REASSIGN;
@@ -808,17 +810,9 @@ Program parse(Token_Arr tokens, Blocks *block_stack) {
                         token_consume(&tokens);                        
                         while(tokens.count > 0 && token_consume(&tokens).type != TT_C_PAREN && i > 2) {
                             Node arg = parse_var_dec(&tokens, &structs);
-							Expr *expr = malloc(sizeof(Expr));
-							*expr = (Expr) {
-				                .type = EXPR_INT,
-				                .value.integer = token.value.integer,
-				                .loc = token.loc
-							};
-							DA_APPEND(&arg.value.var.value, expr);
 							arg.value.var.function = node.value.func_dec.name;
                             DA_APPEND(&node.value.func_dec.args, arg);
                             DA_APPEND(&function.args, arg);								
-							DA_APPEND(&vars, arg);
                             token_consume(&tokens);
                         }
                         token_consume(&tokens);

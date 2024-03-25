@@ -21,7 +21,7 @@ void gen_push(Program_State *state, FILE *file, int value);
 void gen_pop(Program_State *state, FILE *file);
 void gen_push_str(Program_State *state, FILE *file, String_View value);
 void gen_indup(Program_State *state, FILE *file, size_t value);
-void gen_inswap(FILE *file, size_t value);
+void gen_inswap(Program_State *state, FILE *file, size_t value);
 void gen_zjmp(Program_State *state, FILE *file, size_t label);
 void gen_jmp(FILE *file, size_t label);
 void gen_while_jmp(FILE *file, size_t label);
