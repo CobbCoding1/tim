@@ -199,10 +199,6 @@ Token_Arr lex(char *filename, String_View view) {
                 token.type = TT_COLON;
                 DA_APPEND(&tokens, token);                                                    
                 break;
-            case '=':
-                token.type = TT_EQ;
-                DA_APPEND(&tokens, token);                                                    
-                break;
             case '(':
                 token.type = TT_O_PAREN;
                 DA_APPEND(&tokens, token);                                                    
@@ -323,6 +319,9 @@ Token_Arr lex(char *filename, String_View view) {
                     DA_APPEND(&tokens, token);                        
                 } else if(is_operator(view)) {
                     token = create_operator_token(filename, row, view.data-start, &view);
+                    DA_APPEND(&tokens, token);                                        
+				} else if(*view.data == '=') {
+                    token.type = TT_EQ;
                     DA_APPEND(&tokens, token);                                        
                 } else if(isspace(*view.data)) {
                     view = view_chop_left(view);                   
