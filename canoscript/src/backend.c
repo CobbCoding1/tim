@@ -445,7 +445,7 @@ void gen_vars(Program_State *state, Program *program, FILE *file) {
 	}
 }
 
-void gen_program(Program_State *state, Nodes nodes, Nodes structs, FILE *file) {
+void gen_program(Program_State *state, Nodes nodes, FILE *file) {
     for(size_t i = 0; i < nodes.count; i++) {
         Node *node = &nodes.data[i];
         switch(node->type) {
@@ -654,5 +654,5 @@ void generate(Program_State *state, Program *program, char *filename) {
     char *output = append_tasm_ext(filename);
     FILE *file = fopen(output, "w");
 	gen_vars(state, program, file);
-    gen_program(state, program->nodes, program->structs, file);
+    gen_program(state, program->nodes, file);
 }
