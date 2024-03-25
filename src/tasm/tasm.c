@@ -62,8 +62,8 @@ Inst *generate_instructions(ParseList *head, int *program_size, String_View str_
         instruction->type = insts[head->value.type];
         if(
                 head->value.type == TYPE_CALL || head->value.type == TYPE_NATIVE || head->value.type == TYPE_GET_STR || 
-                head->value.type == TYPE_INDUP || head->value.type == TYPE_INDUP_STR || 
-                head->value.type == TYPE_INSWAP || head->value.type == TYPE_INSWAP_STR || 
+                head->value.type == TYPE_INDUP_STR || 
+                head->value.type == TYPE_INSWAP_STR || 
                 head->value.type == TYPE_JMP || head->value.type == TYPE_ZJMP || 
                 head->value.type == TYPE_NZJMP
         ){

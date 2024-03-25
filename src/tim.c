@@ -542,9 +542,13 @@ void run_instructions(Machine *machine){
                 assert(false && "UNSUED");
                 break;
             }
-            case INST_INDUP:
-                index_dup(machine, machine->stack_size-machine->instructions[ip].value.as_int-1);
-                break;
+            case INST_INDUP: {
+				Data index = pop(machine);
+				if(index.type != INT_TYPE) {
+					PRINT_ERROR("error: expected int");
+				}
+                index_dup(machine, machine->stack_size-index.word.as_int-1);
+            } break;
             case INST_INDUP_STR:
                 assert(false && "UNUSED");
                 break;
@@ -557,9 +561,13 @@ void run_instructions(Machine *machine){
                 assert(false && "UNSUED");
                 break;
             }
-            case INST_INSWAP:
-                index_swap(machine, machine->stack_size-machine->instructions[ip].value.as_int-1);
-                break;
+            case INST_INSWAP: {
+				Data index = pop(machine);
+				if(index.type != INT_TYPE) {
+					PRINT_ERROR("error: expected int");
+				}
+                index_swap(machine, machine->stack_size-index.word.as_int-1);
+            } break;
             case INST_INSWAP_STR:
                 assert(false && "UNUSED");
                 break;
