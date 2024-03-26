@@ -1,0 +1,87 @@
+data_s: int = 32
+data: int[data_s] = [0]
+data[data_s-1] = 1
+	
+iter: int = 0
+
+struct Pattern {
+	value: int,
+	pattern: str,
+}
+
+strcmp(a: str, b: str): int
+    i: int = 0
+    while a[i] == b[i] then
+        if a[i] == '\0' then
+            return 1
+        end
+        i = i + 1
+    end
+    return 0
+end
+
+print_state(): void
+	i: int = 0
+	write "|"
+	while i < data_s then
+		if(data[i] == 0) then
+			write " "
+		else
+			write "*"
+		end
+		i = i + 1
+	end
+	write "|\n"
+end
+
+gen_next(): void
+	new: ptr = alloc data_s * 8
+	new_s: int = 0
+	i: int = 0
+	while i < data_s then
+		prev_in: int = (i - 1 + data_s) % data_s
+		cur_in: int = (i + 0 + data_s) % data_s
+		next_in: int = (i + 1 + data_s) % data_s
+		cur: str = alloc 4
+		cur[0] = data[prev_in] + '0'
+		cur[1] = data[cur_in] + '0'
+		cur[2] = data[next_in] + '0'
+	
+		if(strcmp("111", cur)) then
+			new[new_s] = 0
+		end
+		if(strcmp("110", cur)) then
+			new[new_s] = 1
+		end
+		if(strcmp("101", cur)) then
+			new[new_s] = 1
+		end
+		if(strcmp("100", cur)) then
+			new[new_s] = 0
+		end
+		if(strcmp("011", cur)) then
+			new[new_s] = 1
+		end
+		if(strcmp("010", cur)) then
+			new[new_s] = 1
+		end
+		if(strcmp("001", cur)) then
+			new[new_s] = 1
+		end
+		if(strcmp("000", cur)) then
+			new[new_s] = 0
+		end
+		
+		i = i + 1
+		new_s = new_s + 1
+	end
+	dealloc data
+	data = new
+end
+
+
+while iter < data_s then
+	print_state()
+	gen_next()
+	iter = iter + 1
+end
