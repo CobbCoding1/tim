@@ -1,7 +1,7 @@
 #ifndef LEXER_H
 #define LEXER_H
 
-#define MAX_TOKEN_STACK_SIZE 1024
+#define MAX_TOKEN_STACK_SIZE 2048
 
 #include <stdio.h>
 #include <stdlib.h>
