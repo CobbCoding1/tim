@@ -885,8 +885,8 @@ Program parse(Token_Arr tokens, Blocks *block_stack) {
             case TT_ELSE: {
                 node.type = TYPE_ELSE;
                 token_consume(&tokens);
-                DA_APPEND(block_stack, (Block){.type=BLOCK_ELSE});                                                
-                if(labels.count == 0 || block_stack->count == 0) PRINT_ERROR(node.loc, "`else` statement without prior `if`");
+                if(labels.count == 0 || block_stack->count == 0 || block_stack->data[block_stack->count-1].type != BLOCK_IF) PRINT_ERROR(node.loc, "`else` statement without prior `if`");
+                DA_APPEND(block_stack, (Block){.type=BLOCK_ELSE});                                                						
 				block_stack->count--;
                 node.value.el.label1 = labels.data[--labels.count];                
                 node.value.el.label2 = cur_label;
