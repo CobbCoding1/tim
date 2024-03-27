@@ -548,9 +548,7 @@ void gen_program(Program_State *state, Nodes nodes, FILE *file) {
             } break;
             case TYPE_FUNC_CALL: {
                 Function *function = get_func(state->program.functions, node->value.func_call.name);
-                if(!function) { 
-                    PRINT_ERROR(node->loc, "function `"View_Print"` referenced before assignment\n", View_Arg(node->value.func_call.name));
-                }
+                if(!function) PRINT_ERROR(node->loc, "function `"View_Print"` referenced before assignment\n", View_Arg(node->value.func_call.name));
                 if(function->args.count != node->value.func_call.args.count) {
                     PRINT_ERROR(node->loc, "args count do not match for function `"View_Print"`\n", View_Arg(function->name));
                 }
@@ -571,6 +569,7 @@ void gen_program(Program_State *state, Nodes nodes, FILE *file) {
                 if(function.type == TYPE_VOID) {
                     PRINT_ERROR(node->loc, "function `"View_Print"` with return type of void returns value", View_Arg(function.name));    
                 }
+				// + 1 because we need to place it on the top of the stack after scope_end
                 size_t pos = state->ret_stack.data[state->ret_stack.count-1] + 1;
                 gen_expr(state, file, node->value.expr);
                 ASSERT(pos <= state->stack_s, "pos is too great");
