@@ -81,7 +81,7 @@ void print_token_arr(Token_Arr arr);
 Token_Arr lex(char *filename, String_View view);
 Token token_consume(Token_Arr *tokens);
 Token token_peek(Token_Arr *tokens, size_t peek_by);
-void expect_token(Token_Arr *tokens, Token_Type type);
+Token expect_token(Token_Arr *tokens, Token_Type type);
 Node *create_node(Node_Type type);
 Precedence op_get_prec(Token_Type type);
 Operator create_operator(Token_Type type);
