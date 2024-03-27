@@ -186,6 +186,23 @@ void print_token_arr(Token_Arr arr) {
         printf("%zu:%zu: %s, "View_Print"\n", arr.data[i].loc.row, arr.data[i].loc.col, token_types[arr.data[i].type], View_Arg(arr.data[i].value.string));
     }
 }
+	
+Dynamic_Str generate_string(String_View *view, Token token, char delim) {
+    Dynamic_Str word = {0};
+    *view = view_chop_left(*view);
+    while(view->len > 0 && *view->data != delim) {
+	    if(view->len > 1 && *view->data == '\\') {
+		    DA_APPEND(&word, *view->data);                                        
+		    *view = view_chop_left(*view);
+		    if(!is_valid_escape(*view->data)) {
+			    PRINT_ERROR(token.loc, "unexpected escape character: `%c`", *view->data);
+		    }
+	    }
+	    DA_APPEND(&word, *(*view).data);
+	    *view = view_chop_left(*view);
+    }
+	return word;
+}
 
 Token_Arr lex(char *filename, String_View view) {
     size_t row = 1;
@@ -246,33 +263,17 @@ Token_Arr lex(char *filename, String_View view) {
                     }
                     view.data--;
                     view.len++;
-                    const char *data = word.data;
-                    String_View view = view_create(data, word.count);
+                    String_View view = view_create(word.data, word.count);
                     token.type = get_token_type(view);
                     token = handle_data_type(token, view);
                     token = token_get_builtin(token, view);
                     if(token.type == TT_NONE) {
                         token.type = TT_IDENT;
-                        char *ident = custom_realloc(NULL, sizeof(char)*word.count);
-                        strncpy(ident, word.data, word.count);
-                        token.value.ident = view_create(ident, word.count);
+                        token.value.ident = view;
                     };
                     DA_APPEND(&tokens, token);     
-                    free(word.data);
                 } else if(*view.data == '"') {
-                    Dynamic_Str word = {0};
-                    view = view_chop_left(view);
-                    while(view.len > 0 && *view.data != '"') {
-                        if(view.len > 1 && *view.data == '\\') {
-                            DA_APPEND(&word, *view.data);                                        
-                            view = view_chop_left(view);
-                            if(!is_valid_escape(*view.data)) {
-                                PRINT_ERROR(token.loc, "unexpected escape character: `%c`", *view.data);
-                            }
-                        }
-                        DA_APPEND(&word, *view.data);
-                        view = view_chop_left(view);
-                    }
+					Dynamic_Str word = generate_string(&view, token, '"');
                     if(view.len == 0 && *view.data != '"') {
                         PRINT_ERROR(token.loc, "expected closing `\"`");                            
                     };
@@ -280,19 +281,7 @@ Token_Arr lex(char *filename, String_View view) {
                     token.value.string = view_create(word.data, word.count);
                     DA_APPEND(&tokens, token);                                    
                 } else if(*view.data == '\'') {
-                    Dynamic_Str word = {0};
-                    view = view_chop_left(view);
-                    while(view.len > 0 && *view.data != '\'') {
-                        if(view.len > 1 && *view.data == '\\') {
-                            DA_APPEND(&word, *view.data);                                        
-                            view = view_chop_left(view);
-                            if(!is_valid_escape(*view.data)) {
-                                PRINT_ERROR(token.loc, "unexpected escape character: `%c`", *view.data);
-                            }
-                        }
-                        DA_APPEND(&word, *view.data);
-                        view = view_chop_left(view);
-                    }
+                    Dynamic_Str word = generate_string(&view, token, '\'');
                     if(word.count > 2) {
                         PRINT_ERROR(token.loc, "character cannot be made up of multiple characters");
                     }
@@ -327,7 +316,7 @@ Token_Arr lex(char *filename, String_View view) {
                     view = view_chop_left(view);                   
                     continue;
                 } else {
-                    PRINT_ERROR(token.loc, "unexpected token");
+                    PRINT_ERROR(token.loc, "unexpected token `%c`", *view.data);
                 }
             }
         }
