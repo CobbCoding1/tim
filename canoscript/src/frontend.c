@@ -886,7 +886,8 @@ Program parse(Token_Arr tokens, Blocks *block_stack) {
                 node.type = TYPE_ELSE;
                 token_consume(&tokens);
                 DA_APPEND(block_stack, (Block){.type=BLOCK_ELSE});                                                
-                if(labels.count == 0) PRINT_ERROR(node.loc, "`else` statement without prior `if`");
+                if(labels.count == 0 || block_stack->count == 0) PRINT_ERROR(node.loc, "`else` statement without prior `if`");
+				block_stack->count--;
                 node.value.el.label1 = labels.data[--labels.count];                
                 node.value.el.label2 = cur_label;
                 DA_APPEND(&labels, cur_label++);
@@ -910,7 +911,8 @@ Program parse(Token_Arr tokens, Blocks *block_stack) {
             case TT_END: {
                 node.type = TYPE_END;
                 token_consume(&tokens);                                
-                if(labels.count == 0) PRINT_ERROR(node.loc, "`end` without an opening block");
+                if(labels.count == 0 || block_stack->count == 0) PRINT_ERROR(node.loc, "`end` without an opening block");
+				--block_stack->count;
                 node.value.label.num = labels.data[--labels.count];   
                 DA_APPEND(&root, node);                
             } break;

@@ -408,7 +408,7 @@ void gen_vars(Program_State *state, Program *program, FILE *file) {
 		Node *node = &program->vars.data[i];
 		switch(node->type) {
             case TYPE_VAR_DEC: {
-                fprintf(file, "; var declaration\n");                                                        
+                fprintf(file, "; var declaration "View_Print"\n", View_Arg(node->value.var.name));                                                        
                 if(node->value.var.is_array && node->value.var.type != TYPE_STR) {
                     fprintf(file, "; array allocation\n"); 
                     gen_alloc(state, file, node->value.var.array_s, data_type_s[node->value.var.type]);
@@ -478,7 +478,7 @@ void gen_program(Program_State *state, Nodes nodes, FILE *file) {
                 }
                 break;
             case TYPE_VAR_DEC: {
-                fprintf(file, "; var declaration\n");                                                        
+                fprintf(file, "; var declaration "View_Print"\n", View_Arg(node->value.var.name));                                                        
                 if(node->value.var.is_array && node->value.var.type != TYPE_STR) {
                     fprintf(file, "; array allocation\n"); 
                     gen_alloc(state, file, node->value.var.array_s, data_type_s[node->value.var.type]);
