@@ -155,8 +155,6 @@ void gen_read(Program_State *state, FILE *file) {
 }
     
 void gen_arr_offset(Program_State *state, FILE *file, size_t var_index, Expr *arr_index, Type_Type type) {
-    // i dont remember why this was here
-    //ASSERT(var_index > 1, "stack was corrupted");
     fprintf(file, "; offset\n");                                                                                
     gen_indup(state, file, state->stack_s-var_index);    
     gen_expr(state, file, arr_index);
@@ -168,7 +166,6 @@ void gen_arr_offset(Program_State *state, FILE *file, size_t var_index, Expr *ar
 
 void gen_struct_offset(Program_State *state, FILE *file, Type_Type type, size_t offset) {
     fprintf(file, "; offset\n");                                                                                
- //   gen_indup(state, file, state->stack_s-var_index);    
     gen_dup(state, file);
     gen_push(state, file, offset);
     gen_push(state, file, data_type_s[type]);            
@@ -256,36 +253,28 @@ Variable get_variable(Program_State *state, String_View name) {
 }
     
 Type_Type get_variable_type(Program_State *state, String_View name) {
-    for(size_t i = 0; i < state->vars.count; i++) {
-        if(view_cmp(state->vars.data[i].name, name)) {
-            return state->vars.data[i].type;
-        }
-    }
-    return -1;
+	return get_variable(state, name).type;
 }
     
 void gen_builtin(Program_State *state, FILE *file, Expr *expr) {
     ASSERT(expr->type == EXPR_BUILTIN, "type is incorrect");
+    for(size_t i = 0; i < expr->value.builtin.value.count; i++) {
+         gen_expr(state, file, expr->value.builtin.value.data[i]);
+    }
     switch(expr->value.builtin.type) {
         case BUILTIN_ALLOC: {
-            gen_expr(state, file, expr->value.builtin.value.data[0]);               
             fprintf(file, "alloc\n");
         } break;
         case BUILTIN_DEALLOC: {
-            gen_expr(state, file, expr->value.builtin.value.data[0]);               
             fprintf(file, "dealloc\n");
             state->stack_s--;
         } break;
         case BUILTIN_TOVP: {
-            gen_expr(state, file, expr->value.builtin.value.data[0]);               
             fprintf(file, "tovp\n");
         } break;
         case BUILTIN_STORE: {
             if(expr->value.builtin.value.count != 3) {
                 PRINT_ERROR(expr->loc, "incorrect arg amounts for store");
-            }
-            for(size_t i = 0; i < expr->value.builtin.value.count; i++) {
-                gen_expr(state, file, expr->value.builtin.value.data[i]);
             }
             fprintf(file, "write\n");
             state->stack_s -= 3;
@@ -293,9 +282,6 @@ void gen_builtin(Program_State *state, FILE *file, Expr *expr) {
         case BUILTIN_GET: {
             if(expr->value.builtin.value.count != 2) {
                 PRINT_ERROR(expr->loc, "incorrect arg amounts for get");
-            }
-            for(size_t i = 0; i < expr->value.builtin.value.count; i++) {
-                gen_expr(state, file, expr->value.builtin.value.data[i]);
             }
             fprintf(file, "read\n");
             state->stack_s -= 1;
