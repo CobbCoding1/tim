@@ -217,6 +217,7 @@ char *get_str_from_stack(Machine *machine);
 void print_stack(Machine *machine);
 void write_program_to_file(Machine *machine, char *file_path);
 Machine *read_program_from_file(Machine *machine, char *file_path);
+void machine_disasm(Machine *machine);
 void run_instructions(Machine *machine);
 
 

@@ -2,6 +2,126 @@
 
 char *str_types[] = {"int", "float", "char", "ptr", "reg", "top"};
 
+char *instructions[INST_COUNT] = {
+    "nop",
+    "push",
+    "push_ptr",
+    "push_str",
+    "get_str",
+    "mov",
+    "mov_str",
+    "ref",
+    "deref",
+    "alloc",
+    "dealloc",
+    "write",
+    "read",
+    "pop",
+    "pop_str",
+    "dup",
+    "dup_str",
+    "indup",
+    "indup_str",
+    "swap",
+    "swap_str",
+    "inswap",
+    "inswap_str",
+    "index",
+    "add",
+    "sub",
+    "mul",
+    "div",
+    "mod",
+    "add_f",
+    "sub_f",
+    "mul_f",
+    "div_f",
+    "mod_f",
+    "cmpe",
+    "cmpne",
+    "cmpg",
+    "cmpl",
+    "cmpge",
+    "cmple",
+    "itof",
+    "ftoi",
+    "itoc",
+    "toi",
+    "tof",
+    "toc",
+    "tovp",
+    "call",
+    "ret",
+    "jmp",
+    "zjmp",
+    "nzjmp",
+    "print",
+    "native",
+    "entrypoint",
+    "ss",
+    "halt",
+};
+
+bool has_operand[INST_COUNT] = {
+    false,
+    true,
+    false, // unused
+    true,
+    false, // unused
+    false, // unused
+    false, // unused
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false, // unsued
+    false,
+    false, // unused
+    false, // indup
+    false, // unused
+    false,
+    false, // unused
+    false, // inswap
+    false, // unused
+    false, // unused
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    true,
+    false,
+    true,
+    true,
+    true,
+    false,
+    true,
+    true,
+    false,
+    false,
+};
+
 void free_cell(Memory *cell) {
     free(cell->cell.data);    
     free(cell);
@@ -408,15 +528,101 @@ Machine *read_program_from_file(Machine *machine, char *file_path){
     machine->instructions = instructions;
 
     instructions = realloc(instructions, sizeof(Inst) * machine->program_size);
-
-    fclose(file);
+	
+	fclose(file);
     return machine;
+}
+	
+void machine_disasm(Machine *machine) {
+	for(size_t i = machine->entrypoint; i < machine->program_size; i++) {
+		printf("%s ", instructions[machine->instructions[i].type]);
+		if(has_operand[machine->instructions[i].type]) {
+			switch(machine->instructions[i].data_type) {
+				case INT_TYPE: {
+					uint64_t value = machine->instructions[i].value.as_int;				
+					if(machine->instructions[i].type == INST_PUSH_STR) {
+						String_View string = machine->str_stack[value];
+						putc('"', stdout);
+						for(size_t j = 0; j < string.len-1; j++) {
+							switch(string.data[j]) {
+								case '\n':
+									putc('\\', stdout);	
+									putc('n', stdout);
+									break;
+								case '\t':
+									putc('\\', stdout);	
+									putc('t', stdout);
+									break;
+								case '\v':
+									putc('\v', stdout);	
+									putc('n', stdout);
+									break;
+								case '\b':
+									putc('\b', stdout);	
+									putc('n', stdout);
+									break;
+								case '\r':
+									putc('\\', stdout);	
+									putc('r', stdout);
+									break;
+								case '\f':
+									putc('\\', stdout);	
+									putc('f', stdout);
+									break;
+								case '\a':
+									putc('\\', stdout);	
+									putc('a', stdout);
+									break;
+								case '\\':
+									putc('\\', stdout);	
+									putc('\\', stdout);
+									break;
+								case '\?':
+									putc('\\', stdout);	
+									putc('?', stdout);
+									break;
+								case '\'':
+									putc('\\', stdout);	
+									putc('\'', stdout);
+									break;
+								case '\"':
+									putc('\\', stdout);	
+									putc('"', stdout);
+									break;
+								case '\0':
+									putc('\\', stdout);	
+									putc('0', stdout);
+									break;
+								default:
+									putc(string.data[j], stdout);
+							}
+						}
+						putc('"', stdout);
+						break;
+					}
+					printf("%ld", value);				
+				} break;
+				case FLOAT_TYPE: {
+					printf("%f", machine->instructions[i].value.as_float);				
+				} break;
+				case CHAR_TYPE: {
+					printf("'%c'", machine->instructions[i].value.as_char);				
+				} break;				
+				case PTR_TYPE: {
+					printf("%p", machine->instructions[i].value.as_pointer);				
+				} break;
+				default:
+					assert(false && "UNReaCHABLE");
+			}
+		}
+		printf("\n");
+	}
 }
 
 void run_instructions(Machine *machine){
     Data a, b;
-    Word yes;
-    yes.as_int = 1;
+    Word yes; 
+	yes.as_int = 1;
     Word no;
     no.as_int = 0;
     for(size_t ip = machine->entrypoint; ip < machine->program_size; ip++){
