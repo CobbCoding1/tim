@@ -389,40 +389,45 @@ void ret_scope_end(Program_State *state, FILE *file) {
     }
 }
 	
+void gen_var_dec(Program_State *state, FILE *file, Node *node) {
+       fprintf(file, "; var declaration "View_Print"\n", View_Arg(node->value.var.name));                                                        
+       if(node->value.var.is_array && node->value.var.type != TYPE_STR) {
+           fprintf(file, "; array allocation\n"); 
+           gen_alloc(state, file, node->value.var.array_s, data_type_s[node->value.var.type]);
+           for(size_t i = 0; i < node->value.var.value.count; i++) {
+               fprintf(file, "; index %zu expr\n", i);                         
+               gen_dup(state, file);
+               gen_offset(state, file, data_type_s[node->value.var.type]*i);
+               gen_expr(state, file, node->value.var.value.data[i]);                                                                                            
+               gen_push(state, file, data_type_s[node->value.var.type]);
+               gen_write(state, file);
+           }
+       } else if(node->value.var.is_struct) {
+           fprintf(file, "; struct allocation\n"); 	
+           Node cur_struct = get_struct(state->structs, node->value.var.struct_name);
+           size_t alloc_s = 0;
+           for(size_t i = 0; i < cur_struct.value.structs.values.count; i++) {
+               alloc_s += data_type_s[cur_struct.value.structs.values.data[i].value.var.type];
+           }
+           gen_struct_alloc(state, file, alloc_s);
+           for(size_t i = 0; i < cur_struct.value.structs.values.count; i++) {
+               gen_struct_value(state, file, i, &cur_struct.value.structs.values.data[i], node);
+           }
+       } else {
+           fprintf(file, "; expr\n");                                                            
+           gen_expr(state, file, node->value.var.value.data[0]);                                    
+       }
+       node->value.var.stack_pos = state->stack_s;                 
+       DA_APPEND(&state->vars, node->value.var);    
+}
+	
 void gen_vars(Program_State *state, Program *program, FILE *file) {
 	for(size_t i = 0; i < program->vars.count; i++) {
 		Node *node = &program->vars.data[i];
 		switch(node->type) {
             case TYPE_VAR_DEC: {
-                fprintf(file, "; var declaration "View_Print"\n", View_Arg(node->value.var.name));                                                        
-                if(node->value.var.is_array && node->value.var.type != TYPE_STR) {
-                    fprintf(file, "; array allocation\n"); 
-                    gen_alloc(state, file, node->value.var.array_s, data_type_s[node->value.var.type]);
-                    for(size_t i = 0; i < node->value.var.value.count; i++) {
-                        fprintf(file, "; index %zu expr\n", i);                         
-                        gen_dup(state, file);
-                        gen_offset(state, file, data_type_s[node->value.var.type]*i);
-                        gen_expr(state, file, node->value.var.value.data[i]);                                                                                            
-                        gen_push(state, file, data_type_s[node->value.var.type]);
-                        gen_write(state, file);
-                    }
-                } else if(node->value.var.is_struct) {
-                    Node cur_struct = get_struct(state->structs, node->value.var.struct_name);
-                    size_t alloc_s = 0;
-                    for(size_t i = 0; i < cur_struct.value.structs.values.count; i++) {
-                        alloc_s += data_type_s[cur_struct.value.structs.values.data[i].value.var.type];
-                    }
-                    gen_struct_alloc(state, file, alloc_s);
-                    for(size_t i = 0; i < cur_struct.value.structs.values.count; i++) {
-                        gen_struct_value(state, file, i, &cur_struct.value.structs.values.data[i], node);
-                    }
-                } else {
-                    fprintf(file, "; expr\n");                                                            
-                    gen_expr(state, file, node->value.var.value.data[0]);                                    
-                }
-                node->value.var.stack_pos = state->stack_s;                 
-				node->value.var.global = true;
-                DA_APPEND(&state->vars, node->value.var);    
+				gen_var_dec(state, file, node);
+			    node->value.var.global = true;				
             } break;
 			default: {
 				ASSERT(false, "unexpected node");
@@ -464,34 +469,7 @@ void gen_program(Program_State *state, Nodes nodes, FILE *file) {
                 }
                 break;
             case TYPE_VAR_DEC: {
-                fprintf(file, "; var declaration "View_Print"\n", View_Arg(node->value.var.name));                                                        
-                if(node->value.var.is_array && node->value.var.type != TYPE_STR) {
-                    fprintf(file, "; array allocation\n"); 
-                    gen_alloc(state, file, node->value.var.array_s, data_type_s[node->value.var.type]);
-                    for(size_t i = 0; i < node->value.var.value.count; i++) {
-                        fprintf(file, "; index %zu expr\n", i);                         
-                        gen_dup(state, file);
-                        gen_offset(state, file, data_type_s[node->value.var.type]*i);
-                        gen_expr(state, file, node->value.var.value.data[i]);                                                                                            
-                        gen_push(state, file, data_type_s[node->value.var.type]);
-                        gen_write(state, file);
-                    }
-                } else if(node->value.var.is_struct) {
-                    Node cur_struct = get_struct(state->structs, node->value.var.struct_name);
-                    size_t alloc_s = 0;
-                    for(size_t i = 0; i < cur_struct.value.structs.values.count; i++) {
-                        alloc_s += data_type_s[cur_struct.value.structs.values.data[i].value.var.type];
-                    }
-                    gen_struct_alloc(state, file, alloc_s);
-                    for(size_t i = 0; i < cur_struct.value.structs.values.count; i++) {
-                        gen_struct_value(state, file, i, &cur_struct.value.structs.values.data[i], node);
-                    }
-                } else {
-                    fprintf(file, "; expr\n");                                                            
-                    gen_expr(state, file, node->value.var.value.data[0]);                                    
-                }
-                node->value.var.stack_pos = state->stack_s;                 
-                DA_APPEND(&state->vars, node->value.var);    
+				gen_var_dec(state, file, node);
             } break;
             case TYPE_VAR_REASSIGN: {
                 fprintf(file, "; var reassign\n");                                            
