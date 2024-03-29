@@ -505,7 +505,7 @@ Machine *read_program_from_file(Machine *machine, char *file_path){
     }
 
     int index = 0;
-    int length;
+    size_t length;
     fread(&machine->str_stack_size, 1, sizeof(size_t), file);    
     for(size_t i = 0; i < machine->str_stack_size; i++) {
         String_View *str = &machine->str_stack[i];
@@ -524,7 +524,7 @@ Machine *read_program_from_file(Machine *machine, char *file_path){
     fread(&machine->entrypoint, sizeof(size_t), 1, file);
     length = fread(instructions, sizeof(*instructions), length, file);
 
-    machine->program_size = length;
+    machine->program_size = length;	
     machine->instructions = instructions;
 
     instructions = realloc(instructions, sizeof(Inst) * machine->program_size);
@@ -532,11 +532,67 @@ Machine *read_program_from_file(Machine *machine, char *file_path){
 	fclose(file);
     return machine;
 }
+
+void handle_char_print(char c) {
+	switch(c) {
+		case '\n':
+			putc('\\', stdout);	
+			putc('n', stdout);
+			break;
+		case '\t':
+			putc('\\', stdout);	
+			putc('t', stdout);
+			break;
+		case '\v':
+			putc('\v', stdout);	
+			putc('n', stdout);
+			break;
+		case '\b':
+			putc('\b', stdout);	
+			putc('n', stdout);
+			break;
+		case '\r':
+			putc('\\', stdout);	
+			putc('r', stdout);
+			break;
+		case '\f':
+			putc('\\', stdout);	
+			putc('f', stdout);
+			break;
+		case '\a':
+			putc('\\', stdout);	
+			putc('a', stdout);
+			break;
+		case '\\':
+			putc('\\', stdout);	
+			putc('\\', stdout);
+			break;
+		case '\?':
+			putc('\\', stdout);	
+			putc('?', stdout);
+			break;
+		case '\'':
+			putc('\\', stdout);	
+			putc('\'', stdout);
+			break;
+		case '\"':
+			putc('\\', stdout);	
+			putc('"', stdout);
+			break;
+		case '\0':
+			putc('\\', stdout);	
+			putc('0', stdout);
+			break;
+		default:
+			putc(c, stdout);
+	}
+}
 	
 void machine_disasm(Machine *machine) {
 	for(size_t i = machine->entrypoint; i < machine->program_size; i++) {
-		printf("%s ", instructions[machine->instructions[i].type]);
+		printf("%s", instructions[machine->instructions[i].type]);
 		if(has_operand[machine->instructions[i].type]) {
+			putc(' ', stdout);
 			switch(machine->instructions[i].data_type) {
 				case INT_TYPE: {
 					uint64_t value = machine->instructions[i].value.as_int;				
@@ -544,58 +600,7 @@ void machine_disasm(Machine *machine) {
 						String_View string = machine->str_stack[value];
 						putc('"', stdout);
 						for(size_t j = 0; j < string.len-1; j++) {
-							switch(string.data[j]) {
-								case '\n':
-									putc('\\', stdout);	
-									putc('n', stdout);
-									break;
-								case '\t':
-									putc('\\', stdout);	
-									putc('t', stdout);
-									break;
-								case '\v':
-									putc('\v', stdout);	
-									putc('n', stdout);
-									break;
-								case '\b':
-									putc('\b', stdout);	
-									putc('n', stdout);
-									break;
-								case '\r':
-									putc('\\', stdout);	
-									putc('r', stdout);
-									break;
-								case '\f':
-									putc('\\', stdout);	
-									putc('f', stdout);
-									break;
-								case '\a':
-									putc('\\', stdout);	
-									putc('a', stdout);
-									break;
-								case '\\':
-									putc('\\', stdout);	
-									putc('\\', stdout);
-									break;
-								case '\?':
-									putc('\\', stdout);	
-									putc('?', stdout);
-									break;
-								case '\'':
-									putc('\\', stdout);	
-									putc('\'', stdout);
-									break;
-								case '\"':
-									putc('\\', stdout);	
-									putc('"', stdout);
-									break;
-								case '\0':
-									putc('\\', stdout);	
-									putc('0', stdout);
-									break;
-								default:
-									putc(string.data[j], stdout);
-							}
+							handle_char_print(string.data[j]);
 						}
 						putc('"', stdout);
 						break;
@@ -606,7 +611,9 @@ void machine_disasm(Machine *machine) {
 					printf("%f", machine->instructions[i].value.as_float);				
 				} break;
 				case CHAR_TYPE: {
-					printf("'%c'", machine->instructions[i].value.as_char);				
+					putc('\'', stdout);
+					handle_char_print(machine->instructions[i].value.as_char);
+					putc('\'', stdout);
 				} break;				
 				case PTR_TYPE: {
 					printf("%p", machine->instructions[i].value.as_pointer);				
@@ -993,26 +1000,29 @@ void run_instructions(Machine *machine){
                 ip = machine->return_stack[--machine->return_stack_size];
                 break;
             case INST_JMP:
+				if(machine->instructions[ip].value.as_int == 0) PRINT_ERROR("error: cannot jump to 0\n");
                 ip = machine->instructions[ip].value.as_int - 1;
                 if(ip + 1 >= machine->program_size){
-                    PRINT_ERROR("error: cannot jmp out of bounds\n");
+                    PRINT_ERROR("error: cannot jmp out of bounds to: %ld\n", machine->instructions[ip].value.as_int);
                 }
                 break;
             case INST_ZJMP:
+				if(machine->instructions[ip].value.as_int == 0) PRINT_ERROR("error: cannot jump to 0\n");					
                 if(pop(machine).word.as_int == 0){
                     ip = machine->instructions[ip].value.as_int - 1;
                     if(ip + 1 >= machine->program_size){
-                        PRINT_ERROR("error: cannot jmp out of bounds\n");
+	                    PRINT_ERROR("error: cannot zjmp out of bounds to: %ld\n", machine->instructions[ip].value.as_int);							
                     }
                 } else {
                     break;
                 }
                 break;
             case INST_NZJMP:
+				if(machine->instructions[ip].value.as_int == 0) PRINT_ERROR("error: cannot jump to 0\n");					
                 if(pop(machine).word.as_int != 0){
                     ip = machine->instructions[ip].value.as_int - 1;
                     if(ip + 1 >= machine->program_size){
-                        PRINT_ERROR("error: cannot jmp out of bounds\n");
+	                    PRINT_ERROR("error: cannot nzjmp out of bounds to: %ld\n", machine->instructions[ip].value.as_int);														
                     }
                 } else {
                     break;

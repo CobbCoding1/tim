@@ -142,7 +142,9 @@ typedef struct {
     (da)->data[(da)->count++] = (item);                                               \
 } while (0)
 
-#define PRINT_ERROR(message) fprintf(stderr, message); exit(1)
+#define PRINT_ERROR(...) do {				\
+	fprintf(stderr, __VA_ARGS__); exit(1);   \
+} while (0)
 
 
 #define AMOUNT_OF_REGISTERS 16 
