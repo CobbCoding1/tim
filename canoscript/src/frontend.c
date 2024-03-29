@@ -257,6 +257,27 @@ Token_Arr lex(char *filename, String_View view) {
                 token.type = TT_DOT;
                 DA_APPEND(&tokens, token);                                                    
                 break;
+			case '"': {
+				Dynamic_Str word = generate_string(&view, token, '"');
+                if(view.len == 0 && *view.data != '"') {
+                    PRINT_ERROR(token.loc, "expected closing `\"`");                            
+                };
+                token.type = TT_STRING;
+                token.value.string = view_create(word.data, word.count);
+                DA_APPEND(&tokens, token);                                    
+			} break;
+			case '\'': {
+                Dynamic_Str word = generate_string(&view, token, '\'');
+                if(word.count > 2) {
+                    PRINT_ERROR(token.loc, "character cannot be made up of multiple characters");
+                }
+                if(view.len == 0 && *view.data != '\'') {
+                    PRINT_ERROR(token.loc, "expected closing `'` quote");                            
+                };
+                token.type = TT_CHAR_LIT; 
+                token.value.string = view_create(word.data, word.count);
+                DA_APPEND(&tokens, token);                                    
+			} break;
             case '\n':
                 row++;
                 start = view.data;
@@ -281,25 +302,6 @@ Token_Arr lex(char *filename, String_View view) {
                         token.value.ident = view;
                     };
                     DA_APPEND(&tokens, token);     
-                } else if(*view.data == '"') {
-					Dynamic_Str word = generate_string(&view, token, '"');
-                    if(view.len == 0 && *view.data != '"') {
-                        PRINT_ERROR(token.loc, "expected closing `\"`");                            
-                    };
-                    token.type = TT_STRING;
-                    token.value.string = view_create(word.data, word.count);
-                    DA_APPEND(&tokens, token);                                    
-                } else if(*view.data == '\'') {
-                    Dynamic_Str word = generate_string(&view, token, '\'');
-                    if(word.count > 2) {
-                        PRINT_ERROR(token.loc, "character cannot be made up of multiple characters");
-                    }
-                    if(view.len == 0 && *view.data != '\'') {
-                        PRINT_ERROR(token.loc, "expected closing `'` quote");                            
-                    };
-                    token.type = TT_CHAR_LIT; 
-                    token.value.string = view_create(word.data, word.count);
-                    DA_APPEND(&tokens, token);                                    
                 } else if(isdigit(*view.data)) {
                     Dynamic_Str num = {0};
                     token.type = TT_INT;            
