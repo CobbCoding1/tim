@@ -19,6 +19,7 @@ typedef struct {
 #define View_Print "%.*s"
 #define View_Arg(view) (int)view.len, view.data
 #define LITERAL_CREATE(lit) view_create(lit, sizeof(lit)-1)
+#define LITERAL_VIEW(str) {.data=(str), .len=sizeof((str))-1}
 
 String_View view_create(const char *str, size_t len);
 char *view_to_cstr(String_View view);

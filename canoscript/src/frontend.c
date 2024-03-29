@@ -51,43 +51,52 @@ String_View read_file_to_view(char *filename) {
 bool isword(char c) {
     return isalpha(c) || isdigit(c) || c == '_';
 }
+	
+typedef struct {
+	String_View text;
+	int type;
+} Keyword;
 
-Token_Type get_token_type(String_View str) {
-    if(view_cmp(str, view_create("write", 5))) {
-        return TT_WRITE;
-    } else if(view_cmp(str, view_create("exit", 4))) {
-        return TT_EXIT;
-    } else if(view_cmp(str, view_create("if", 2))) {
-        return TT_IF;
-    } else if(view_cmp(str, view_create("else", 4))) {
-        return TT_ELSE;  
-    } else if(view_cmp(str, view_create("while", 5))) {
-        return TT_WHILE;  
-    } else if(view_cmp(str, view_create("then", 4))) {
-        return TT_THEN;
-    } else if(view_cmp(str, view_create("return", 6))) {
-        return TT_RET;
-    } else if(view_cmp(str, view_create("end", 3))) {
-        return TT_END;        
-    } else if(view_cmp(str, view_create("struct", 6))) {
-        return TT_STRUCT;        
-    }
+Keyword keyword_list[] = {
+	{LITERAL_VIEW("write"), TT_WRITE},
+	{LITERAL_VIEW("exit"), TT_EXIT},		
+	{LITERAL_VIEW("if"), TT_IF},	
+	{LITERAL_VIEW("else"), TT_ELSE},	
+	{LITERAL_VIEW("if"), TT_IF},	
+	{LITERAL_VIEW("while"), TT_WHILE},	
+	{LITERAL_VIEW("then"), TT_THEN},	
+	{LITERAL_VIEW("return"), TT_RET},	
+	{LITERAL_VIEW("end"), TT_END},
+	{LITERAL_VIEW("struct"), TT_STRUCT},	
+};
+#define KEYWORDS_COUNT sizeof(keyword_list)/sizeof(*keyword_list)
+
+Token_Type get_token_type(String_View view) {
+	for(size_t i = 0; i < KEYWORDS_COUNT; i++) {
+	    if(view_cmp(view, keyword_list[i].text)) {
+	        return keyword_list[i].type;
+		}
+	}
     return TT_NONE;
 }
-    
+	
+Keyword builtins_list[] = {
+	{LITERAL_VIEW("alloc"), BUILTIN_ALLOC},
+	{LITERAL_VIEW("dealloc"), BUILTIN_DEALLOC},		
+	{LITERAL_VIEW("store"), BUILTIN_STORE},	
+	{LITERAL_VIEW("tovp"), BUILTIN_TOVP},		
+	{LITERAL_VIEW("get"), BUILTIN_GET},	
+};
+#define BUILTIN_COUNT sizeof(builtins_list)/sizeof(*builtins_list)
+
 Token token_get_builtin(Token token, String_View view) {
-    if(view_cmp(view, view_create("alloc", 5))) {
-        return (Token){.type = TT_BUILTIN, .value.builtin = BUILTIN_ALLOC};
-    } else if(view_cmp(view, view_create("dealloc", 7))) {
-        return (Token){.type = TT_BUILTIN, .value.builtin = BUILTIN_DEALLOC};
-    } else if(view_cmp(view, view_create("store", 5))) {
-        return (Token){.type = TT_BUILTIN, .value.builtin = BUILTIN_STORE};
-    } else if(view_cmp(view, view_create("tovp", 4))) {
-        return (Token){.type = TT_BUILTIN, .value.builtin = BUILTIN_TOVP};
-    } else if(view_cmp(view, view_create("get", 3))) {
-        return (Token){.type = TT_BUILTIN, .value.builtin = BUILTIN_GET};
-    }
-        
+	for(size_t i = 0; i < BUILTIN_COUNT; i++) {
+	    if(view_cmp(view, builtins_list[i].text)) {
+			token.type = TT_BUILTIN;
+			token.value.builtin = builtins_list[i].type;
+			return token;
+		}
+	}
     return token;
 }
 
