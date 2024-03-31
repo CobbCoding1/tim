@@ -44,6 +44,7 @@ void print_syntax_error(Token *current_token, char *type_of_error, char *expecte
 }
 
 int expect_token(Lexer *lexer, int index, int count, ...){
+	assert(index < lexer->stack_size);
     int result = 0;
     va_list list;
     va_start(list, count);

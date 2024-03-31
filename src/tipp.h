@@ -69,7 +69,7 @@ char *read_file_to_buff(char *file_name, int *length){
 }
 
 char *get_word(char *buffer, int *index, int length){
-    char *word = malloc(sizeof(char));
+    char *word = malloc(sizeof(char) * length+1);
     int word_size = 0;
     while((isalpha(buffer[*index]) || buffer[*index] == '_') && *index < length){
         word[word_size] = buffer[*index];
@@ -142,7 +142,7 @@ char *pass(char *buffer, int length, int depth, char *file_name){
     }
     int index = 0; 
     int line = 1;
-    char *output = malloc(sizeof(char) * 1024);
+    char *output = calloc(length+1, sizeof(char));
     int output_index = 0;
     while(index < length){
         if(buffer[index] == '\n'){

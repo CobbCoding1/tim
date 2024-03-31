@@ -515,20 +515,18 @@ Machine *read_program_from_file(Machine *machine, char *file_path){
     }
     index = ftell(file);
 
-    Inst *instructions = malloc(sizeof(Inst) * MAX_STACK_SIZE);
 
     fseek(file, 0, SEEK_END);
     length = ftell(file);
     fseek(file, index, SEEK_SET);
     length = length - ftell(file);
     fread(&machine->entrypoint, sizeof(size_t), 1, file);
+    Inst *instructions = malloc(sizeof(Inst) * length);		
     length = fread(instructions, sizeof(*instructions), length, file);
 
     machine->program_size = length;	
     machine->instructions = instructions;
 
-    instructions = realloc(instructions, sizeof(Inst) * machine->program_size);
-	
 	fclose(file);
     return machine;
 }

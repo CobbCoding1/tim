@@ -8,6 +8,7 @@
 #include <string.h>
 
 #include "view.h"
+#include "arena.h"
 
 #define DATA_START_CAPACITY 16
 
@@ -27,6 +28,15 @@
         } \
     } while (0)
 
+#define ADA_APPEND(arena, da, item) do {                                                       \
+    if ((da)->count >= (da)->capacity) {                                               \
+        (da)->capacity = (da)->capacity == 0 ? DATA_START_CAPACITY : (da)->capacity*2; \
+        (da)->data = arena_realloc((arena), (da)->data, (da)->count, (da)->capacity*sizeof(*(da)->data));       \
+        ASSERT((da)->data != NULL, "outta ram");                               \
+    }                                                                                  \
+    (da)->data[(da)->count++] = (item);                                               \
+} while (0)
+	
 #define DA_APPEND(da, item) do {                                                       \
     if ((da)->count >= (da)->capacity) {                                               \
         (da)->capacity = (da)->capacity == 0 ? DATA_START_CAPACITY : (da)->capacity*2; \

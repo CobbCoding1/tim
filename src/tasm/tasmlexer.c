@@ -94,7 +94,7 @@ TokenType check_if_register_type(char *name){
 }
 
 Token generate_keyword(char *current, int *current_index, int *line, int *character, Lexer lex){
-    char *keyword_name = malloc(sizeof(char) * 16);
+    char *keyword_name = malloc(sizeof(char) * 1024);
     int keyword_length = 0;
     while(is_name(current[*current_index]) || isdigit(current[*current_index])){
         keyword_name[keyword_length] = current[*current_index];

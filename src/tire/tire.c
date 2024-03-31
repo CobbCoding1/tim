@@ -33,7 +33,7 @@ int main(int argc, char **argv){
 		
 	assert(filename);
 	
-    Machine *machine = malloc(sizeof(Machine));
+    Machine *machine = calloc(1, sizeof(Machine));
     machine = read_program_from_file(machine, filename);
 	if(disasm) {
 		machine_disasm(machine);
