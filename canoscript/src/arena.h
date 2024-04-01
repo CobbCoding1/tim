@@ -80,7 +80,7 @@ void *arena_realloc(Arena *arena, void *old_ptr, size_t old_size, size_t new_siz
     uint8_t *new_ptr_char = new_ptr;
     uint8_t *old_ptr_char = old_ptr;
 
-	memcpy(new_ptr_char, old_ptr_char, sizeof(uint8_t)*old_size);
+	memcpy(new_ptr_char, old_ptr_char, sizeof(uint8_t)*new_size);
 
     return new_ptr;
 }
