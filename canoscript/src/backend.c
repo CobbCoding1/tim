@@ -344,7 +344,10 @@ void gen_expr(Program_State *state, FILE *file, Expr *expr) {
                 gen_expr(state, file, expr->value.func_call.args.data[i]);
             }
             gen_func_call(file, expr->value.func_call.name);
-			state->stack_s--;
+			for(size_t i = 0; i < expr->value.func_call.args.count; i++) {
+				state->stack_s--;		
+			}
+			if(function->type != TYPE_VOID) state->stack_s++;
         } break;
         case EXPR_ARR: {
             int index = get_variable_location(state, expr->value.array.name);
@@ -391,7 +394,7 @@ void ret_scope_end(Program_State *state, FILE *file) {
 }
 	
 void gen_var_dec(Program_State *state, FILE *file, Node *node) {
-       fprintf(file, "; var declaration "View_Print"\n", View_Arg(node->value.var.name));                                                        
+	   fprintf(file, "; var declaration "View_Print"\n", View_Arg(node->value.var.name));                                                        
        if(node->value.var.is_array && node->value.var.type != TYPE_STR) {
            fprintf(file, "; array allocation\n"); 
            gen_alloc(state, file, node->value.var.array_s, data_type_s[node->value.var.type]);

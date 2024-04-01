@@ -25,14 +25,16 @@ int main(int argc, char *argv[]) {
     Blocks block_stack = {0};
 	Arena node_arena = arena_init(sizeof(Node)*ARENA_INIT_SIZE);
     Program program = parse(&node_arena, tokens, &block_stack);
+	
 	arena_free(&token_arena);	
+	
     Program_State state = {0};
 	state.program = program;
     state.structs = program.structs;
     generate(&state, &program, filename);
+	
 	arena_free(&node_arena);
 	arena_free(&string_arena);
-
 	free(state.vars.data);
 	free(state.functions.data);
 	free(state.scope_stack.data);
