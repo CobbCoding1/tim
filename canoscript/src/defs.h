@@ -31,7 +31,7 @@
 #define ADA_APPEND(arena, da, item) do {                                                       \
     if ((da)->count >= (da)->capacity) {                                               \
         (da)->capacity = (da)->capacity == 0 ? DATA_START_CAPACITY : (da)->capacity*2; \
-        (da)->data = arena_realloc((arena), (da)->data, (da)->count, (da)->capacity*sizeof(*(da)->data));       \
+        (da)->data = arena_realloc((arena), (da)->data, (da)->count*sizeof(*(da)->data), (da)->capacity*sizeof(*(da)->data));       \
         ASSERT((da)->data != NULL, "outta ram");                               \
     }                                                                                  \
     (da)->data[(da)->count++] = (item);                                               \

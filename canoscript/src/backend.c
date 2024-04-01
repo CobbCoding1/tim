@@ -200,6 +200,7 @@ char *append_tasm_ext(char *filename) {
     strip_off_dot(output);
     char *output_filename = custom_realloc(NULL, sizeof(char)*strlen(output)+sizeof(".tasm"));
     sprintf(output_filename, "%s.tasm", output);
+	free(output);
     return output_filename;
 }
     
@@ -618,4 +619,6 @@ void generate(Program_State *state, Program *program, char *filename) {
     FILE *file = fopen(output, "w");
 	gen_vars(state, program, file);
     gen_program(state, program->nodes, file);
+	fclose(file);	
+	free(output);
 }

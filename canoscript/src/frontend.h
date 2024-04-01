@@ -78,7 +78,7 @@ Token handle_data_type(Token token, String_View str);
 bool is_operator(String_View view);
 Token create_operator_token(char *filename, size_t row, size_t col, String_View *view);
 void print_token_arr(Token_Arr arr);
-Token_Arr lex(Arena *arena, char *filename, String_View view);
+Token_Arr lex(Arena *arena, Arena *string_arena, char *filename, String_View view);
 Token token_consume(Token_Arr *tokens);
 Token token_peek(Token_Arr *tokens, size_t peek_by);
 Token expect_token(Token_Arr *tokens, Token_Type type);

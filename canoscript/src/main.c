@@ -12,7 +12,7 @@ void *custom_realloc(void *ptr, size_t size) {
     ptr = new_ptr;
     return new_ptr;
 }
-
+	
 int main(int argc, char *argv[]) {
     if(argc != 2) {
         usage(argv[0]);
@@ -20,12 +20,23 @@ int main(int argc, char *argv[]) {
     char *filename = argv[1];
 	Arena token_arena = arena_init(sizeof(Token)*ARENA_INIT_SIZE);	
     String_View view = read_file_to_view(&token_arena, filename);
-    Token_Arr tokens = lex(&token_arena, filename, view);
+	Arena string_arena = arena_init(sizeof(char)*ARENA_INIT_SIZE);
+    Token_Arr tokens = lex(&token_arena, &string_arena, filename, view);
     Blocks block_stack = {0};
 	Arena node_arena = arena_init(sizeof(Node)*ARENA_INIT_SIZE);
     Program program = parse(&node_arena, tokens, &block_stack);
+	arena_free(&token_arena);	
     Program_State state = {0};
 	state.program = program;
     state.structs = program.structs;
     generate(&state, &program, filename);
+	arena_free(&node_arena);
+	arena_free(&string_arena);
+
+	free(state.vars.data);
+	free(state.functions.data);
+	free(state.scope_stack.data);
+	free(state.block_stack.data);
+	free(state.ret_stack.data);
+	free(state.while_labels.data);
 }

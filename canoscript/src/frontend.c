@@ -213,7 +213,7 @@ Dynamic_Str generate_string(Arena *arena, String_View *view, Token token, char d
 	return word;
 }
 
-Token_Arr lex(Arena *arena, char *filename, String_View view) {
+Token_Arr lex(Arena *arena, Arena *string_arena, char *filename, String_View view) {
     size_t row = 1;
     Token_Arr tokens = {0};
     const char *start = view.data;
@@ -258,7 +258,7 @@ Token_Arr lex(Arena *arena, char *filename, String_View view) {
                 ADA_APPEND(arena, &tokens, token);                                                    
                 break;
 			case '"': {
-				Dynamic_Str word = generate_string(arena, &view, token, '"');
+				Dynamic_Str word = generate_string(string_arena, &view, token, '"');
                 if(view.len == 0 && *view.data != '"') {
                     PRINT_ERROR(token.loc, "expected closing `\"`");                            
                 };
@@ -267,7 +267,7 @@ Token_Arr lex(Arena *arena, char *filename, String_View view) {
                 ADA_APPEND(arena, &tokens, token);                                    
 			} break;
 			case '\'': {
-                Dynamic_Str word = generate_string(arena, &view, token, '\'');
+                Dynamic_Str word = generate_string(string_arena, &view, token, '\'');
                 if(word.count > 2) {
                     PRINT_ERROR(token.loc, "character cannot be made up of multiple characters");
                 }
@@ -285,10 +285,10 @@ Token_Arr lex(Arena *arena, char *filename, String_View view) {
             default: {
                 if(isalpha(*view.data)) {
                     Dynamic_Str word = {0};    
-                    ADA_APPEND(arena, &word, *view.data);                    
+                    ADA_APPEND(string_arena, &word, *view.data);                    
                     view = view_chop_left(view);
                     while(view.len > 0 && isword(*view.data)) {
-                        ADA_APPEND(arena, &word, *view.data);            
+                        ADA_APPEND(string_arena, &word, *view.data);            
                         view = view_chop_left(view);    
                     }
                     view.data--;
