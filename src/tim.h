@@ -16,14 +16,21 @@
 #define MAX_STACK_SIZE 1024
 #define DATA_START_CAPACITY 16
 
+/*
+	GET_STR
+	MOV_STR
+	POP_STR
+	DUP_STR
+	SWAP_STR
+	INSWAP_STR
+	INDEX
+*/
+
 typedef enum {
     INST_NOP = 0,
     INST_PUSH,
-    INST_PUSH_PTR,
     INST_PUSH_STR,
-    INST_GET_STR,
     INST_MOV,
-    INST_MOV_STR,
     INST_REF,
     INST_DEREF,
     INST_ALLOC,
@@ -31,21 +38,16 @@ typedef enum {
     INST_WRITE,
     INST_READ,
     INST_POP,
-    INST_POP_STR,
     INST_DUP,
-    INST_DUP_STR,
     INST_INDUP,
-    INST_INDUP_STR,
     INST_SWAP,
-    INST_SWAP_STR,
     INST_INSWAP,
-    INST_INSWAP_STR,
-    INST_INDEX,
     INST_ADD,
     INST_SUB,
     INST_MUL,
     INST_DIV,
     INST_MOD,
+	// TODO GET RID OF _F OPERATIONS AND REPLACE WITH SWITCH OVER DATA_TYPE
     INST_ADD_F,
     INST_SUB_F,
     INST_MUL_F,
@@ -215,7 +217,6 @@ void push_str(Machine *machine, char *value);
 Data pop(Machine *machine);
 void index_swap(Machine *machine, int64_t index);
 void index_dup(Machine *machine, int64_t index);
-char *get_str_from_stack(Machine *machine);
 void print_stack(Machine *machine);
 void write_program_to_file(Machine *machine, char *file_path);
 Machine *read_program_from_file(Machine *machine, char *file_path);

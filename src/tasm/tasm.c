@@ -44,10 +44,9 @@ size_t get_register_index(ParseList *head){
 Inst *generate_instructions(ParseList *head, int *program_size, String_View str_stack[MAX_STACK_SIZE], size_t *entrypoint, bool *has_entrypoint){
     Inst *program = malloc(sizeof(Inst) * length_of_list(head));
     Inst_Set insts[INST_COUNT + 1] = {    
-        INST_NOP, INST_PUSH, INST_PUSH_PTR, INST_PUSH_STR, INST_GET_STR, INST_MOV, INST_MOV_STR, INST_REF, INST_DEREF, 
-        INST_ALLOC, INST_DEALLOC, INST_WRITE, INST_READ, INST_POP, INST_POP_STR, INST_DUP, INST_DUP_STR, INST_INDUP, INST_INDUP_STR, 
-        INST_SWAP, INST_SWAP_STR, INST_INSWAP, INST_INSWAP_STR, INST_INDEX,
-        INST_ADD, INST_SUB, INST_MUL, INST_DIV, INST_MOD, INST_ADD_F, INST_SUB_F, 
+        INST_NOP, INST_PUSH, INST_PUSH_STR, INST_MOV, INST_REF, INST_DEREF, 
+        INST_ALLOC, INST_DEALLOC, INST_WRITE, INST_READ, INST_POP, INST_DUP, INST_INDUP, INST_SWAP, INST_INSWAP, 
+		INST_ADD, INST_SUB, INST_MUL, INST_DIV, INST_MOD, INST_ADD_F, INST_SUB_F, 
         INST_MUL_F, INST_DIV_F, INST_MOD_F, INST_CMPE, 
         INST_CMPNE, INST_CMPG, INST_CMPL, INST_CMPGE, INST_CMPLE, INST_ITOF, INST_FTOI, INST_ITOC, 
         INST_TOI, INST_TOF, INST_TOC, INST_TOVP, INST_CALL, INST_RET, 
@@ -61,9 +60,7 @@ Inst *generate_instructions(ParseList *head, int *program_size, String_View str_
         Inst *instruction = malloc(sizeof(Inst));
         instruction->type = insts[head->value.type];
         if(
-                head->value.type == TYPE_CALL || head->value.type == TYPE_NATIVE || head->value.type == TYPE_GET_STR || 
-                head->value.type == TYPE_INDUP_STR || 
-                head->value.type == TYPE_INSWAP_STR || 
+                head->value.type == TYPE_CALL || head->value.type == TYPE_NATIVE || 
                 head->value.type == TYPE_JMP || head->value.type == TYPE_ZJMP || 
                 head->value.type == TYPE_NZJMP
         ){
@@ -96,10 +93,6 @@ Inst *generate_instructions(ParseList *head, int *program_size, String_View str_
             } else if(head->value.type == TYPE_CHAR){
                 instruction->value.as_char = head->value.text[0];
                 instruction->data_type = CHAR_TYPE;
-            } else if(head->value.type == TYPE_NULL){
-                instruction->type = INST_PUSH_PTR;
-                instruction->value.as_pointer = NULL;
-                instruction->data_type = PTR_TYPE;
             } else if(check_if_register(head->value.type)){
                 instruction->register_index = get_register_index(head);             
                 instruction->data_type = REGISTER_TYPE;
@@ -123,11 +116,6 @@ Inst *generate_instructions(ParseList *head, int *program_size, String_View str_
                 instruction->data_type = CHAR_TYPE;
             } else if(head->value.type == TYPE_TOP){
                 instruction->data_type = TOP_TYPE;
-            } else if(head->value.type == TYPE_NULL){
-                // todo: fix this
-                instruction->type = INST_PUSH_PTR;
-                instruction->value.as_pointer = NULL;
-                instruction->data_type = PTR_TYPE;
             } else {
                 assert(false && "you should not be here\n");
             }

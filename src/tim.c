@@ -5,11 +5,8 @@ char *str_types[] = {"int", "float", "char", "ptr", "reg", "top"};
 char *instructions[INST_COUNT] = {
     "nop",
     "push",
-    "push_ptr",
     "push_str",
-    "get_str",
     "mov",
-    "mov_str",
     "ref",
     "deref",
     "alloc",
@@ -17,16 +14,10 @@ char *instructions[INST_COUNT] = {
     "write",
     "read",
     "pop",
-    "pop_str",
     "dup",
-    "dup_str",
     "indup",
-    "indup_str",
     "swap",
-    "swap_str",
     "inswap",
-    "inswap_str",
-    "index",
     "add",
     "sub",
     "mul",
@@ -63,63 +54,54 @@ char *instructions[INST_COUNT] = {
 };
 
 bool has_operand[INST_COUNT] = {
-    false,
-    true,
-    false, // unused
-    true,
-    false, // unused
-    false, // unused
-    false, // unused
-    false,
-    false,
-    false,
-    false,
-    false,
-    false,
-    false,
-    false, // unsued
-    false,
-    false, // unused
-    false, // indup
-    false, // unused
-    false,
-    false, // unused
-    false, // inswap
-    false, // unused
-    false, // unused
-    false,
-    false,
-    false,
-    false,
-    false,
-    false,
-    false,
-    false,
-    false,
-    false,
-    false,
-    false,
-    false,
-    false,
-    false,
-    false,
-    false,
-    false,
-    false,
-    false,
-    false,
-    false,
-    false,
-    true,
-    false,
-    true,
-    true,
-    true,
-    false,
-    true,
-    true,
-    false,
-    false,
+     false,       //    "nop",
+     true,        //    "push",
+     true,        //    "push_str",
+     true,        //    "mov",
+     false,       //    "ref",
+     false,       //    "deref",
+     false,       //    "alloc",
+     false,       //    "dealloc",
+     false,       //    "write",
+     false,       //    "read",
+     false,       //    "pop",
+     false,       //    "dup",
+     false,       //    "indup",
+     false,       //    "swap",
+     false,       //    "inswap",
+     false,       //    "add",
+     false,       //    "sub",
+     false,       //    "mul",
+     false,       //    "div",
+     false,       //    "mod",
+     false,       //    "add_f",
+     false,       //    "sub_f",
+     false,       //    "mul_f",
+     false,       //    "div_f",
+     false,       //    "mod_f",
+     false,       //    "cmpe",
+     false,       //    "cmpne",
+     false,       //    "cmpg",
+     false,       //    "cmpl",
+     false,       //    "cmpge",
+     false,       //    "cmple",
+     false,       //    "itof",
+     false,       //    "ftoi",
+     false,       //    "itoc",
+     false,       //    "toi",
+     false,       //    "tof",
+     false,       //    "toc",
+     false,       //    "tovp",
+     true,        //    "call",
+     false,       //    "ret",
+     true,        //    "jmp",
+     true,        //    "zjmp",
+     true,        //    "nzjmp",
+     false,       //    "print",
+     true,        //    "native",
+     true,        //    "entrypoint",
+     false,       //    "ss",
+     false,       //    "halt",
 };
 
 void free_cell(Memory *cell) {
@@ -325,68 +307,6 @@ void native_exit(Machine *machine){
     exit(code);
 }
 
-void native_strcmp(Machine *machine){
-    char *str1 = (char*)pop(machine).word.as_pointer;
-    char *str2 = (char*)pop(machine).word.as_pointer;
-    int64_t result = strcmp(str1, str2) == 0;
-    Word w = {.as_int=result};
-    push(machine, w, INT_TYPE);
-}
-
-void native_strcpy(Machine *machine){
-    char *str = (char*)pop(machine).word.as_pointer;
-    void *dest = pop(machine).word.as_pointer;
-    char *result = strcpy(dest, str);
-    push_ptr(machine, (Word*)result);
-}
-
-void native_memcpy(Machine *machine){
-    int64_t size = pop(machine).word.as_int;
-    void *src = pop(machine).word.as_pointer;
-    void *dest = pop(machine).word.as_pointer;
-    void *result = memcpy(dest, src, size);
-    push_ptr(machine, result);
-}
-
-void native_strcat(Machine *machine){
-    char *str = (char*)pop(machine).word.as_pointer;
-    char *dest = (char*)pop(machine).word.as_pointer;
-    char *result = strcat(dest, str);
-    push_ptr(machine, (Word*)result);
-}
-
-void native_strlen(Machine *machine){
-    char *str = (char*)pop(machine).word.as_pointer;
-    int64_t result = strlen(str);
-    Word w = {.as_int=result};
-    push(machine, w, INT_TYPE);
-}
-
-void native_ftoa(Machine *machine){
-    double x = pop(machine).word.as_float;
-    int str_index = 0;
-    char *str = malloc(sizeof(char) * 64);
-    float_to_str(str, &str_index, x, 8);
-    str = realloc(str, sizeof(char) * str_index);
-    str[str_index] = '\0';
-    push_ptr(machine, (Word*)str);
-}
-
-void native_itoa(Machine *machine){
-    int64_t x = pop(machine).word.as_int;
-    int str_index = 0;
-    char *str = malloc(sizeof(char) * 64);
-    int_to_str(str, &str_index, x);
-    str = realloc(str, sizeof(char) * str_index);
-    str[str_index] = '\0';
-    push_ptr(machine, (Word*)str);
-}
-
-void native_assert(Machine *machine){
-    int64_t code = pop(machine).word.as_int;
-    assert(code);
-}
-
 // end native functions
 
 void push(Machine *machine, Word value, DataType type){
@@ -433,24 +353,6 @@ void index_dup(Machine *machine, int64_t index){
         PRINT_ERROR("error: index out of range\n");
     }
     push(machine, machine->stack[index].word, machine->stack[index].type);
-}
-char *get_str_from_stack(Machine *machine){
-    char *buffer = malloc(sizeof(char) * 16);
-    int buffer_index = 0;
-    char *current = (char*)&(machine->stack[machine->stack_size].word.as_pointer);
-    while(*current != '\0'){
-        if(buffer_index > machine->stack_size){
-            PRINT_ERROR("error: stack underflow\n");
-        }
-        buffer[buffer_index] = *current;   
-        current = current - sizeof(Word);
-        buffer_index++;
-    }
-    buffer = reverse_string(buffer);
-    buffer_index--;
-    buffer = realloc(buffer, sizeof(char) * buffer_index);
-    buffer[buffer_index] = '\0';
-    return buffer;
 }
 
 void print_stack(Machine *machine){
@@ -624,7 +526,13 @@ void machine_disasm(Machine *machine) {
 	}
 }
 
+
 void run_instructions(Machine *machine){
+    void (*native_ptrs[100])(Machine*) = {native_open, native_write, native_read, 
+                                         native_close, native_malloc, native_realloc, 
+                                         native_free, native_scanf, native_pow};
+    native_ptrs[10] = native_time;
+    native_ptrs[60] = native_exit;
     Data a, b;
     Word yes; 
 	yes.as_int = 1;
@@ -644,9 +552,6 @@ void run_instructions(Machine *machine){
                     push(machine, machine->instructions[ip].value, machine->instructions[ip].data_type);
                 }
                 break;
-            case INST_PUSH_PTR:
-                push_ptr(machine, machine->instructions[ip].value.as_pointer);
-                break;
             case INST_PUSH_STR: {
                 size_t index = machine->instructions[ip].value.as_int;
                 String_View str = machine->str_stack[index];
@@ -659,9 +564,6 @@ void run_instructions(Machine *machine){
                 //push(machine, (Word){.as_int=str.len}, INT_TYPE);                
                 push(machine, word, PTR_TYPE);
             } break;
-            case INST_GET_STR: {
-                assert(false && "UNUSED");
-            }
             case INST_MOV:
                 if(machine->instructions[ip].data_type == TOP_TYPE){
                     machine->registers[machine->instructions[ip].register_index].data = machine->stack[machine->stack_size - 1].word;
@@ -670,9 +572,6 @@ void run_instructions(Machine *machine){
                     machine->registers[machine->instructions[ip].register_index].data = machine->instructions[ip].value;
                     machine->registers[machine->instructions[ip].register_index].data_type = machine->instructions[ip].data_type;
                 }
-                break;
-            case INST_MOV_STR:
-                assert(false && "UNSUED");
                 break;
             case INST_REF: {
                 Word *ptr = &machine->stack[machine->stack_size - 1].word;
@@ -742,17 +641,10 @@ void run_instructions(Machine *machine){
             case INST_POP:
                 pop(machine);
                 break;
-            case INST_POP_STR:
-                assert(false && "UNUSED");
-                break;
             case INST_DUP:
                 a = machine->stack[machine->stack_size - 1];
                 push(machine, a.word, a.type);
                 break;
-            case INST_DUP_STR: {
-                assert(false && "UNSUED");
-                break;
-            }
             case INST_INDUP: {
 				Data index = pop(machine);
 				if(index.type != INT_TYPE) {
@@ -760,37 +652,17 @@ void run_instructions(Machine *machine){
 				}
                 index_dup(machine, machine->stack_size-index.word.as_int-1);
             } break;
-            case INST_INDUP_STR:
-                assert(false && "UNUSED");
-                break;
             case INST_SWAP: {
                 Data temp = machine->stack[machine->stack_size - 1];
                 machine->stack[machine->stack_size - 1] = machine->stack[machine->stack_size - 2];
                 machine->stack[machine->stack_size - 2] = temp;
             } break;
-            case INST_SWAP_STR: {
-                assert(false && "UNSUED");
-                break;
-            }
             case INST_INSWAP: {
 				Data index = pop(machine);
 				if(index.type != INT_TYPE) {
 					PRINT_ERROR("error: expected int");
 				}
                 index_swap(machine, machine->stack_size-index.word.as_int-1);
-            } break;
-            case INST_INSWAP_STR:
-                assert(false && "UNUSED");
-                break;
-            case INST_INDEX: {
-                Data value = pop(machine);
-                int64_t index = pop(machine).word.as_int;
-                if(index < 0){
-                    PRINT_ERROR("error: index cannot be less than 0\n");
-                }
-                char *arr = (char*)pop(machine).word.as_pointer;
-                arr[index] = value.word.as_char;
-                push_ptr(machine, (Word*)arr);
             } break;
             case INST_ADD:
                 MATH_OP(as_int, +, INT_TYPE);
@@ -1035,19 +907,6 @@ void run_instructions(Machine *machine){
                 push(machine, (Word){.as_int=machine->stack_size}, INT_TYPE);
                 break;
             case INST_NATIVE: {
-                void (*native_ptrs[100])(Machine*) = {native_open, native_write, native_read, 
-                                                   native_close, native_malloc, native_realloc, 
-                                                   native_free, native_scanf, native_pow};
-                native_ptrs[10] = native_time;
-                native_ptrs[60] = native_exit;
-                native_ptrs[90] = native_strcmp;
-                native_ptrs[91] = native_strcpy;
-                native_ptrs[92] = native_memcpy;
-                native_ptrs[93] = native_strcat;
-                native_ptrs[94] = native_strlen;
-                native_ptrs[98] = native_ftoa;
-                native_ptrs[99] = native_itoa;
-                native_ptrs[100] = native_assert;
                 (*native_ptrs[machine->instructions[ip].value.as_int])(machine);
             } break;
             case INST_ENTRYPOINT:
