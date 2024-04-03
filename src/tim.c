@@ -342,7 +342,6 @@ void index_swap(Machine *machine, int64_t index){
     Data temp_value = machine->stack[index];
     machine->stack[index] = machine->stack[machine->stack_size - 1]; 
     machine->stack[machine->stack_size - 1] = temp_value;
-    //push(machine, temp_value.word, temp_value.type);
 }
 
 void index_dup(Machine *machine, int64_t index){
@@ -561,7 +560,6 @@ void run_instructions(Machine *machine){
                 }
                 Word word;
                 word.as_pointer = machine->memory->cell.data;
-                //push(machine, (Word){.as_int=str.len}, INT_TYPE);                
                 push(machine, word, PTR_TYPE);
             } break;
             case INST_MOV:
@@ -665,7 +663,23 @@ void run_instructions(Machine *machine){
                 index_swap(machine, machine->stack_size-index.word.as_int-1);
             } break;
             case INST_ADD:
-                MATH_OP(as_int, +, INT_TYPE);
+				// TODO: flesh this out a little more
+				// and make it work where it switches over both operands data types
+				// this will remove the need for INST_*_F, simplifying the bytecode greatly
+				if(machine->stack_size < 1) PRINT_ERROR("error: stack underflow\n");
+				switch(machine->stack[machine->stack_size-1].type) {
+					case CHAR_TYPE:
+					case PTR_TYPE:
+					case INT_TYPE:
+		                MATH_OP(as_int, +, INT_TYPE);		
+						break;
+					case FLOAT_TYPE:
+		                MATH_OP(as_float, +, FLOAT_TYPE);				
+						break;
+					default:
+						PRINT_ERROR("error: not right...\n");
+				}
+                //MATH_OP(as_int, +, INT_TYPE);
                 break;
             case INST_SUB:
                 MATH_OP(as_int, -, INT_TYPE);
