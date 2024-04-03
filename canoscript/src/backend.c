@@ -485,6 +485,7 @@ void gen_program(Program_State *state, Nodes nodes, FILE *file) {
                 }
 				if(get_variable(state, node->value.var.name).global) gen_global_inswap(state, file, index);
                 else gen_inswap(state, file, state->stack_s-index);    
+				gen_pop(state, file);
             } break;
             case TYPE_FIELD_REASSIGN: {
                 fprintf(file, "; field reassign\n");                                            
@@ -495,6 +496,7 @@ void gen_program(Program_State *state, Nodes nodes, FILE *file) {
                 gen_expr(state, file, node->value.field.value.data[0]);
                 gen_inswap(state, file, 1);
                 gen_write(state, file);
+				// TODO: MIGHT NEED a GEN_POP HERE
             } break;
             case TYPE_ARR_INDEX: {
                 fprintf(file, "; arr index\n");                                            
@@ -589,7 +591,7 @@ void gen_program(Program_State *state, Nodes nodes, FILE *file) {
             case TYPE_THEN: {
                 fprintf(file, "; then\n");                                                                                
                 gen_zjmp(state, file, node->value.label.num);            
-                DA_APPEND(&state->scope_stack, state->stack_s);
+				DA_APPEND(&state->scope_stack, state->stack_s);
             } break;
             case TYPE_END: {
                 fprintf(file, "; end\n");                                                                                                        
