@@ -39,9 +39,8 @@ void gen_push_float(Program_State *state, FILE *file, double value) {
 }
     
 void gen_push_char(Program_State *state, FILE *file, String_View value) {
-	ASSERT(false, "not implemented");
-	//Inst inst = create_inst(INST_PUSH, (Word){.as_char=value}, FLOAT_TYPE);
-	//DA_APPEND(&state->machine.instructions, inst);
+	Inst inst = create_inst(INST_PUSH, (Word){.as_char=value.data[0]}, CHAR_TYPE);
+	DA_APPEND(&state->machine.instructions, inst);
     fprintf(file, "push '"View_Print"'\n", View_Arg(value));
     state->stack_s++;   
 }
