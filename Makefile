@@ -30,7 +30,7 @@ TASM=$(TASMDIR)/$(TASMNAME)
 
 .PHONY: all setup clean destroy test
 
-all: $(BUILDDIR)/$(OBJ) .WAIT $(TIRE) $(TASM)
+all: $(BUILDDIR)/$(OBJ) $(TIRE) $(TASM)
 
 $(BUILDDIR)/%.o: $(SRCDIR)/%.c
 	$(CC) $(CFLAGS) $(DEFINES) $(INCLUDES) -c $< -o $@
