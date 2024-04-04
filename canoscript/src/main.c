@@ -8,7 +8,7 @@ void usage(char *file) {
     
 void *custom_realloc(void *ptr, size_t size) {
     void *new_ptr = realloc(ptr, size);
-    ASSERT(new_ptr != NULL, "buy more ram");
+    ASSERT(new_ptr != NULL, "Out of memory, maybe close some programs? Alternatively you could buy some more RAM.");
     ptr = new_ptr;
     return new_ptr;
 }
