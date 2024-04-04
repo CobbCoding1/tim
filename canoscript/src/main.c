@@ -1,6 +1,10 @@
 #define ARENA_IMPLEMENTATION
 #include "main.h"
 
+#define TIM_IMPLEMENTATION
+#define TIM_H
+#include "tim.h"
+
 void usage(char *file) {
     fprintf(stderr, "usage: %s <filename.cano>\n", file);
     exit(1);
@@ -32,6 +36,9 @@ int main(int argc, char *argv[]) {
 	state.program = program;
     state.structs = program.structs;
     generate(&state, &program, filename);
+	
+	state.machine.program_size = state.machine.instructions.count;
+	write_program_to_file(&state.machine, "out.tim");	
 	
 	arena_free(&node_arena);
 	arena_free(&string_arena);

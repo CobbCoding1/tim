@@ -3,6 +3,7 @@
 #define BACKEND_H
 
 #include "defs.h"
+#include "tim.h"
 
 typedef struct {
     Variables vars;
@@ -15,6 +16,7 @@ typedef struct {
     Block_Stack block_stack;    
     Nodes structs;
 	Program program;
+	Machine machine;
 } Program_State;
     
 void gen_push(Program_State *state, FILE *file, int value);
@@ -25,8 +27,8 @@ void gen_inswap(Program_State *state, FILE *file, size_t value);
 void gen_zjmp(Program_State *state, FILE *file, size_t label);
 void gen_jmp(FILE *file, size_t label);
 void gen_while_jmp(FILE *file, size_t label);
-void gen_label(FILE *file, size_t label);
-void gen_func_label(FILE *file, String_View label);
+void gen_label(Program_State *state, FILE *file, size_t label);
+void gen_func_label(Program_State *state, FILE *file, String_View label);
 void gen_func_call(FILE *file, String_View label);
 void gen_while_label(FILE *file, size_t label);
 void strip_off_dot(char *str);

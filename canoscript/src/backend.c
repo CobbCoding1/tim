@@ -14,60 +14,90 @@ Node get_struct(Nodes structs, String_View name) {
     ASSERT(false, "unknown struct: "View_Print, View_Arg(name));
     PRINT_ERROR((Location){0}, "unknown struct\n");
 }
+
+Inst create_inst(Inst_Set type, Word value, DataType d_type) {
+	return (Inst) {
+		.type = type,
+		.value = value,
+		.data_type = d_type,
+	};
+}
     
 // TODO: add ASSERTs to all "popping" functions
 void gen_push(Program_State *state, FILE *file, int value) {
+	Inst inst = create_inst(INST_PUSH, (Word){.as_int=value}, INT_TYPE);
+	DA_APPEND(&state->machine.instructions, inst);
     fprintf(file, "push %d\n", value);
     state->stack_s++;   
 }
     
 void gen_push_float(Program_State *state, FILE *file, double value) {
+	Inst inst = create_inst(INST_PUSH, (Word){.as_float=value}, FLOAT_TYPE);
+	DA_APPEND(&state->machine.instructions, inst);
     fprintf(file, "push %f\n", value);
     state->stack_s++;   
 }
     
 void gen_push_char(Program_State *state, FILE *file, String_View value) {
+	ASSERT(false, "not implemented");
+	//Inst inst = create_inst(INST_PUSH, (Word){.as_char=value}, FLOAT_TYPE);
+	//DA_APPEND(&state->machine.instructions, inst);
     fprintf(file, "push '"View_Print"'\n", View_Arg(value));
     state->stack_s++;   
 }
     
 void gen_pop(Program_State *state, FILE *file) {
+	Inst inst = create_inst(INST_POP, (Word){.as_int=0}, 0);
+	DA_APPEND(&state->machine.instructions, inst);
     fprintf(file, "pop\n");
     state->stack_s--;   
 }
     
 void gen_add(Program_State *state, FILE *file) {
+	Inst inst = create_inst(INST_ADD, (Word){.as_int=0}, 0);
+	DA_APPEND(&state->machine.instructions, inst);
     fprintf(file, "add\n");
     state->stack_s--;   
 }
     
 void gen_sub(Program_State *state, FILE *file) {
+	Inst inst = create_inst(INST_SUB, (Word){.as_int=0}, 0);
+	DA_APPEND(&state->machine.instructions, inst);
     fprintf(file, "sub\n");
     state->stack_s--;   
 }
 
 void gen_mul(Program_State *state, FILE *file) {
+	Inst inst = create_inst(INST_MUL, (Word){.as_int=0}, 0);
+	DA_APPEND(&state->machine.instructions, inst);
     fprintf(file, "mul\n");
     state->stack_s--;   
 }
 
 void gen_div(Program_State *state, FILE *file) {
+	Inst inst = create_inst(INST_DIV, (Word){.as_int=0}, 0);
+	DA_APPEND(&state->machine.instructions, inst);
     fprintf(file, "div\n");
     state->stack_s--;   
 }
 
 void gen_push_str(Program_State *state, FILE *file, String_View value) {
+	ASSERT(false, "not implemented yet");
     fprintf(file, "push_str \""View_Print"\"\n", View_Arg(value));
     state->stack_s += 1;
 }
 
 void gen_ss(Program_State *state, FILE *file) {
+	Inst inst = create_inst(INST_SS, (Word){.as_int=0}, 0);
+	DA_APPEND(&state->machine.instructions, inst);
 	fprintf(file, "ss\n");
 	state->stack_s++;
 }
     
 void gen_indup(Program_State *state, FILE *file, size_t value) {
 	gen_push(state, file, value);
+	Inst inst = create_inst(INST_INDUP, (Word){.as_int=0}, 0);
+	DA_APPEND(&state->machine.instructions, inst);
     fprintf(file, "indup\n");
 }
 	
@@ -75,11 +105,15 @@ void gen_global_indup(Program_State *state, FILE *file, size_t value) {
 	gen_ss(state, file);
 	gen_push(state, file, value);
 	gen_sub(state, file);
+	Inst inst = create_inst(INST_INDUP, (Word){.as_int=0}, 0);
+	DA_APPEND(&state->machine.instructions, inst);
     fprintf(file, "indup\n");
 }
 	
 void gen_inswap(Program_State *state, FILE *file, size_t value) {
 	gen_push(state, file, value);
+	Inst inst = create_inst(INST_INSWAP, (Word){.as_int=0}, 0);
+	DA_APPEND(&state->machine.instructions, inst);
     fprintf(file, "inswap\n");
 	state->stack_s--;
 }
@@ -88,32 +122,42 @@ void gen_global_inswap(Program_State *state, FILE *file, size_t value) {
 	gen_ss(state, file);
 	gen_push(state, file, value);
 	gen_sub(state, file);
+	Inst inst = create_inst(INST_INSWAP, (Word){.as_int=0}, 0);
+	DA_APPEND(&state->machine.instructions, inst);
     fprintf(file, "inswap\n");
 	state->stack_s--;
 }
     
 void gen_zjmp(Program_State *state, FILE *file, size_t label) {
+	ASSERT(false, "not implemented yet");
     fprintf(file, "zjmp label%zu\n", label);
     state->stack_s--;
 }
     
 void gen_jmp(FILE *file, size_t label) {
+	ASSERT(false, "not implemented yet");
     fprintf(file, "jmp label%zu\n", label);
 }
     
 void gen_while_jmp(FILE *file, size_t label) {
+	ASSERT(false, "not implemented yet");
     fprintf(file, "jmp while%zu\n", label);
 }
     
-void gen_label(FILE *file, size_t label) {
+void gen_label(Program_State *state, FILE *file, size_t label) {
+	Inst inst = create_inst(INST_NOP, (Word){.as_int=0}, 0);
+	DA_APPEND(&state->machine.instructions, inst);
     fprintf(file, "label%zu:\n", label);
 }
     
-void gen_func_label(FILE *file, String_View label) {
+void gen_func_label(Program_State *state, FILE *file, String_View label) {
+	Inst inst = create_inst(INST_NOP, (Word){.as_int=0}, 0);
+	DA_APPEND(&state->machine.instructions, inst);
     fprintf(file, View_Print":\n", View_Arg(label));
 }
     
 void gen_func_call(FILE *file, String_View label) {
+	ASSERT(false, "not implemented yet");
     fprintf(file, "call "View_Print"\n", View_Arg(label));
 }
     
@@ -125,15 +169,21 @@ void gen_alloc(Program_State *state, FILE *file, Expr *s, size_t type_s) {
     gen_push(state, file, type_s);
     gen_expr(state, file, s);
     gen_mul(state, file);
+	Inst inst = create_inst(INST_ALLOC, (Word){.as_int=0}, 0);
+	DA_APPEND(&state->machine.instructions, inst);
     fprintf(file, "alloc\n");    
 }
     
 void gen_struct_alloc(Program_State *state, FILE *file, size_t total_s) {
     gen_push(state, file, total_s);
+	Inst inst = create_inst(INST_ALLOC, (Word){.as_int=0}, 0);
+	DA_APPEND(&state->machine.instructions, inst);
     fprintf(file, "alloc\n");    
 }
 
 void gen_dup(Program_State *state, FILE *file) {
+	Inst inst = create_inst(INST_DUP, (Word){.as_int=0}, 0);
+	DA_APPEND(&state->machine.instructions, inst);
     fprintf(file, "dup\n");
     state->stack_s++;
 }
@@ -141,15 +191,21 @@ void gen_dup(Program_State *state, FILE *file) {
 void gen_offset(Program_State *state, FILE *file, size_t offset) {
     gen_push(state, file, offset);
     gen_add(state, file);
+	Inst inst = create_inst(INST_TOVP, (Word){.as_int=0}, 0);
+	DA_APPEND(&state->machine.instructions, inst);
     fprintf(file, "tovp\n");
 }
 
 void gen_write(Program_State *state, FILE *file) {
+	Inst inst = create_inst(INST_WRITE, (Word){.as_int=0}, 0);
+	DA_APPEND(&state->machine.instructions, inst);
     fprintf(file, "write\n");    
     state->stack_s -= 3;
 }
     
 void gen_read(Program_State *state, FILE *file) {
+	Inst inst = create_inst(INST_READ, (Word){.as_int=0}, 0);
+	DA_APPEND(&state->machine.instructions, inst);
     fprintf(file, "read\n");    
     state->stack_s -= 1;
 }
@@ -161,6 +217,8 @@ void gen_arr_offset(Program_State *state, FILE *file, size_t var_index, Expr *ar
     gen_push(state, file, data_type_s[type]);            
     gen_mul(state, file);
     gen_add(state, file);
+	Inst inst = create_inst(INST_TOVP, (Word){.as_int=0}, 0);
+	DA_APPEND(&state->machine.instructions, inst);
     fprintf(file, "tovp\n");            
 }
 
@@ -171,6 +229,8 @@ void gen_struct_offset(Program_State *state, FILE *file, Type_Type type, size_t 
     gen_push(state, file, data_type_s[type]);            
     gen_mul(state, file);
     gen_add(state, file);
+	Inst inst = create_inst(INST_TOVP, (Word){.as_int=0}, 0);
+	DA_APPEND(&state->machine.instructions, inst);
     fprintf(file, "tovp\n");            
 }
     
@@ -205,6 +265,8 @@ char *append_tasm_ext(char *filename) {
 }
     
 char *op_types[] = {"add", "sub", "mul", "div", "mod", "cmpe", "cmpne", "cmpge", "cmple", "cmpg", "cmpl"};
+Inst_Set op_types_inst[] = {INST_ADD, INST_SUB, INST_MUL, INST_DIV, INST_MOD, INST_CMPE, 
+						 INST_CMPNE, INST_CMPGE, INST_CMPLE, INST_CMPG, INST_CMPL};
 
 Function *get_func(Functions functions, String_View name) {
     for(size_t i = 0; i < functions.count; i++) {
@@ -264,19 +326,27 @@ void gen_builtin(Program_State *state, FILE *file, Expr *expr) {
     }
     switch(expr->value.builtin.type) {
         case BUILTIN_ALLOC: {
+			Inst inst = create_inst(INST_TOVP, (Word){.as_int=0}, 0);
+			DA_APPEND(&state->machine.instructions, inst);
             fprintf(file, "alloc\n");
         } break;
         case BUILTIN_DEALLOC: {
+			Inst inst = create_inst(INST_DEALLOC, (Word){.as_int=0}, 0);
+			DA_APPEND(&state->machine.instructions, inst);
             fprintf(file, "dealloc\n");
             state->stack_s--;
         } break;
         case BUILTIN_TOVP: {
+			Inst inst = create_inst(INST_TOVP, (Word){.as_int=0}, 0);
+			DA_APPEND(&state->machine.instructions, inst);
             fprintf(file, "tovp\n");
         } break;
         case BUILTIN_STORE: {
             if(expr->value.builtin.value.count != 3) {
                 PRINT_ERROR(expr->loc, "incorrect arg amounts for store");
             }
+			Inst inst = create_inst(INST_WRITE, (Word){.as_int=0}, 0);
+			DA_APPEND(&state->machine.instructions, inst);
             fprintf(file, "write\n");
             state->stack_s -= 3;
         } break;
@@ -284,6 +354,8 @@ void gen_builtin(Program_State *state, FILE *file, Expr *expr) {
             if(expr->value.builtin.value.count != 2) {
                 PRINT_ERROR(expr->loc, "incorrect arg amounts for get");
             }
+			Inst inst = create_inst(INST_READ, (Word){.as_int=0}, 0);
+			DA_APPEND(&state->machine.instructions, inst);
             fprintf(file, "read\n");
             state->stack_s -= 1;
         } break;
@@ -309,6 +381,8 @@ void gen_expr(Program_State *state, FILE *file, Expr *expr) {
         case EXPR_BIN:
             gen_expr(state, file, expr->value.bin.lhs);
             gen_expr(state, file, expr->value.bin.rhs);
+			Inst inst = create_inst(op_types_inst[expr->value.bin.op.type], (Word){.as_int=0}, 0);
+			DA_APPEND(&state->machine.instructions, inst);
             fprintf(file, "%s\n", op_types[expr->value.bin.op.type]);                    
             state->stack_s--;
             break;
@@ -454,6 +528,8 @@ void gen_program(Program_State *state, Nodes nodes, FILE *file) {
                         fprintf(file, "; write\n");
                         gen_expr(state, file, node->value.native.args.data[0].value.expr);
                         gen_push(state, file, STDOUT);
+						Inst inst = create_inst(INST_NATIVE, (Word){.as_int=node->value.native.type}, INT_TYPE);
+						DA_APPEND(&state->machine.instructions, inst);
                         fprintf(file, "native %d\n", node->value.native.type);
                         state->stack_s -= 2;
                     } break;
@@ -465,6 +541,8 @@ void gen_program(Program_State *state, Nodes nodes, FILE *file) {
                         fprintf(file, "; exit\n");                
                         fprintf(file, "; expr\n");                                
                         gen_expr(state, file, node->value.native.args.data[0].value.expr);
+						Inst inst = create_inst(INST_NATIVE, (Word){.as_int=node->value.native.type}, INT_TYPE);
+						DA_APPEND(&state->machine.instructions, inst);
                         fprintf(file, "native %d\n", node->value.native.type);
                         state->stack_s--;
                     } break;           
@@ -528,7 +606,7 @@ void gen_program(Program_State *state, Nodes nodes, FILE *file) {
                     DA_APPEND(&state->vars, var);    
                 }
                 gen_jmp(file, node->value.func_dec.label);                                
-                gen_func_label(file, function.name);
+                gen_func_label(state, file, function.name);
             } break;
             case TYPE_FUNC_CALL: {
                 Function *function = get_func(state->program.functions, node->value.func_call.name);
@@ -542,7 +620,10 @@ void gen_program(Program_State *state, Nodes nodes, FILE *file) {
                 gen_func_call(file, node->value.func_call.name);
                 state->stack_s -= node->value.func_call.args.count;
                 // for the return value
-                if(function->type != TYPE_VOID) fprintf(file, "pop\n");
+                if(function->type != TYPE_VOID) {
+						gen_pop(state, file);
+						state->stack_s++;
+				}
             } break;
             case TYPE_RET: {
                 fprintf(file, "; return\n");
@@ -561,6 +642,8 @@ void gen_program(Program_State *state, Nodes nodes, FILE *file) {
                 size_t pre_stack_s = state->stack_s;
                 ret_scope_end(state, file);
                 state->stack_s = pre_stack_s;
+				Inst inst = create_inst(INST_RET, (Word){.as_int=0}, 0);
+				DA_APPEND(&state->machine.instructions, inst);
                 fprintf(file, "ret\n");
             } break;
             case TYPE_IF: {
@@ -578,7 +661,7 @@ void gen_program(Program_State *state, Nodes nodes, FILE *file) {
                     PRINT_ERROR(node->loc, "expected `if` but found `%d`\n", state->block_stack.data[state->block_stack.count]);
                 }
                 DA_APPEND(&state->block_stack, BLOCK_ELSE);                
-                gen_label(file, node->value.el.label1);
+                gen_label(state, file, node->value.el.label1);
             } break;
             case TYPE_WHILE: {
                 fprintf(file, "; while loop\n");                                                                                
@@ -604,9 +687,11 @@ void gen_program(Program_State *state, Nodes nodes, FILE *file) {
                     gen_while_jmp(file, state->while_labels.data[--state->while_labels.count]);
                 } else if(block == BLOCK_FUNC) {
                     fprintf(file, "; end func\n");                                                                                                                
+					Inst inst = create_inst(INST_RET, (Word){.as_int=0}, 0);
+					DA_APPEND(&state->machine.instructions, inst);
                     fprintf(file, "ret\n");                                                                                                                                    
                 }
-                gen_label(file, node->value.label.num);
+                gen_label(state, file, node->value.label.num);
             } break;
             case TYPE_EXPR_STMT: {
                 gen_expr(state, file, node->value.expr_stmt);
