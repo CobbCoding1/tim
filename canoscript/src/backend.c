@@ -82,7 +82,9 @@ void gen_div(Program_State *state, FILE *file) {
 }
 
 void gen_push_str(Program_State *state, FILE *file, String_View value) {
-	ASSERT(false, "not implemented yet");
+	Inst inst = create_inst(INST_PUSH_STR, (Word){.as_int=state->machine.str_stack.count}, INT_TYPE);
+	DA_APPEND(&state->machine.instructions, inst);
+	DA_APPEND(&state->machine.str_stack, value);
     fprintf(file, "push_str \""View_Print"\"\n", View_Arg(value));
     state->stack_s += 1;
 }

@@ -33,6 +33,37 @@ bool is_valid_escape(char c){
             return false;
     }
 }
+	
+char get_escape(char c){
+    switch(c){
+        case 'n':
+			return '\n';
+        case 't':
+			return '\t';
+        case 'v':
+			return '\v';		
+        case 'b':
+			return '\b';		
+        case 'r':
+			return '\r';		
+        case 'f':
+			return '\f';				
+        case 'a':
+			return '\a';						
+        case '\\':
+			return '\\';						
+        case '?':
+			return '\?';								
+        case '\'':
+			return '\'';						
+        case '\"':
+			return '\"';					
+        case '0':
+			return '\0';							
+        default:
+			ASSERT(false, "unexpected escape character");
+    }
+}
 
 String_View read_file_to_view(Arena *arena, char *filename) {
     FILE *file = fopen(filename, "r");
@@ -201,15 +232,18 @@ Dynamic_Str generate_string(Arena *arena, String_View *view, Token token, char d
     *view = view_chop_left(*view);
     while(view->len > 0 && *view->data != delim) {
 	    if(view->len > 1 && *view->data == '\\') {
-		    ADA_APPEND(arena, &word, *view->data);                                        
+		    //ADA_APPEND(arena, &word, *view->data);                                        
 		    *view = view_chop_left(*view);
 		    if(!is_valid_escape(*view->data)) {
 			    PRINT_ERROR(token.loc, "unexpected escape character: `%c`", *view->data);
 		    }
-	    }
-	    ADA_APPEND(arena, &word, *(*view).data);
+			ADA_APPEND(arena, &word, get_escape(*view->data));
+	    } else {
+		    ADA_APPEND(arena, &word, *(*view).data);
+		}
 	    *view = view_chop_left(*view);
     }
+	ADA_APPEND(arena, &word, '\0');		
 	return word;
 }
 

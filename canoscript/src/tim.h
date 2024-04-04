@@ -156,12 +156,17 @@ typedef struct {
 	size_t count;
 	size_t capacity;
 } Insts;
+	
+typedef struct {
+	String_View *data;
+	size_t count;
+	size_t capacity;
+} Str_Stack;
 
 typedef struct {
     Data stack[MAX_STACK_SIZE];
     int stack_size;
-    String_View str_stack[MAX_STACK_SIZE];
-    size_t str_stack_size;
+    Str_Stack str_stack;
     size_t return_stack[MAX_STACK_SIZE];
     int return_stack_size;
     size_t program_size;
@@ -597,9 +602,9 @@ void write_program_to_file(Machine *machine, char *file_path){
     if(file == NULL){
         TIM_ERROR("error: could not write to file\n");
     }
-    fwrite(&machine->str_stack_size, sizeof(size_t), 1, file);
-    for(int i = 0; i < (int)machine->str_stack_size; i++){
-        String_View str = machine->str_stack[i];
+    fwrite(&machine->str_stack.count, sizeof(size_t), 1, file);
+    for(int i = 0; i < (int)machine->str_stack.count; i++){
+        String_View str = machine->str_stack.data[i];
         fwrite(&str.len, sizeof(size_t), 1, file);        
         fwrite(str.data, sizeof(char), str.len, file);
     }
@@ -619,13 +624,13 @@ Machine *read_program_from_file(Machine *machine, char *file_path){
 
     int index = 0;
     size_t length;
-    fread(&machine->str_stack_size, 1, sizeof(size_t), file);    
-    for(size_t i = 0; i < machine->str_stack_size; i++) {
+    fread(&machine->str_stack.count, 1, sizeof(size_t), file);    
+    for(size_t i = 0; i < machine->str_stack.count; i++) {
         size_t len = 0;
         fread(&len, 1, sizeof(size_t), file);        
         char *str = malloc(sizeof(char)*len);
         fread(str, sizeof(char), len, file);
-        machine->str_stack[i] = view_create(str, len);
+        machine->str_stack.data[i] = view_create(str, len);
     }
     index = ftell(file);
 
@@ -709,7 +714,7 @@ void machine_disasm(Machine *machine) {
 				case INT_TYPE: {
 					uint64_t value = machine->instructions.data[i].value.as_int;				
 					if(machine->instructions.data[i].type == INST_PUSH_STR) {
-						String_View string = machine->str_stack[value];
+						String_View string = machine->str_stack.data[value];
 						putc('"', stdout);
 						for(size_t j = 0; j < string.len-1; j++) {
 							handle_char_print(string.data[j]);
@@ -766,7 +771,7 @@ void run_instructions(Machine *machine) {
                 break;
             case INST_PUSH_STR: {
                 size_t index = machine->instructions.data[ip].value.as_int;
-                String_View str = machine->str_stack[index];
+                String_View str = machine->str_stack.data[index];
                 insert_memory(machine, str.len);
                 for(size_t i = 0; i < str.len; i++) {
                     machine->memory->cell.data[i] = str.data[i];
