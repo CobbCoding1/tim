@@ -6,6 +6,12 @@
 #include "tim.h"
 
 typedef struct {
+	size_t *data;
+	size_t count;	
+	size_t capacity;
+} Labels;
+
+typedef struct {
     Variables vars;
     Functions functions;
     size_t stack_s;
@@ -16,6 +22,7 @@ typedef struct {
     Block_Stack block_stack;    
     Nodes structs;
 	Program program;
+	Labels labels;
 	Machine machine;
 } Program_State;
     
@@ -25,12 +32,12 @@ void gen_push_str(Program_State *state, FILE *file, String_View value);
 void gen_indup(Program_State *state, FILE *file, size_t value);
 void gen_inswap(Program_State *state, FILE *file, size_t value);
 void gen_zjmp(Program_State *state, FILE *file, size_t label);
-void gen_jmp(FILE *file, size_t label);
-void gen_while_jmp(FILE *file, size_t label);
+void gen_jmp(Program_State *state, FILE *file, size_t label);
+void gen_while_jmp(Program_State *state, FILE *file, size_t label);
 void gen_label(Program_State *state, FILE *file, size_t label);
 void gen_func_label(Program_State *state, FILE *file, String_View label);
-void gen_func_call(FILE *file, String_View label);
-void gen_while_label(FILE *file, size_t label);
+void gen_func_call(Program_State *state, FILE *file, String_View label);
+void gen_while_label(Program_State *state, FILE *file, size_t label);
 void strip_off_dot(char *str);
 char *append_tasm_ext(char *filename);
 Function *get_func(Functions functions, String_View name);

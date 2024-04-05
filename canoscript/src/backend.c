@@ -130,39 +130,52 @@ void gen_global_inswap(Program_State *state, FILE *file, size_t value) {
 }
     
 void gen_zjmp(Program_State *state, FILE *file, size_t label) {
-	ASSERT(false, "not implemented yet");
+	Inst inst = create_inst(INST_ZJMP, (Word){.as_int=label}, INT_TYPE);
+	DA_APPEND(&state->machine.instructions, inst);
     fprintf(file, "zjmp label%zu\n", label);
     state->stack_s--;
 }
     
-void gen_jmp(FILE *file, size_t label) {
-	ASSERT(false, "not implemented yet");
+void gen_jmp(Program_State *state, FILE *file, size_t label) {
+	Inst inst = create_inst(INST_JMP, (Word){.as_int=label}, INT_TYPE);
+	DA_APPEND(&state->machine.instructions, inst);
     fprintf(file, "jmp label%zu\n", label);
 }
     
-void gen_while_jmp(FILE *file, size_t label) {
-	ASSERT(false, "not implemented yet");
+void gen_while_jmp(Program_State *state, FILE *file, size_t label) {
+	Inst inst = create_inst(INST_JMP, (Word){.as_int=label}, INT_TYPE);
+	DA_APPEND(&state->machine.instructions, inst);
     fprintf(file, "jmp while%zu\n", label);
 }
-    
+
 void gen_label(Program_State *state, FILE *file, size_t label) {
 	Inst inst = create_inst(INST_NOP, (Word){.as_int=0}, 0);
-	DA_APPEND(&state->machine.instructions, inst);
+	while(state->labels.count <= label) DA_APPEND(&state->labels, 0);
+	state->labels.data[label] = state->machine.instructions.count;	
+	DA_APPEND(&state->machine.instructions, inst);	
     fprintf(file, "label%zu:\n", label);
 }
     
 void gen_func_label(Program_State *state, FILE *file, String_View label) {
 	Inst inst = create_inst(INST_NOP, (Word){.as_int=0}, 0);
-	DA_APPEND(&state->machine.instructions, inst);
+	Function *function = get_func(state->functions, label);
+	function->label = state->machine.instructions.count;
+	DA_APPEND(&state->machine.instructions, inst);	
     fprintf(file, View_Print":\n", View_Arg(label));
 }
     
-void gen_func_call(FILE *file, String_View label) {
-	ASSERT(false, "not implemented yet");
+void gen_func_call(Program_State *state, FILE *file, String_View label) {
+	Function *function = get_func(state->functions, label);
+	Inst inst = create_inst(INST_CALL, (Word){.as_int=function->label}, INT_TYPE);
+	DA_APPEND(&state->machine.instructions, inst);
     fprintf(file, "call "View_Print"\n", View_Arg(label));
 }
     
-void gen_while_label(FILE *file, size_t label) {
+void gen_while_label(Program_State *state, FILE *file, size_t label) {
+	Inst inst = create_inst(INST_NOP, (Word){.as_int=0}, 0);
+	while(state->labels.count <= label) DA_APPEND(&state->labels, 0);
+	state->labels.data[label] = state->machine.instructions.count;	
+	DA_APPEND(&state->machine.instructions, inst);	
     fprintf(file, "while%zu:\n", label);   
 }
     
@@ -418,7 +431,7 @@ void gen_expr(Program_State *state, FILE *file, Expr *expr) {
             for(size_t i = 0; i < expr->value.func_call.args.count; i++) {
                 gen_expr(state, file, expr->value.func_call.args.data[i]);
             }
-            gen_func_call(file, expr->value.func_call.name);
+            gen_func_call(state, file, expr->value.func_call.name);
 			for(size_t i = 0; i < expr->value.func_call.args.count; i++) {
 				state->stack_s--;		
 			}
@@ -606,7 +619,7 @@ void gen_program(Program_State *state, Nodes nodes, FILE *file) {
                     var.type = function.args.data[i].value.var.type;
                     DA_APPEND(&state->vars, var);    
                 }
-                gen_jmp(file, node->value.func_dec.label);                                
+                gen_jmp(state, file, node->value.func_dec.label);                                
                 gen_func_label(state, file, function.name);
             } break;
             case TYPE_FUNC_CALL: {
@@ -618,7 +631,7 @@ void gen_program(Program_State *state, Nodes nodes, FILE *file) {
                 for(size_t i = 0; i < node->value.func_call.args.count; i++) {
                     gen_expr(state, file, node->value.func_call.args.data[i]);
                 }
-                gen_func_call(file, node->value.func_call.name);
+                gen_func_call(state, file, node->value.func_call.name);
                 state->stack_s -= node->value.func_call.args.count;
                 // for the return value
                 if(function->type != TYPE_VOID) {
@@ -657,7 +670,7 @@ void gen_program(Program_State *state, Nodes nodes, FILE *file) {
                 fprintf(file, "; else statement\n");                                                                                
                 ASSERT(state->block_stack.count > 0, "block stack underflowed");
                 if(state->block_stack.data[--state->block_stack.count] == BLOCK_IF) {
-                    gen_jmp(file, node->value.el.label2);
+                    gen_jmp(state, file, node->value.el.label2);
                 } else {
                     PRINT_ERROR(node->loc, "expected `if` but found `%d`\n", state->block_stack.data[state->block_stack.count]);
                 }
@@ -669,7 +682,7 @@ void gen_program(Program_State *state, Nodes nodes, FILE *file) {
                 fprintf(file, "; expr\n");                                                                            
                 DA_APPEND(&state->block_stack, BLOCK_WHILE);
                 DA_APPEND(&state->while_labels, state->while_label);
-                gen_while_label(file, state->while_label++);
+                gen_while_label(state, file, state->while_label++);
                 gen_expr(state, file, node->value.conditional);
             } break;
             case TYPE_THEN: {
@@ -685,7 +698,7 @@ void gen_program(Program_State *state, Nodes nodes, FILE *file) {
                 Block_Type block = state->block_stack.data[--state->block_stack.count];
                 if(block == BLOCK_WHILE) {
                     fprintf(file, "; end while\n");                                                                                                                
-                    gen_while_jmp(file, state->while_labels.data[--state->while_labels.count]);
+                    gen_while_jmp(state, file, state->while_labels.data[--state->while_labels.count]);
                 } else if(block == BLOCK_FUNC) {
                     fprintf(file, "; end func\n");                                                                                                                
 					Inst inst = create_inst(INST_RET, (Word){.as_int=0}, 0);
@@ -704,12 +717,27 @@ void gen_program(Program_State *state, Nodes nodes, FILE *file) {
     }
 
 }
+	
+void gen_label_arr(Program_State *state) {
+	Insts instructions = state->machine.instructions;
+	for(size_t i = 0; i < instructions.count; i++) {
+		switch(instructions.data[i].type) {
+			case INST_JMP:
+			case INST_ZJMP:
+			case INST_NZJMP:
+				instructions.data[i].value.as_int = state->labels.data[instructions.data[i].value.as_int];			
+			default:
+				continue;
+		}
+	}
+}
     
 void generate(Program_State *state, Program *program, char *filename) {
     char *output = append_tasm_ext(filename);
     FILE *file = fopen(output, "w");
 	gen_vars(state, program, file);
     gen_program(state, program->nodes, file);
+	gen_label_arr(state);	
 	fclose(file);	
 	free(output);
 }

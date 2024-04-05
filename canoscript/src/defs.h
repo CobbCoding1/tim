@@ -268,6 +268,7 @@ typedef struct {
     String_View name;
     Nodes args;
     Type_Type type;
+	size_t label;	
 } Function;
 	
 typedef struct {
