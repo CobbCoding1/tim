@@ -1,0 +1,13 @@
+name: build and test on pr
+
+on:
+  pull_request:
+    branches:
+      - main
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - run: make setup
+      - run: make
