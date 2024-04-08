@@ -143,7 +143,7 @@ void gen_jmp(Program_State *state, FILE *file, size_t label) {
 }
     
 void gen_while_jmp(Program_State *state, FILE *file, size_t label) {
-	Inst inst = create_inst(INST_JMP, (Word){.as_int=label}, INT_TYPE);
+	Inst inst = create_inst(INST_JMP, (Word){.as_int=label}, PTR_TYPE);
 	DA_APPEND(&state->machine.instructions, inst);
     fprintf(file, "jmp while%zu\n", label);
 }
@@ -165,16 +165,17 @@ void gen_func_label(Program_State *state, FILE *file, String_View label) {
 }
     
 void gen_func_call(Program_State *state, FILE *file, String_View label) {
-	Function *function = get_func(state->functions, label);
-	Inst inst = create_inst(INST_CALL, (Word){.as_int=function->label}, INT_TYPE);
+	size_t loc = get_func_loc(state->functions, label);
+	Inst inst = create_inst(INST_CALL, (Word){.as_int=loc}, INT_TYPE);
 	DA_APPEND(&state->machine.instructions, inst);
     fprintf(file, "call "View_Print"\n", View_Arg(label));
 }
     
 void gen_while_label(Program_State *state, FILE *file, size_t label) {
 	Inst inst = create_inst(INST_NOP, (Word){.as_int=0}, 0);
-	while(state->labels.count <= label) DA_APPEND(&state->labels, 0);
-	state->labels.data[label] = state->machine.instructions.count;	
+	while(state->while_labels.count <= label) DA_APPEND(&state->while_labels, 0);
+	state->while_labels.data[label] = state->machine.instructions.count;	
+	printf("%zu\n", state->machine.instructions.count);	
 	DA_APPEND(&state->machine.instructions, inst);	
     fprintf(file, "while%zu:\n", label);   
 }
@@ -291,6 +292,15 @@ Function *get_func(Functions functions, String_View name) {
     return false;
 }
 	
+size_t get_func_loc(Functions functions, String_View name) {
+    for(size_t i = 0; i < functions.count; i++) {
+        if(view_cmp(functions.data[i].name, name)) {
+            return i;
+        }
+    }
+	ASSERT(false, "unexpected function name");
+}
+	
 bool is_func_arg(Program_State *state, String_View name) {
 	if(state->functions.count == 0) return false;
 	size_t index = state->functions.count-1;
@@ -340,7 +350,7 @@ void gen_builtin(Program_State *state, FILE *file, Expr *expr) {
     }
     switch(expr->value.builtin.type) {
         case BUILTIN_ALLOC: {
-			Inst inst = create_inst(INST_TOVP, (Word){.as_int=0}, 0);
+			Inst inst = create_inst(INST_ALLOC, (Word){.as_int=0}, 0);
 			DA_APPEND(&state->machine.instructions, inst);
             fprintf(file, "alloc\n");
         } break;
@@ -725,7 +735,16 @@ void gen_label_arr(Program_State *state) {
 			case INST_JMP:
 			case INST_ZJMP:
 			case INST_NZJMP:
+				if(instructions.data[i].data_type == PTR_TYPE) {
+					instructions.data[i].data_type = INT_TYPE;
+					break;
+				}
+				printf("%zu ", state->labels.data[instructions.data[i].value.as_int]);
 				instructions.data[i].value.as_int = state->labels.data[instructions.data[i].value.as_int];			
+				break;
+			case INST_CALL:
+				instructions.data[i].value.as_int = state->functions.data[instructions.data[i].value.as_int].label;						
+				break;
 			default:
 				continue;
 		}
