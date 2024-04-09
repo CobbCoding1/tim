@@ -385,19 +385,23 @@ void gen_builtin(Program_State *state, FILE *file, Expr *expr) {
         } break;
     }
 }
+
+void gen_field_offset(Program_State *state, FILE *file, Struct structure, String_View var) {
+    size_t offset = 0;
+    size_t i;
+    for(i = 0; !view_cmp(structure.values.data[i].value.var.name, var); i++) {
+        if(i == structure.values.count) PRINT_ERROR((Location){0}, "unknown field: "View_Print" of struct: "View_Print, View_Arg(var), View_Arg(structure.name));
+        offset += (1 * data_type_s[structure.values.data[i].value.var.type]);
+    }
+    gen_offset(state, file, offset);
+    gen_push(state, file, data_type_s[structure.values.data[i].value.var.type]);
+}
     
 void gen_struct_field_offset(Program_State *state, FILE *file, String_View struct_name, String_View var) {
     Variable struct_var = get_variable(state, struct_name);
     Struct structure = get_struct(state->structs, struct_var.struct_name).value.structs;
-    size_t offset = 0;
-    size_t i;
-    for(i = 0; !view_cmp(structure.values.data[i].value.var.name, var); i++) {
-        if(i == structure.values.count) PRINT_ERROR((Location){0}, "unknown field: "View_Print" of struct: "View_Print, View_Arg(var), View_Arg(struct_name));
-        offset += (1 * data_type_s[structure.values.data[i].value.var.type]);
-    }
-    gen_indup(state, file, state->stack_s-struct_var.stack_pos);
-    gen_offset(state, file, offset);
-    gen_push(state, file, data_type_s[structure.values.data[i].value.var.type]);
+    gen_indup(state, file, state->stack_s-struct_var.stack_pos);	
+	gen_field_offset(state, file, structure, var);
 }
     
 void gen_expr(Program_State *state, FILE *file, Expr *expr) {
@@ -456,6 +460,21 @@ void gen_expr(Program_State *state, FILE *file, Expr *expr) {
             gen_arr_offset(state, file, index, expr->value.array.index, type);
             gen_push(state, file, data_type_s[type]);
             gen_read(state, file);
+        } break;
+        case EXPR_FIELD_ARR: {
+            int index = get_variable_location(state, expr->value.array.name);
+            if(index == -1) {
+                PRINT_ERROR(expr->loc, "variable `"View_Print"` referenced before assignment", View_Arg(expr->value.array.name));
+            }
+            Type_Type type = get_variable_type(state, expr->value.array.name);                        
+			Variable var = get_variable(state, expr->value.array.name);
+			gen_arr_offset(state, file, index, expr->value.array.index, type);
+            gen_push(state, file, data_type_s[type]);
+            gen_read(state, file);
+			Struct structure = get_struct(state->structs, var.struct_name).value.structs;
+            String_View var_name = expr->value.array.var_name;			
+			gen_field_offset(state, file, structure, var_name);			
+            gen_read(state, file);            
         } break;
         case EXPR_FIELD: {
             String_View structure = expr->value.field.structure;

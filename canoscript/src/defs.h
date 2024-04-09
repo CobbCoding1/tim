@@ -140,6 +140,7 @@ typedef struct {
 typedef struct {
     String_View name;
     struct Expr *index;
+    String_View var_name;	
 } Array;
     
 typedef struct {
@@ -158,6 +159,7 @@ typedef enum {
     EXPR_FUNCALL,
     EXPR_ARR,
     EXPR_FIELD,
+	EXPR_FIELD_ARR,
     EXPR_BUILTIN,
     EXPR_COUNT,
 } Expr_Type;
