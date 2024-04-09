@@ -175,7 +175,6 @@ void gen_while_label(Program_State *state, FILE *file, size_t label) {
 	Inst inst = create_inst(INST_NOP, (Word){.as_int=0}, 0);
 	while(state->while_labels.count <= label) DA_APPEND(&state->while_labels, 0);
 	state->while_labels.data[label] = state->machine.instructions.count;	
-	printf("%zu\n", state->machine.instructions.count);	
 	DA_APPEND(&state->machine.instructions, inst);	
     fprintf(file, "while%zu:\n", label);   
 }
@@ -758,7 +757,6 @@ void gen_label_arr(Program_State *state) {
 					instructions.data[i].data_type = INT_TYPE;
 					break;
 				}
-				printf("%zu ", state->labels.data[instructions.data[i].value.as_int]);
 				instructions.data[i].value.as_int = state->labels.data[instructions.data[i].value.as_int];			
 				break;
 			case INST_CALL:
