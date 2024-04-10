@@ -1,0 +1,14 @@
+name: build and test on push
+
+on:
+  push:
+    branches:
+      - main
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - run: make setup
+      - run: make
+      - run: make test
