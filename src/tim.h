@@ -12,19 +12,22 @@
 #include <stdint.h>
 #include <fcntl.h>
 #include <inttypes.h>
+#include <dlfcn.h>
+
+
+#include "view.h"
 
 #define MAX_STACK_SIZE 1024
 #define DATA_START_CAPACITY 16
 
-/*
-	GET_STR
-	MOV_STR
-	POP_STR
-	DUP_STR
-	SWAP_STR
-	INSWAP_STR
-	INDEX
-*/
+#define DA_APPEND(da, item) do {                                                       \
+    if ((da)->count >= (da)->capacity) {                                               \
+        (da)->capacity = (da)->capacity == 0 ? DATA_START_CAPACITY : (da)->capacity*2; \
+        (da)->data = custom_realloc((da)->data, (da)->capacity*sizeof(*(da)->data));       \
+        ASSERT((da)->data != NULL, "outta ram");                               \
+    }                                                                                  \
+    (da)->data[(da)->count++] = (item);                                               \
+} while (0)
 
 typedef enum {
     INST_NOP = 0,
@@ -47,6 +50,8 @@ typedef enum {
     INST_MUL,
     INST_DIV,
     INST_MOD,
+	INST_AND,
+	INST_OR,
 	// TODO GET RID OF _F OPERATIONS AND REPLACE WITH SWITCH OVER DATA_TYPE
     INST_ADD_F,
     INST_SUB_F,
@@ -74,6 +79,7 @@ typedef enum {
     INST_PRINT,
     INST_NATIVE,
     INST_ENTRYPOINT,
+	INST_LOAD_LIBRARY,
     INST_SS,
     INST_HALT,
     INST_COUNT,
@@ -81,7 +87,12 @@ typedef enum {
 
 typedef enum {
     INT_TYPE = 0,
+    U8_TYPE,	
+    U16_TYPE,	
+    U32_TYPE,		
+    U64_TYPE,			
     FLOAT_TYPE,
+	DOUBLE_TYPE,
     CHAR_TYPE,
     PTR_TYPE,
     REGISTER_TYPE,
@@ -90,7 +101,12 @@ typedef enum {
     
 typedef union {
     int64_t as_int;
-    double as_float;
+	uint8_t as_u8;
+	uint16_t as_u16;
+	uint32_t as_u32;
+	uint64_t as_u64;
+    float as_float;
+	double as_double;
     char as_char;
     void *as_pointer;
 } Word;
@@ -133,18 +149,65 @@ typedef struct {
             exit(1); \
         } \
     } while (0)
+	
+#define GET_TYPE(var, val) \
+		do { \
+		switch((var).type) { \
+			case INT_TYPE: (val) = (var).word.as_int; break;				\
+			case U8_TYPE: (val) = (var).word.as_u8; break;\
+			case U16_TYPE: (val) = (var).word.as_u16; break;			\
+			case U32_TYPE: (val) = (var).word.as_u32; break;			\
+			case U64_TYPE: (val) = (var).word.as_u64; break;			\
+			case FLOAT_TYPE: (val) = (var).word.as_float; break;					\
+			case DOUBLE_TYPE: (val) = (var).word.as_double; break;											\
+			case CHAR_TYPE: (val) = (var).word.as_char; break;												\
+			case PTR_TYPE: (val) = (uint64_t)(var).word.as_pointer; break;										\
+			default: ASSERT(false, "Unknown type"); \
+		} \
+	} while(0)
 
+#define TYPE_OP(as_type, return_type, op) \
+        do {  \
+				switch(a.type) {\
+					case CHAR_TYPE:\
+					case PTR_TYPE:\
+					case U8_TYPE:\
+					case U16_TYPE:\
+					case U32_TYPE:\
+					case U64_TYPE: {\
+						uint64_t a_val;\
+						uint64_t b_val;		\
+						GET_TYPE(a, a_val);			\
+						GET_TYPE(b, b_val);\
+						push(machine, (Word){.as_type=(a_val op b_val)}, return_type);\
+					} break;\
+					case INT_TYPE: {\
+						int64_t a_val;\
+						int64_t b_val;		\
+						GET_TYPE(a, a_val);			\
+						GET_TYPE(b, b_val);\
+						push(machine, (Word){.as_type=(a_val op b_val)}, return_type);\
+					} break;\
+					case FLOAT_TYPE: {\
+						float a_val;\
+						float b_val;		\
+						GET_TYPE(a, a_val);			\
+						GET_TYPE(b, b_val);\
+						push(machine, (Word){.as_type=(a_val op b_val)}, return_type);\
+					} break;\
+					case DOUBLE_TYPE: {\
+						double a_val;\
+						double b_val;		\
+						GET_TYPE(a, a_val);			\
+						GET_TYPE(b, b_val);\
+						push(machine, (Word){.as_type=(a_val op b_val)}, return_type);\
+					} break;\
+					default:\
+						ASSERT(false, "Unknown type");\
+                } \
+            } while(0)
 
-#define DA_APPEND(da, item) do {                                                       \
-    if ((da)->count >= (da)->capacity) {                                               \
-        (da)->capacity = (da)->capacity == 0 ? DATA_START_CAPACITY : (da)->capacity*2; \
-        (da)->data = realloc((da)->data, (da)->capacity*sizeof(*(da)->data));       \
-        ASSERT((da)->data != NULL, "outta ram");                               \
-    }                                                                                  \
-    (da)->data[(da)->count++] = (item);                                               \
-} while (0)
-
-#define PRINT_ERROR(...) do {				\
+#define TIM_ERROR(...) do {				\
 	fprintf(stderr, __VA_ARGS__); exit(1);   \
 } while (0)
 
@@ -167,17 +230,27 @@ typedef struct Memory {
     struct Memory *next;
     Memory_Cell cell;
 } Memory;
-    
+	
 typedef struct {
-    size_t len;
-    char *data;
-} String_View;
+	Inst *data;
+	size_t count;
+	size_t capacity;
+} Insts;
+	
+typedef struct {
+	String_View *data;
+	size_t count;
+	size_t capacity;
+} Str_Stack;
+	
+struct Machine;
 
-typedef struct {
+typedef void (*native)(struct Machine*);
+
+typedef struct Machine {
     Data stack[MAX_STACK_SIZE];
     int stack_size;
-    String_View str_stack[MAX_STACK_SIZE];
-    size_t str_stack_size;
+    Str_Stack str_stack;
     size_t return_stack[MAX_STACK_SIZE];
     int return_stack_size;
     size_t program_size;
@@ -188,8 +261,11 @@ typedef struct {
     bool has_entrypoint;
 
     Register registers[AMOUNT_OF_REGISTERS];
+		
+	native native_ptrs[100];
+	size_t native_ptrs_s;
 
-    Inst *instructions;
+    Insts instructions;
 } Machine;
 
 // helper functions
@@ -221,7 +297,10 @@ void print_stack(Machine *machine);
 void write_program_to_file(Machine *machine, char *file_path);
 Machine *read_program_from_file(Machine *machine, char *file_path);
 void machine_disasm(Machine *machine);
+void machine_free(Machine *machine);
+void machine_load_native(Machine *machine, native ptr);
 void run_instructions(Machine *machine);
 
 
-#endif
+#endif // TIM_H
+
